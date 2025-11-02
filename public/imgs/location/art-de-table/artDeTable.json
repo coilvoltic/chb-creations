@@ -1,0 +1,17 @@
+[
+    {
+        "name": "Lot 2 assiettes liseré doré",
+        "price": 1.5, 
+        "path": "articles/lot2AssiettesLisereDore.png"
+    },
+    {
+        "name": "Lot 2 assiettes simples",
+        "price": 1,
+        "path": "articles/lot2AssiettesSimples.png"
+    },
+    {
+        "name": "Sous assiettes gold",
+        "price": 1, 
+        "path": "articles/sousAssiettesGold.png"
+    }
+]

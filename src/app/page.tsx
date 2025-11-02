@@ -1,103 +1,147 @@
-import Image from "next/image";
+import Navbar from '../components/Navbar'
+import Link from 'next/link'
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={28}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="min-h-screen bg-white">
+      <Navbar />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {/* Hero Section with Image */}
+      <section className="relative w-full h-screen overflow-hidden -mt-[104px]">
+        <div className="absolute inset-0">
+          <img
+            src="/imgs/mainImage.jpeg"
+            alt="CHB Créations"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/75 to-black/85" />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <div className="relative h-full flex items-end pb-12 md:pb-16">
+          <div className="container mx-auto px-6 md:px-12 lg:px-16">
+            <div className="max-w-3xl">
+              <p className="text-sm md:text-base lg:text-lg text-white font-bold uppercase tracking-wide leading-relaxed animate-fade-in-up">
+                L'ART DU RAFFINEMENT POUR SUBLIMER VOS ÉVÉNEMENTS.
+              </p>
+              <p className="text-xs md:text-sm text-white/90 font-semibold uppercase tracking-wide mt-2 animate-fade-in-up delay-200">
+                Créations personnalisées, décoration, location et accessoires uniques pour des moments inoubliables
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Services Section */}
+      <section className="py-24 md:py-32 bg-gray-50">
+        <div className="container mx-auto px-6 md:px-12 lg:px-16">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {/* Locations */}
+              <Link href="/services/locations" className="group cursor-pointer">
+                <div className="bg-white rounded-3xl overflow-hidden shadow-soft hover:shadow-dark transition-all duration-300 animate-fade-in-up delay-100">
+                  <div className="relative h-64 overflow-hidden">
+                    <img
+                      src="/imgs/location/mainLocation.png"
+                      alt="Locations"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  </div>
+                  <div className="p-6 text-center">
+                    <h2 className="text-xl font-bold mb-2">Locations</h2>
+                    <p className="text-sm text-gray-600 font-light mb-4">
+                      Art de table, trônes, décoration et tenues
+                    </p>
+                    <span className="inline-flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">
+                      Découvrir
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Accessoires */}
+              <Link href="/services/accessoires" className="group cursor-pointer">
+                <div className="bg-white rounded-3xl overflow-hidden shadow-soft hover:shadow-dark transition-all duration-300 animate-fade-in-up delay-200">
+                  <div className="relative h-64 overflow-hidden">
+                    <img
+                      src="/imgs/personnalisation/mainPersonnalisation.jpeg"
+                      alt="Accessoires"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  </div>
+                  <div className="p-6 text-center">
+                    <h2 className="text-xl font-bold mb-2">Accessoires</h2>
+                    <p className="text-sm text-gray-600 font-light mb-4">
+                      Créations uniques et personnalisées
+                    </p>
+                    <span className="inline-flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">
+                      Découvrir
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Henné */}
+              <Link href="/services/henne" className="group cursor-pointer">
+                <div className="bg-white rounded-3xl overflow-hidden shadow-soft hover:shadow-dark transition-all duration-300 animate-fade-in-up delay-300">
+                  <div className="relative h-64 overflow-hidden">
+                    <img
+                      src="/imgs/henne/mainHenne.jpeg"
+                      alt="Henné"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  </div>
+                  <div className="p-6 text-center">
+                    <h2 className="text-xl font-bold mb-2">Henné</h2>
+                    <p className="text-sm text-gray-600 font-light mb-4">
+                      Art traditionnel et contemporain
+                    </p>
+                    <span className="inline-flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">
+                      Découvrir
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Décoration */}
+              <Link href="/services/decoration" className="group cursor-pointer">
+                <div className="bg-white rounded-3xl overflow-hidden shadow-soft hover:shadow-dark transition-all duration-300 animate-fade-in-up delay-400">
+                  <div className="relative h-64 overflow-hidden">
+                    <img
+                      src="/imgs/livraison/mainLivraison.png"
+                      alt="Décoration"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  </div>
+                  <div className="p-6 text-center">
+                    <h2 className="text-xl font-bold mb-2">Décoration</h2>
+                    <p className="text-sm text-gray-600 font-light mb-4">
+                      Livraison et installation
+                    </p>
+                    <span className="inline-flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">
+                      Découvrir
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
