@@ -49,7 +49,7 @@ export default function TenuesHommePage() {
                   href="/contact"
                   className="inline-block bg-black text-white px-8 py-4 hover:bg-stone-800 transition-colors text-lg font-medium"
                 >
-                  Contactez-nous pour plus d'informations
+                  Contactez-nous pour plus d&apos;informations
                 </Link>
               </div>
             </div>

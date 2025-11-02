@@ -41,15 +41,15 @@ export default function DecoAccessoiresPage() {
 
             <div className="mt-12 text-center space-y-6">
               <p className="text-lg text-stone-700 max-w-2xl mx-auto">
-                Découvrez notre collection d'accessoires et d'éléments de décoration pour sublimer vos tables et espaces.
-                Des pièces soigneusement sélectionnées pour créer l'ambiance parfaite.
+                Découvrez notre collection d&apos;accessoires et d&apos;éléments de décoration pour sublimer vos tables et espaces.
+                Des pièces soigneusement sélectionnées pour créer l&apos;ambiance parfaite.
               </p>
               <div className="pt-8">
                 <Link
                   href="/contact"
                   className="inline-block bg-black text-white px-8 py-4 hover:bg-stone-800 transition-colors text-lg font-medium"
                 >
-                  Contactez-nous pour plus d'informations
+                  Contactez-nous pour plus d&apos;informations
                 </Link>
               </div>
             </div>

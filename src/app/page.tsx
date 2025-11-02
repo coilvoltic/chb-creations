@@ -20,7 +20,7 @@ export default function Home() {
           <div className="container mx-auto px-6 md:px-12 lg:px-16">
             <div className="max-w-3xl">
               <p className="text-sm md:text-base lg:text-lg text-white font-bold uppercase tracking-wide leading-relaxed animate-fade-in-up">
-                L'ART DU RAFFINEMENT POUR SUBLIMER VOS ÉVÉNEMENTS.
+                L&apos;ART DU RAFFINEMENT POUR SUBLIMER VOS ÉVÉNEMENTS.
               </p>
               <p className="text-xs md:text-sm text-white/90 font-semibold uppercase tracking-wide mt-2 animate-fade-in-up delay-200">
                 Créations personnalisées, décoration, location et accessoires uniques pour des moments inoubliables

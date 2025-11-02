@@ -37,7 +37,7 @@ export default function Navbar() {
       <div className="mx-auto max-w-screen-2xl">
         {/* Top banner */}
         <div className={`${bannerBg} text-white py-2 px-4 text-center transition-all duration-300`}>
-          <p className="text-sm font-medium">Livraison gratuite dès 50€ d'achat</p>
+          <p className="text-sm font-medium">Livraison gratuite dès 50€ d&apos;achat</p>
         </div>
 
         {/* Main navbar */}

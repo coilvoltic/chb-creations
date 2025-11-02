@@ -42,14 +42,14 @@ export default function TronesPage() {
             <div className="mt-12 text-center space-y-6">
               <p className="text-lg text-stone-700 max-w-2xl mx-auto">
                 Nos trônes majestueux apportent une touche royale à vos événements.
-                Parfaits pour mariages, fêtes d'anniversaire et célébrations spéciales.
+                Parfaits pour mariages, fêtes d&apos;anniversaire et célébrations spéciales.
               </p>
               <div className="pt-8">
                 <Link
                   href="/contact"
                   className="inline-block bg-black text-white px-8 py-4 hover:bg-stone-800 transition-colors text-lg font-medium"
                 >
-                  Contactez-nous pour plus d'informations
+                  Contactez-nous pour plus d&apos;informations
                 </Link>
               </div>
             </div>

@@ -45,7 +45,7 @@ export default function ProductPage() {
                 <div className="border-t border-stone-200 pt-6">
                   <h2 className="text-xl font-semibold mb-3">Description</h2>
                   <p className="text-stone-700 leading-relaxed">
-                    Lot de 2 assiettes au design épuré et élégant. Ces assiettes s'adaptent parfaitement à tous types d'événements
+                    Lot de 2 assiettes au design épuré et élégant. Ces assiettes s&apos;adaptent parfaitement à tous types d&apos;événements
                     et se marient avec toutes vos décorations de table.
                   </p>
                 </div>

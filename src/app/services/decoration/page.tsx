@@ -14,8 +14,8 @@ export default function DecorationPage() {
               Livraison & Installation de Décoration
             </h1>
             <p className="text-xl text-stone-600 leading-relaxed">
-              Service complet de livraison et d'installation de décoration pour vos événements.
-              Nous créons l'ambiance parfaite pour vos moments inoubliables.
+              Service complet de livraison et d&apos;installation de décoration pour vos événements.
+              Nous créons l&apos;ambiance parfaite pour vos moments inoubliables.
             </p>
           </div>
         </div>
@@ -32,7 +32,7 @@ export default function DecorationPage() {
                   <li>• Livraison de tout le matériel</li>
                   <li>• Installation complète de la décoration</li>
                   <li>• Mise en place des tables et espaces</li>
-                  <li>• Démontage après l'événement</li>
+                  <li>• Démontage après l&apos;événement</li>
                   <li>• Conseils personnalisés</li>
                 </ul>
               </div>
@@ -41,8 +41,8 @@ export default function DecorationPage() {
                 <h2 className="text-2xl font-bold text-black">Notre engagement</h2>
                 <p className="text-stone-700 leading-relaxed">
                   Nous prenons en charge tous les aspects logistiques et esthétiques de votre décoration.
-                  De la livraison à l'installation finale, nous veillons à ce que chaque détail soit parfait
-                  pour créer l'ambiance de vos rêves.
+                  De la livraison à l&apos;installation finale, nous veillons à ce que chaque détail soit parfait
+                  pour créer l&apos;ambiance de vos rêves.
                 </p>
               </div>
             </div>

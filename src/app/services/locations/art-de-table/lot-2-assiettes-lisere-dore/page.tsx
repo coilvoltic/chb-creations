@@ -45,8 +45,8 @@ export default function ProductPage() {
                 <div className="border-t border-stone-200 pt-6">
                   <h2 className="text-xl font-semibold mb-3">Description</h2>
                   <p className="text-stone-700 leading-relaxed">
-                    Lot de 2 assiettes élégantes avec liseré doré, parfaites pour sublimer vos tables lors d'événements spéciaux.
-                    Ces assiettes apportent une touche de raffinement et d'élégance à votre décoration de table.
+                    Lot de 2 assiettes élégantes avec liseré doré, parfaites pour sublimer vos tables lors d&apos;événements spéciaux.
+                    Ces assiettes apportent une touche de raffinement et d&apos;élégance à votre décoration de table.
                   </p>
                 </div>
 

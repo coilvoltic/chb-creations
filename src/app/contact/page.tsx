@@ -66,7 +66,7 @@ export default function Contact() {
               Contact
             </h1>
             <p className="text-xl text-stone-600">
-              Une question ? Un projet ? N'hésitez pas à nous contacter
+              Une question ? Un projet ? N&apos;hésitez pas à nous contacter
             </p>
           </div>
         </div>
@@ -171,7 +171,7 @@ export default function Contact() {
 
                 {submitStatus === 'error' && (
                   <div className="p-4 bg-red-50 border border-red-200 text-red-800 rounded-sm">
-                    Une erreur s'est produite. Veuillez réessayer ou nous contacter directement.
+                    Une erreur s&apos;est produite. Veuillez réessayer ou nous contacter directement.
                   </div>
                 )}
 
@@ -270,7 +270,7 @@ export default function Contact() {
 
               <div className="bg-stone-800 border border-stone-700 rounded-sm p-8 text-stone-50">
                 <h2 className="text-2xl font-bold mb-4">
-                  Horaires d'ouverture
+                  Horaires d&apos;ouverture
                 </h2>
                 <div className="space-y-2">
                   <div className="flex justify-between">

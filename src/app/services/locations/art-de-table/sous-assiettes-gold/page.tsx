@@ -55,7 +55,7 @@ export default function ProductPage() {
                   <ul className="space-y-2 text-stone-700">
                     <li>• Location uniquement</li>
                     <li>• Finition dorée brillante</li>
-                    <li>• Rehausse l'élégance de votre table</li>
+                    <li>• Rehausse l&apos;élégance de votre table</li>
                     <li>• Parfait pour événements chics</li>
                   </ul>
                 </div>
