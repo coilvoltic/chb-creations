@@ -34,7 +34,7 @@ export default function ArtDeTablePage() {
             alt="Art de table"
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/50 to-black/70" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/60 to-black/85" />
         </div>
         <div className="relative h-full flex items-center justify-center">
           <div className="container mx-auto px-6 md:px-12 lg:px-16">
