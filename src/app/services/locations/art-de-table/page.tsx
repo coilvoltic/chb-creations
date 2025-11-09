@@ -46,7 +46,7 @@ export default function ArtDeTablePage() {
               </h1>
               <div className="text-center max-w-3xl mx-auto">
                 <p className="text-s md:text-xl text-white/90 font-semibold tracking-wide mt-10 animate-fade-in-up delay-200">
-                  Tout la gamme "Art de table".
+                  Tout la gamme &quot;Art de table&quot;.
                 </p>
               </div>
             </div>
