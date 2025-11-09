@@ -58,7 +58,7 @@ export default async function ArtDeTablePage() {
                 >
                   <div className="relative aspect-square overflow-hidden bg-white mb-4 rounded-xl shadow-soft hover:shadow-dark transition-all duration-300">
                     <img
-                      src={product.image_url}
+                      src={product.images[0]}
                       alt={product.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out opacity-90"
                     />

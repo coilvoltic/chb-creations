@@ -6,18 +6,24 @@ import { useState, useEffect, use } from 'react'
 import { getProductBySlug } from '@/actions/products'
 import type { Product } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
+import ReactMarkdown from 'react-markdown'
 
 export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params)
   const [product, setProduct] = useState<Product | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
 
   useEffect(() => {
     async function loadProduct() {
       const data = await getProductBySlug(slug)
       if (!data) {
         notFound()
+      }
+      // Remove duplicate images
+      if (data.images) {
+        data.images = [...new Set(data.images)]
       }
       setProduct(data)
       setLoading(false)
@@ -61,13 +67,59 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             />
 
             <div className="grid md:grid-cols-2 gap-6 md:gap-8">
-              {/* Product Image */}
-              <div className="relative aspect-square bg-stone-50 border border-stone-200 rounded-3xl overflow-hidden">
-                <img
-                  src={product.image_url}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
+              {/* Product Images Carousel */}
+              <div className="relative">
+                <div className="relative aspect-square bg-stone-50 border border-stone-200 rounded-3xl overflow-hidden">
+                  <img
+                    src={product.images[selectedImageIndex]}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                  />
+
+                  {/* Navigation arrows */}
+                  {product.images.length > 1 && (
+                    <>
+                      <button
+                        onClick={() => setSelectedImageIndex((prev) =>
+                          prev === 0 ? product.images.length - 1 : prev - 1
+                        )}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-black rounded-full p-2 transition-all shadow-md"
+                        aria-label="Image précédente"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => setSelectedImageIndex((prev) =>
+                          prev === product.images.length - 1 ? 0 : prev + 1
+                        )}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-black rounded-full p-2 transition-all shadow-md"
+                        aria-label="Image suivante"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                      </button>
+
+                      {/* Image counter dots */}
+                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                        {product.images.map((_, index) => (
+                          <button
+                            key={index}
+                            onClick={() => setSelectedImageIndex(index)}
+                            className={`w-2 h-2 rounded-full transition-all ${
+                              selectedImageIndex === index
+                                ? 'bg-white w-6'
+                                : 'bg-white/50 hover:bg-white/75'
+                            }`}
+                            aria-label={`Aller à l'image ${index + 1}`}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Product Details */}
@@ -87,9 +139,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 {product.description && (
                   <div className="border-t border-stone-200 pt-6">
                     <h2 className="text-xl font-semibold mb-3">Description</h2>
-                    <p className="text-stone-700 leading-relaxed">
-                      {product.description}
-                    </p>
+                    <div className="text-stone-700 leading-relaxed prose prose-stone max-w-none">
+                      <ReactMarkdown>{product.description}</ReactMarkdown>
+                    </div>
                   </div>
                 )}
 

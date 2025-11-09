@@ -17,7 +17,7 @@ export interface Product {
   name: string
   slug: string
   price: number
-  image_url: string
+  images: string[]
   description?: string
   features?: string[]
   category: string
