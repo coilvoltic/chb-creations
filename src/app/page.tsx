@@ -1,6 +1,7 @@
 'use client'
 
 import Navbar from '../components/Navbar'
+import GoogleReviews from '../components/GoogleReviews'
 import Link from 'next/link'
 import { useEffect, useRef } from 'react'
 import Typed from 'typed.js'
@@ -183,6 +184,9 @@ export default function Home() {
         </div>
         </div>
       </section>
+
+      {/* Google Reviews Section */}
+      <GoogleReviews />
     </div>
   );
 }
