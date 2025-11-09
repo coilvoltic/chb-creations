@@ -40,17 +40,22 @@ export default function ArtDeTablePage() {
           <div className="container mx-auto px-6 md:px-12 lg:px-16">
             <div className="max-w-3xl mx-auto text-center">
               <h1
-                className="text-4xl md:text-5xl font-semibold text-white tracking-[0.2em] uppercase animate-fade-in-up"
+                className="text-4xl md:text-5xl font-semibold text-white animate-fade-in-up"
               >
-                ART DE TABLE
+                Art de table.
               </h1>
+              <div className="text-center max-w-3xl mx-auto">
+                <p className="text-s md:text-xl text-white/90 font-semibold tracking-wide mt-10 animate-fade-in-up delay-200">
+                  Tout la gamme "Art de table".
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Content Section */}
-      <section className="py-16 md:py-24 bg-gray-50">
+      <section className="py-2 md:py-4 bg-white">
         <div className="container mx-auto px-6 md:px-12 lg:px-16">
           <div className="max-w-7xl mx-auto">
             <Breadcrumb
@@ -61,34 +66,52 @@ export default function ArtDeTablePage() {
             />
 
             {/* Products Grid */}
-            <div className="mt-16 grid md:grid-cols-3 gap-10 md:gap-12">
+            <div className="mt-2 md:mt-4 grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-10 lg:gap-12">
               {artDeTableData.map((product, index) => (
                 <Link
                   key={product.name}
                   href={`/services/locations/art-de-table/${product.name.toLowerCase().replace(/\s+/g, '-').replace(/é/g, 'e')}`}
                   className={`group block animate-scale-in delay-${(index + 1) * 100} cursor-pointer`}
                 >
-                  <div className="relative h-96 md:h-[450px] overflow-hidden bg-white mb-6 rounded-3xl shadow-soft hover:shadow-dark transition-all duration-300">
+                  <div className="relative aspect-square overflow-hidden bg-white mb-4 rounded-xl shadow-soft hover:shadow-dark transition-all duration-300">
                     <img
                       src={`/imgs/location/art-de-table/${product.path}`}
                       alt={product.name}
-                      className="w-full h-full object-contain p-8 group-hover:scale-105 transition-transform duration-500 ease-out"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out opacity-90"
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
                   </div>
-                  <div className="text-center space-y-2">
+                  <div className="text-left space-y-1">
                     <h3 className="text-base font-medium group-hover:text-gray-600 transition-colors duration-300">
                       {product.name}
                     </h3>
                     <p className="text-lg font-bold text-black">
                       {product.price.toFixed(2)} €
                     </p>
-                    <p className="text-xs uppercase tracking-wider text-gray-500">
-                      Location
-                    </p>
                   </div>
                 </Link>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact CTA Section */}
+      <section className="py-16 md:py-20 bg-white">
+        <div className="container mx-auto px-6 md:px-12 lg:px-16">
+          <div className="max-w-3xl mx-auto text-center">
+            <h2 className="text-3xl md:text-4xl font-bold text-black mb-4">
+              Vous ne trouvez pas ce que vous cherchez ?
+            </h2>
+            <p className="text-base md:text-lg text-gray-600 mb-8">
+              Contactez-nous et nous vous aiderons à trouver la solution parfaite pour votre événement.
+            </p>
+            <Link
+              href="/contact"
+              className="inline-block bg-black text-white px-8 py-4 rounded-lg hover:bg-gray-800 transition-colors text-base md:text-lg font-medium"
+            >
+              Nous contacter
+            </Link>
           </div>
         </div>
       </section>

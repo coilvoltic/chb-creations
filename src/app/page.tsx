@@ -45,14 +45,14 @@ export default function Home() {
             <div className="w-full">
               {/* Keywords aligned left */}
               <div className="text-left mb-8 md:mb-12 animate-fade-in-up">
-                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-bold mb-2">Louez.</p>
-                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-bold mb-2">Décorez.</p>
+                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-bold mb-1 md:mb-1.5">Louez.</p>
+                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-bold mb-1 md:mb-1.5">Décorez.</p>
                 <p className="text-3xl md:text-4xl lg:text-5xl text-white font-bold">Personnalisez.</p>
               </div>
 
               {/* Existing content centered */}
               <div className="text-center max-w-3xl mx-auto">
-                <p className="text-xs md:text-xl text-white/90 font-semibold tracking-wide mt-4 animate-fade-in-up delay-200">
+                <p className="text-s md:text-xl text-white/90 font-semibold tracking-wide mt-4 animate-fade-in-up delay-200">
                   Tout pour votre évènement - 100% en ligne.
                 </p>
               </div>
@@ -71,7 +71,7 @@ export default function Home() {
               <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-4">
                 Tous nos services.
               </h2>
-              <p className="text-xs md:text-xl text-gray-600 max-w-2xl mx-auto">
+              <p className="text-s md:text-xl text-gray-600 max-w-2xl mx-auto">
                 Tout ce dont vous avez besoin pour sublimer vos événements.
               </p>
             </div>

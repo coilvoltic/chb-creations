@@ -168,30 +168,10 @@ export default function GoogleReviews() {
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-4">
             Nos avis Google
           </h2>
-          <p className="text-xs md:text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-s md:text-xl text-gray-600 max-w-2xl mx-auto">
             Découvrez ce que nos clients disent de nos services
           </p>
         </div>
-
-        {/* Navigation Buttons */}
-        {totalSlides > 1 && (
-          <div className="flex justify-center gap-2 mb-8">
-            <button
-              onClick={prevSlide}
-              className="bg-black hover:bg-gray-800 rounded-full p-1.5 transition-all duration-300"
-              aria-label="Avis précédent"
-            >
-              <ChevronLeft className="w-4 h-4 text-white" />
-            </button>
-            <button
-              onClick={nextSlide}
-              className="bg-black hover:bg-gray-800 rounded-full p-1.5 transition-all duration-300"
-              aria-label="Avis suivant"
-            >
-              <ChevronRight className="w-4 h-4 text-white" />
-            </button>
-          </div>
-        )}
 
         {/* Carousel */}
         <div className="relative max-w-7xl mx-auto">
@@ -257,21 +237,42 @@ export default function GoogleReviews() {
             </div>
           </div>
 
-          {/* Dots Indicator */}
+          {/* Navigation with Dots */}
           {totalSlides > 1 && (
-            <div className="flex justify-center gap-2 mt-8">
-              {[...Array(totalSlides)].map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentIndex(index)}
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    index === currentIndex
-                      ? 'w-8 bg-black'
-                      : 'w-2 bg-gray-300 hover:bg-gray-400'
-                  }`}
-                  aria-label={`Aller à la slide ${index + 1}`}
-                />
-              ))}
+            <div className="flex justify-center items-center gap-4 mt-8">
+              {/* Previous Button */}
+              <button
+                onClick={prevSlide}
+                className="bg-black hover:bg-gray-800 rounded-full p-1.5 transition-all duration-300"
+                aria-label="Avis précédent"
+              >
+                <ChevronLeft className="w-4 h-4 text-white" />
+              </button>
+
+              {/* Dots Indicator */}
+              <div className="flex justify-center gap-2">
+                {[...Array(totalSlides)].map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentIndex(index)}
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      index === currentIndex
+                        ? 'w-8 bg-black'
+                        : 'w-2 bg-gray-300 hover:bg-gray-400'
+                    }`}
+                    aria-label={`Aller à la slide ${index + 1}`}
+                  />
+                ))}
+              </div>
+
+              {/* Next Button */}
+              <button
+                onClick={nextSlide}
+                className="bg-black hover:bg-gray-800 rounded-full p-1.5 transition-all duration-300"
+                aria-label="Avis suivant"
+              >
+                <ChevronRight className="w-4 h-4 text-white" />
+              </button>
             </div>
           )}
         </div>

@@ -43,17 +43,22 @@ export default function LocationsPage() {
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/50 to-black/70" />
         </div>
-        <div className="relative h-full flex items-center justify-center">
-          <div className="container mx-auto px-6 md:px-12 lg:px-16">
-            <div className="max-w-3xl mx-auto text-center space-y-6">
-              <h1
-                className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-[0.2em] uppercase animate-fade-in-up"
-              >
-                LOCATIONS
-              </h1>
-              <p className="text-base md:text-lg text-white/90 font-light tracking-wide animate-fade-in-up delay-200">
-                Découvrez nos collections pour sublimer vos événements
-              </p>
+        <div className="relative h-full flex items-end pb-6 md:pb-10">
+          <div className="container mx-auto px-6 md:px-10 lg:px-12">
+            <div className="w-full">
+              {/* Keywords aligned left */}
+              <div className="text-left mb-8 md:mb-12 animate-fade-in-up">
+                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-bold mb-1 md:mb-1.5">Filtrez.</p>
+                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-bold mb-1 md:mb-1.5">Choisissez.</p>
+                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-bold">Commandez.</p>
+              </div>
+
+              {/* Existing content centered */}
+              <div className="text-center max-w-3xl mx-auto">
+                <p className="text-s md:text-xl text-white/90 font-semibold tracking-wide mt-4 animate-fade-in-up delay-200">
+                  Locations - notre collection de mobilier/accessoires.
+                </p>
+              </div>
             </div>
           </div>
         </div>

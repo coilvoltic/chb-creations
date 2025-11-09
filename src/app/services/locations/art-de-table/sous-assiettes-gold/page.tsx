@@ -18,7 +18,7 @@ export default function ProductPage() {
               ]}
             />
 
-            <div className="mt-12 grid md:grid-cols-2 gap-12">
+            <div className="mt-12 grid md:grid-cols-2 gap-6 md:gap-8">
               {/* Product Image */}
               <div className="relative h-[500px] bg-stone-50 border border-stone-200 rounded-3xl flex items-center justify-center p-8">
                 <img
