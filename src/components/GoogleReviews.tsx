@@ -184,6 +184,26 @@ export default function GoogleReviews() {
           </p>
         </div>
 
+        {/* Navigation Buttons */}
+        {totalSlides > 1 && (
+          <div className="flex justify-center gap-3 mb-8">
+            <button
+              onClick={prevSlide}
+              className="bg-black hover:bg-gray-800 rounded-full p-2 transition-all duration-300"
+              aria-label="Avis précédent"
+            >
+              <ChevronLeft className="w-5 h-5 text-white" />
+            </button>
+            <button
+              onClick={nextSlide}
+              className="bg-black hover:bg-gray-800 rounded-full p-2 transition-all duration-300"
+              aria-label="Avis suivant"
+            >
+              <ChevronRight className="w-5 h-5 text-white" />
+            </button>
+          </div>
+        )}
+
         {/* Carousel */}
         <div className="relative max-w-7xl mx-auto">
           <div
@@ -251,26 +271,6 @@ export default function GoogleReviews() {
               ))}
             </div>
           </div>
-
-          {/* Navigation Buttons */}
-          {totalSlides > 1 && (
-            <>
-              <button
-                onClick={prevSlide}
-                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 md:-translate-x-4 bg-gray-200/60 hover:bg-gray-300/80 rounded-full p-2 transition-all duration-300 z-10"
-                aria-label="Avis précédent"
-              >
-                <ChevronLeft className="w-5 h-5 text-gray-700" />
-              </button>
-              <button
-                onClick={nextSlide}
-                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 md:translate-x-4 bg-gray-200/60 hover:bg-gray-300/80 rounded-full p-2 transition-all duration-300 z-10"
-                aria-label="Avis suivant"
-              >
-                <ChevronRight className="w-5 h-5 text-gray-700" />
-              </button>
-            </>
-          )}
 
           {/* Dots Indicator */}
           {totalSlides > 1 && (

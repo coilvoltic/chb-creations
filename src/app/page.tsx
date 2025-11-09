@@ -41,14 +41,24 @@ export default function Home() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/80 to-black" />
         </div>
         <div className="relative h-full flex items-end pb-12 md:pb-16">
-          <div className="container mx-auto px-6 md:px-12 lg:px-16">
-            <div className="max-w-3xl mx-auto text-center">
-              <p className="text-3xl md:text-4xl lg:text-5xl text-white font-bold tracking-wide leading-relaxed animate-fade-in-up font-frank-ruhl-libre">
-                Louez votre <span ref={typedElement} className="text-white"></span>
-              </p>
-              <p className="text-xs md:text-sm text-white/90 font-semibold tracking-wide mt-4 animate-fade-in-up delay-200 font-frank-ruhl-libre">
-                Décoration, location et accessoires pour vos événements.
-              </p>
+          <div className="container mx-auto px-6 md:px-10 lg:px-12">
+            <div className="w-full">
+              {/* Keywords aligned left */}
+              <div className="text-left mb-8 md:mb-12 animate-fade-in-up">
+                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-bold mb-2">Louez.</p>
+                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-bold mb-2">Décorez.</p>
+                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-bold">Personnalisez.</p>
+              </div>
+
+              {/* Existing content centered */}
+              <div className="text-center max-w-3xl mx-auto">
+                <p className="text-xs md:text-sm text-white/90 font-semibold tracking-wide mt-4 animate-fade-in-up delay-200">
+                  Tout pour votre évènement - 100% en ligne.
+                </p>
+                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-bold tracking-wide leading-relaxed animate-fade-in-up">
+                  Louez votre <span ref={typedElement} className="text-white"></span>
+                </p>
+              </div>
             </div>
           </div>
         </div>
