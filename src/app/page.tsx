@@ -52,11 +52,8 @@ export default function Home() {
 
               {/* Existing content centered */}
               <div className="text-center max-w-3xl mx-auto">
-                <p className="text-xs md:text-sm text-white/90 font-semibold tracking-wide mt-4 animate-fade-in-up delay-200">
+                <p className="text-xs md:text-xl text-white/90 font-semibold tracking-wide mt-4 animate-fade-in-up delay-200">
                   Tout pour votre évènement - 100% en ligne.
-                </p>
-                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-bold tracking-wide leading-relaxed animate-fade-in-up">
-                  Louez votre <span ref={typedElement} className="text-white"></span>
                 </p>
               </div>
             </div>
@@ -67,14 +64,14 @@ export default function Home() {
       {/* Services Section */}
       <section className="relative">
         {/* White background section for title */}
-        <div className="bg-white pt-16 md:pt-24 lg:pt-32 pb-12 md:pb-16">
+        <div className="bg-white pt-14 md:pt-20 lg:pt-28 pb-7 md:pb-10 lg:pb-14">
           <div className="container mx-auto px-6 md:px-8 lg:px-12">
             {/* Section Title - on white background */}
             <div className="text-center">
               <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-4">
                 Tous nos services.
               </h2>
-              <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
+              <p className="text-xs md:text-xl text-gray-600 max-w-2xl mx-auto">
                 Tout ce dont vous avez besoin pour sublimer vos événements.
               </p>
             </div>
@@ -82,7 +79,7 @@ export default function Home() {
         </div>
 
         {/* White background section for cards */}
-        <div className="bg-white pt-12 md:pt-16 pb-16 md:pb-24 lg:pb-32">
+        <div className="bg-white pt-7 md:pt-10 lg:pt-14 pb-7 md:pb-10 lg:pb-14">
           <div className="container mx-auto px-6 md:px-8 lg:px-12">
             <div className="max-w-[1400px] mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">

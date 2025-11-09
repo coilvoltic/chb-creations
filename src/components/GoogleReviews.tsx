@@ -61,7 +61,6 @@ const fallbackReviews: Review[] = [
 export default function GoogleReviews() {
   const [reviews, setReviews] = useState<Review[]>(fallbackReviews)
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true)
   const [expandedReviews, setExpandedReviews] = useState<Set<number>>(new Set())
   const [truncatedReviews, setTruncatedReviews] = useState<Set<number>>(new Set())
   const reviewRefs = useRef<Map<number, HTMLParagraphElement>>(new Map())
@@ -117,16 +116,6 @@ export default function GoogleReviews() {
     setCurrentIndex((prev) => (prev - 1 + totalSlides) % totalSlides)
   }
 
-  // Auto-play functionality
-  useEffect(() => {
-    if (!isAutoPlaying) return
-
-    const interval = setInterval(() => {
-      nextSlide()
-    }, 5000) // Change slide every 5 seconds
-
-    return () => clearInterval(interval)
-  }, [currentIndex, isAutoPlaying, reviewsPerSlide])
 
   const getCurrentReviews = () => {
     const start = currentIndex * reviewsPerSlide
@@ -172,45 +161,41 @@ export default function GoogleReviews() {
   }
 
   return (
-    <section className="bg-white py-12 md:py-16 lg:py-20">
+    <section className="bg-white pt-7 md:pt-10 lg:pt-14 pb-14 md:pb-20 lg:pb-28">
       <div className="container mx-auto px-6 md:px-8 lg:px-12">
         {/* Section Title */}
         <div className="text-center mb-12 md:mb-16">
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-4">
             Nos avis Google
           </h2>
-          <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xs md:text-xl text-gray-600 max-w-2xl mx-auto">
             Découvrez ce que nos clients disent de nos services
           </p>
         </div>
 
         {/* Navigation Buttons */}
         {totalSlides > 1 && (
-          <div className="flex justify-center gap-3 mb-8">
+          <div className="flex justify-center gap-2 mb-8">
             <button
               onClick={prevSlide}
-              className="bg-black hover:bg-gray-800 rounded-full p-2 transition-all duration-300"
+              className="bg-black hover:bg-gray-800 rounded-full p-1.5 transition-all duration-300"
               aria-label="Avis précédent"
             >
-              <ChevronLeft className="w-5 h-5 text-white" />
+              <ChevronLeft className="w-4 h-4 text-white" />
             </button>
             <button
               onClick={nextSlide}
-              className="bg-black hover:bg-gray-800 rounded-full p-2 transition-all duration-300"
+              className="bg-black hover:bg-gray-800 rounded-full p-1.5 transition-all duration-300"
               aria-label="Avis suivant"
             >
-              <ChevronRight className="w-5 h-5 text-white" />
+              <ChevronRight className="w-4 h-4 text-white" />
             </button>
           </div>
         )}
 
         {/* Carousel */}
         <div className="relative max-w-7xl mx-auto">
-          <div
-            className="overflow-hidden"
-            onMouseEnter={() => setIsAutoPlaying(false)}
-            onMouseLeave={() => setIsAutoPlaying(true)}
-          >
+          <div className="overflow-hidden">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               {getCurrentReviews().map((review) => (
                 <div

@@ -276,3 +276,13 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, #1a1a1a, #000000);
 }
+
+/* Curseur pointer pour tous les éléments interactifs */
+button,
+a,
+[role="button"],
+input[type="submit"],
+input[type="button"],
+.cursor-pointer {
+  cursor: pointer;
+}
