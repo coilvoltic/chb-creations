@@ -1,27 +1,10 @@
 import Navbar from '@/components/Navbar'
 import Breadcrumb from '@/components/Breadcrumb'
 import Link from 'next/link'
+import { getArtDeTableProducts } from '@/actions/products'
 
-// Données des produits
-const artDeTableData = [
-  {
-    name: "Lot 2 assiettes liseré doré",
-    price: 1.5,
-    path: "articles/lot2AssiettesLisereDore.png"
-  },
-  {
-    name: "Lot 2 assiettes simples",
-    price: 1,
-    path: "articles/lot2AssiettesSimples.png"
-  },
-  {
-    name: "Sous assiettes gold",
-    price: 1,
-    path: "articles/sousAssiettesGold.png"
-  }
-]
-
-export default function ArtDeTablePage() {
+export default async function ArtDeTablePage() {
+  const artDeTableData = await getArtDeTableProducts()
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
@@ -69,13 +52,13 @@ export default function ArtDeTablePage() {
             <div className="mt-2 md:mt-4 grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-10 lg:gap-12">
               {artDeTableData.map((product, index) => (
                 <Link
-                  key={product.name}
-                  href={`/services/locations/art-de-table/${product.name.toLowerCase().replace(/\s+/g, '-').replace(/é/g, 'e')}`}
+                  key={product.id}
+                  href={`/services/locations/art-de-table/${product.slug}`}
                   className={`group block animate-scale-in delay-${(index + 1) * 100} cursor-pointer`}
                 >
                   <div className="relative aspect-square overflow-hidden bg-white mb-4 rounded-xl shadow-soft hover:shadow-dark transition-all duration-300">
                     <img
-                      src={`/imgs/location/art-de-table/${product.path}`}
+                      src={product.image_url}
                       alt={product.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out opacity-90"
                     />
