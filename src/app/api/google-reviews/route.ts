@@ -1,5 +1,31 @@
 import { NextResponse } from 'next/server'
 
+interface GoogleReview {
+  authorAttribution?: {
+    displayName?: string
+    photoUri?: string
+  }
+  rating?: number
+  relativePublishTimeDescription?: string
+  originalText?: {
+    text?: string
+  }
+  text?: {
+    text?: string
+  }
+  publishTime?: string
+}
+
+interface TransformedReview {
+  id: number
+  name: string
+  rating: number
+  date: string
+  comment: string
+  avatar?: string
+  publishTime: string
+}
+
 export async function GET() {
   try {
     const apiKey = process.env.GOOGLE_PLACES_API_KEY
@@ -34,8 +60,8 @@ export async function GET() {
     const data = await response.json()
 
     // Transform reviews to match our format and sort by publish time (most recent first)
-    const reviews = data.reviews
-      ?.map((review: any, index: number) => ({
+    const reviews = (data.reviews as GoogleReview[] | undefined)
+      ?.map((review: GoogleReview, index: number): TransformedReview => ({
         id: index + 1,
         name: review.authorAttribution?.displayName || 'Utilisateur Google',
         rating: review.rating || 5,
@@ -44,11 +70,11 @@ export async function GET() {
         avatar: review.authorAttribution?.photoUri,
         publishTime: review.publishTime || ''
       }))
-      .sort((a: any, b: any) => {
+      .sort((a: TransformedReview, b: TransformedReview) => {
         // Sort by publishTime descending (most recent first)
         return b.publishTime.localeCompare(a.publishTime)
       })
-      .map((review: any, index: number) => ({
+      .map((review: TransformedReview, index: number): TransformedReview => ({
         ...review,
         id: index + 1 // Re-assign IDs after sorting
       })) || []
