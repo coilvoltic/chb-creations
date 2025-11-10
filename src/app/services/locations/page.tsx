@@ -47,7 +47,7 @@ export default function LocationsPage() {
           <div className="container mx-auto px-6 md:px-12 lg:px-16">
             <div className="max-w-3xl mx-auto text-center">
               <h1
-                className="text-4xl md:text-5xl font-semibold text-white animate-fade-in-up font-satisfy"
+                className="text-6xl md:text-7xl font-semibold text-white animate-fade-in-up font-satisfy"
               >
                 Locations.
               </h1>
@@ -70,7 +70,7 @@ export default function LocationsPage() {
                 <Link
                   key={category.href}
                   href={category.href}
-                  className={`group block overflow-hidden rounded-3xl shadow-soft hover:shadow-dark transition-all duration-300 animate-scale-in delay-${(index + 1) * 100} cursor-pointer`}
+                  className={`group block overflow-hidden rounded-xl shadow-soft hover:shadow-dark transition-all duration-300 animate-scale-in delay-${(index + 1) * 100} cursor-pointer`}
                 >
                   <div className="relative h-96 md:h-[500px] overflow-hidden">
                     <img
@@ -79,7 +79,7 @@ export default function LocationsPage() {
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-8 md:p-10 text-white">
+                    <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 text-white">
                       <h2 className="text-2xl md:text-3xl font-bold mb-3">
                         {category.title}
                       </h2>
