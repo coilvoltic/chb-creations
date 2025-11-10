@@ -16,6 +16,7 @@ interface DateRangePickerProps {
   startTime?: string
   endTime?: string
   onTimeChange?: (startTime: string, endTime: string) => void
+  disabled?: boolean
 }
 
 export default function DateRangePicker({
@@ -27,6 +28,7 @@ export default function DateRangePicker({
   startTime = '09:00',
   endTime = '18:00',
   onTimeChange,
+  disabled = false,
 }: DateRangePickerProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [infoMessage, setInfoMessage] = useState<string | null>(null)
@@ -35,7 +37,7 @@ export default function DateRangePicker({
 
   // Calculate which dates are unavailable based on stock and requested quantity
   const disabledDatesSet = new Set(
-    unavailabilities
+    (unavailabilities || [])
       .filter((entry) => entry.reserved_products + requestedQuantity > stock)
       .map((entry) => entry.date)
   )
@@ -131,13 +133,13 @@ export default function DateRangePicker({
   }
 
   return (
-    <div className="border border-stone-200 rounded-xl p-4 bg-white">
-      {errorMessage && (
+    <div className={`border border-stone-200 rounded-xl p-4 ${disabled ? 'bg-stone-50 opacity-60' : 'bg-white'}`}>
+      {errorMessage && !disabled && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
           {errorMessage}
         </div>
       )}
-      {infoMessage && (
+      {infoMessage && !disabled && (
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
           {infoMessage}
         </div>
@@ -145,8 +147,8 @@ export default function DateRangePicker({
       <DayPicker
         mode="range"
         selected={selectedRange}
-        onSelect={handleRangeSelect}
-        disabled={[
+        onSelect={disabled ? undefined : handleRangeSelect}
+        disabled={disabled ? true : [
           { before: today }, // Disable past dates
           ...disabledDates, // Disable unavailable dates
         ]}
@@ -165,30 +167,32 @@ export default function DateRangePicker({
       {/* Time selection */}
       {selectedRange?.from && selectedRange?.to && (
         <div className="mt-6 pt-6 border-t border-stone-200">
-          <h3 className="text-sm font-semibold mb-4">Horaires de location</h3>
+          <h3 className={`text-sm font-semibold mb-4 ${disabled ? 'text-stone-400' : ''}`}>Horaires de location</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="start-time" className="block text-xs text-stone-600 mb-2">
+              <label htmlFor="start-time" className={`block text-xs mb-2 ${disabled ? 'text-stone-400' : 'text-stone-600'}`}>
                 Heure de début
               </label>
               <input
                 id="start-time"
                 type="time"
                 value={localStartTime}
+                disabled={disabled}
                 onChange={(e) => handleTimeChange('start', e.target.value)}
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed"
               />
             </div>
             <div>
-              <label htmlFor="end-time" className="block text-xs text-stone-600 mb-2">
+              <label htmlFor="end-time" className={`block text-xs mb-2 ${disabled ? 'text-stone-400' : 'text-stone-600'}`}>
                 Heure de fin
               </label>
               <input
                 id="end-time"
                 type="time"
                 value={localEndTime}
+                disabled={disabled}
                 onChange={(e) => handleTimeChange('end', e.target.value)}
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed"
               />
             </div>
           </div>

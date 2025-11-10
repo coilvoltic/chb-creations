@@ -23,12 +23,12 @@ export default async function ArtDeTablePage() {
           <div className="container mx-auto px-6 md:px-12 lg:px-16">
             <div className="max-w-3xl mx-auto text-center">
               <h1
-                className="text-4xl md:text-5xl font-semibold text-white animate-fade-in-up"
+                className="text-4xl md:text-5xl font-semibold text-white animate-fade-in-up font-satisfy"
               >
                 Art de table.
               </h1>
               <div className="text-center max-w-3xl mx-auto">
-                <p className="text-s md:text-xl text-white/90 font-semibold tracking-wide mt-10 animate-fade-in-up delay-200">
+                <p className="text-s md:text-xl text-white/90 font-semibold tracking-wide mt-4 md:mt-6 animate-fade-in-up delay-200">
                   Tout la gamme &quot;Art de table&quot;.
                 </p>
               </div>

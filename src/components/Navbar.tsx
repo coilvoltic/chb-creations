@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
+import { useCart } from '@/contexts/CartContext'
 
 export default function Navbar() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
@@ -10,6 +11,7 @@ export default function Navbar() {
   const [isHovered, setIsHovered] = useState(false)
   const pathname = usePathname()
   const isHomePage = pathname === '/'
+  const { cart } = useCart()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -90,11 +92,21 @@ export default function Navbar() {
           {/* Right side - Icons and Login button */}
           <div className="flex items-center gap-1 md:gap-4 flex-1 justify-end" onMouseEnter={() => setActiveDropdown(null)}>
             {/* Cart Icon */}
-            <button className={`p-1 md:p-2 rounded-full ${shouldBeTransparent ? 'hover:bg-white/20' : 'hover:bg-gray-100'} transition-colors duration-200 cursor-pointer`}>
-              <svg className={`w-4 h-4 md:w-6 md:h-6 ${textColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <Link href="/panier" className={`relative p-1 md:p-2 rounded-full ${shouldBeTransparent ? 'hover:bg-white/20' : 'hover:bg-gray-100'} transition-colors duration-200 cursor-pointer`}>
+              <svg className={`w-5 h-5 md:w-6 md:h-6 ${textColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
-            </button>
+              {cart.totalItems > 0 && (
+                <>
+                  {/* Mobile: Simple dot badge without number */}
+                  <span className={`md:hidden absolute -top-1 -right-1 rounded-full w-2.5 h-2.5 ${shouldBeTransparent ? 'bg-white' : 'bg-black'}`} />
+                  {/* Desktop: Badge with number (99+ if > 99) */}
+                  <span className={`hidden md:flex absolute -top-1 -right-1 text-xs font-bold rounded-full w-5 h-5 items-center justify-center ${shouldBeTransparent ? 'bg-white text-black' : 'bg-black text-white'}`}>
+                    {cart.totalItems > 99 ? '99+' : cart.totalItems}
+                  </span>
+                </>
+              )}
+            </Link>
 
             {/* Login Button - Desktop / Icon - Mobile */}
             <Link href="/connexion" className="cursor-pointer">
@@ -104,7 +116,7 @@ export default function Navbar() {
               </span>
               {/* Mobile: Icon only */}
               <button className={`md:hidden p-1 rounded-full ${shouldBeTransparent ? 'hover:bg-white/20' : 'hover:bg-gray-100'} transition-colors duration-200`}>
-                <svg className={`w-4 h-4 ${textColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`w-5 h-5 md:w-6 md:h-6 ${textColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </button>

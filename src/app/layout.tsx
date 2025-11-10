@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { Inter, Outfit, Frank_Ruhl_Libre } from "next/font/google";
+import { Inter, Outfit, Frank_Ruhl_Libre, Satisfy } from "next/font/google";
 import "./globals.css";
 import Footer from "@/components/Footer";
+import { CartProvider } from "@/contexts/CartContext";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -21,6 +22,12 @@ const frankRuhlLibre = Frank_Ruhl_Libre({
   weight: ["300", "400", "500", "700", "900"],
 });
 
+const satisfy = Satisfy({
+  variable: "--font-satisfy",
+  subsets: ["latin"],
+  weight: ["400"],
+});
+
 export const metadata: Metadata = {
   title: "CHB Créations - Accessoires Personnalisés, Henné & Décoration d'Événements",
   description: "Découvrez nos accessoires personnalisés, services de henné et location de décoration pour vos événements à Marseille",
@@ -34,10 +41,12 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body
-        className={`${inter.variable} ${outfit.variable} ${frankRuhlLibre.variable} font-inter antialiased`}
+        className={`${inter.variable} ${outfit.variable} ${frankRuhlLibre.variable} ${satisfy.variable} font-inter antialiased`}
       >
-        {children}
-        <Footer />
+        <CartProvider>
+          {children}
+          <Footer />
+        </CartProvider>
       </body>
     </html>
   );

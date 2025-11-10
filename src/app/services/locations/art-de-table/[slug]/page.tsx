@@ -6,12 +6,16 @@ import DateRangePicker from '@/components/DateRangePicker'
 import { useState, useEffect, use } from 'react'
 import { getProductBySlug } from '@/actions/products'
 import type { Product } from '@/lib/supabase'
-import { notFound } from 'next/navigation'
+import { notFound, useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import type { DateRange } from 'react-day-picker'
+import { useCart } from '@/contexts/CartContext'
+import Link from 'next/link'
 
 export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params)
+  const router = useRouter()
+  const { addToCart, cart } = useCart()
   const [product, setProduct] = useState<Product | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [loading, setLoading] = useState(true)
@@ -19,6 +23,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   const [rentalPeriod, setRentalPeriod] = useState<DateRange | undefined>()
   const [startTime, setStartTime] = useState('09:00')
   const [endTime, setEndTime] = useState('18:00')
+
+  // Check if product is already in cart
+  const isInCart = product ? cart.items.some(item => item.productId === product.id) : false
 
   useEffect(() => {
     async function loadProduct() {
@@ -37,8 +44,27 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   }, [slug])
 
   const handleAddToCart = () => {
-    // TODO: Implement cart functionality
-    console.log(`Added ${quantity} of ${product?.name} to cart`)
+    if (!product || !rentalPeriod?.from || !rentalPeriod?.to) return
+
+    addToCart({
+      productId: product.id,
+      productName: product.name,
+      productSlug: product.slug,
+      productImage: product.images[0],
+      quantity,
+      pricePerUnit: product.price,
+      rentalPeriod: {
+        from: rentalPeriod.from,
+        to: rentalPeriod.to,
+      },
+      startTime,
+      endTime,
+      category: product.category,
+      subcategory: product.subcategory,
+    })
+
+    // Redirect to cart page
+    router.push('/panier')
   }
 
   if (loading) {
@@ -162,15 +188,28 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 )}
 
                 <div className="border-t border-stone-200 pt-6">
+                  {isInCart && (
+                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800 font-medium mb-2">
+                        Ce produit est déjà dans votre panier
+                      </p>
+                      <p className="text-sm text-blue-700">
+                        <Link href="/panier" className="underline font-semibold hover:text-blue-900">
+                          Voir mon panier
+                        </Link>
+                      </p>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4">
-                      <label htmlFor="quantity" className="text-lg font-semibold">
+                      <label htmlFor="quantity" className={`text-lg font-semibold ${isInCart ? 'text-stone-400' : ''}`}>
                         Quantité :
                       </label>
-                      <div className="flex items-center border border-stone-300 rounded-lg">
+                      <div className={`flex items-center border rounded-lg ${isInCart ? 'border-stone-200 bg-stone-50' : 'border-stone-300'}`}>
                         <button
                           onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                          className="px-4 py-2 hover:bg-stone-100 transition-colors"
+                          disabled={isInCart}
+                          className="px-4 py-2 hover:bg-stone-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                           aria-label="Diminuer la quantité"
                         >
                           -
@@ -181,27 +220,29 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                           min="1"
                           max={product.stock}
                           value={quantity}
+                          disabled={isInCart}
                           onChange={(e) => setQuantity(Math.max(1, Math.min(product.stock, parseInt(e.target.value) || 1)))}
-                          className="w-16 text-center border-x border-stone-300 py-2 focus:outline-none"
+                          className="w-16 text-center border-x border-stone-300 py-2 focus:outline-none disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed"
                         />
                         <button
                           onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                          className="px-4 py-2 hover:bg-stone-100 transition-colors"
+                          disabled={isInCart}
+                          className="px-4 py-2 hover:bg-stone-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                           aria-label="Augmenter la quantité"
                         >
                           +
                         </button>
                       </div>
                     </div>
-                    <p className="text-sm text-stone-600">
+                    <p className={`text-sm ${isInCart ? 'text-stone-400' : 'text-stone-600'}`}>
                       {product.stock} en stock
                     </p>
                   </div>
                 </div>
 
                 <div className="border-t border-stone-200 pt-6">
-                  <h2 className="text-xl font-semibold mb-3">Période de location</h2>
-                  <p className="text-sm text-stone-600 mb-4">
+                  <h2 className={`text-xl font-semibold mb-3 ${isInCart ? 'text-stone-400' : ''}`}>Période de location</h2>
+                  <p className={`text-sm mb-4 ${isInCart ? 'text-stone-400' : 'text-stone-600'}`}>
                     Sélectionnez une date de début et une date de fin pour votre location
                   </p>
                   <DateRangePicker
@@ -216,12 +257,13 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                       setStartTime(start)
                       setEndTime(end)
                     }}
+                    disabled={isInCart}
                   />
                   {rentalPeriod?.from && rentalPeriod?.to && (
-                    <div className="mt-4 p-4 bg-stone-50 rounded-lg">
-                      <p className="text-sm font-medium">
+                    <div className={`mt-4 p-4 rounded-lg ${isInCart ? 'bg-stone-100' : 'bg-stone-50'}`}>
+                      <p className={`text-sm font-medium ${isInCart ? 'text-stone-400' : ''}`}>
                         Période sélectionnée :
-                        <span className="ml-2 text-black">
+                        <span className={`ml-2 ${isInCart ? 'text-stone-500' : 'text-black'}`}>
                           {rentalPeriod.from.toLocaleDateString('fr-FR')} {startTime} - {rentalPeriod.to.toLocaleDateString('fr-FR')} {endTime}
                         </span>
                       </p>
@@ -232,10 +274,10 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 <div className="border-t border-stone-200 pt-6">
                   <button
                     onClick={handleAddToCart}
-                    disabled={!rentalPeriod?.from || !rentalPeriod?.to}
+                    disabled={!rentalPeriod?.from || !rentalPeriod?.to || isInCart}
                     className="w-full bg-black text-white px-8 py-4 rounded-lg hover:bg-stone-800 transition-colors text-lg font-medium disabled:bg-stone-300 disabled:cursor-not-allowed"
                   >
-                    Ajouter au panier
+                    {isInCart ? 'Produit déjà dans le panier' : 'Ajouter au panier'}
                   </button>
                 </div>
               </div>

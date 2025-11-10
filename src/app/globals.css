@@ -53,6 +53,7 @@
   --color-ring: hsl(var(--ring));
   --radius: var(--radius);
   --font-frank-ruhl-libre: var(--font-frank-ruhl-libre);
+  --font-satisfy: var(--font-satisfy);
 }
 
 * {
