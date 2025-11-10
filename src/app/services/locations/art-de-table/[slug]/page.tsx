@@ -219,14 +219,19 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                           type="text"
                           inputMode="numeric"
                           pattern="[0-9]*"
-                          value={quantity}
+                          value={quantity === 0 ? '' : quantity}
                           disabled={isInCart}
                           onChange={(e) => {
                             const value = e.target.value.replace(/[^0-9]/g, '')
                             if (value === '') {
-                              setQuantity(1)
+                              setQuantity(0)
                             } else {
-                              setQuantity(Math.max(1, Math.min(product.stock, parseInt(value))))
+                              setQuantity(Math.min(product.stock, parseInt(value)))
+                            }
+                          }}
+                          onBlur={() => {
+                            if (quantity === 0 || quantity < 1) {
+                              setQuantity(1)
                             }
                           }}
                           className="w-16 text-center border-x border-stone-300 py-2 focus:outline-none disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"

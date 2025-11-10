@@ -47,7 +47,7 @@ export default function LocationsPage() {
           <div className="container mx-auto px-6 md:px-12 lg:px-16">
             <div className="max-w-3xl mx-auto text-center">
               <h1
-                className="text-6xl md:text-7xl font-semibold text-white animate-fade-in-up font-satisfy"
+                className="text-5xl md:text-6xl font-semibold text-white animate-fade-in-up font-satisfy"
               >
                 Locations.
               </h1>

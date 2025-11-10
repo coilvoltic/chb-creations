@@ -168,10 +168,10 @@ export default function DateRangePicker({
       {selectedRange?.from && selectedRange?.to && (
         <div className="mt-6 pt-6 border-t border-stone-200">
           <h3 className={`text-sm font-semibold mb-4 ${disabled ? 'text-stone-400' : ''}`}>Horaires de location</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="start-time" className={`block text-xs mb-2 ${disabled ? 'text-stone-400' : 'text-stone-600'}`}>
-                Heure de début
+                Heure de retrait
               </label>
               <input
                 id="start-time"
@@ -184,7 +184,7 @@ export default function DateRangePicker({
             </div>
             <div>
               <label htmlFor="end-time" className={`block text-xs mb-2 ${disabled ? 'text-stone-400' : 'text-stone-600'}`}>
-                Heure de fin
+                Heure de dépôt
               </label>
               <input
                 id="end-time"
