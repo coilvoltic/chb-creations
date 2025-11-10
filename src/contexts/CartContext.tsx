@@ -25,9 +25,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const savedCart = localStorage.getItem('chb-cart')
     if (savedCart) {
       try {
-        const parsedCart = JSON.parse(savedCart)
+        const parsedCart = JSON.parse(savedCart) as Cart
         // Convert date strings back to Date objects
-        parsedCart.items = parsedCart.items.map((item: any) => ({
+        parsedCart.items = parsedCart.items.map((item) => ({
           ...item,
           rentalPeriod: {
             from: new Date(item.rentalPeriod.from),

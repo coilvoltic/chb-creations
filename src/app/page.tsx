@@ -45,15 +45,15 @@ export default function Home() {
             <div className="w-full">
               {/* Keywords aligned left */}
               <div className="text-left mb-8 md:mb-12 animate-fade-in-up">
-                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-satisfy mb-1 md:mb-1.5">Louez.</p>
-                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-satisfy mb-1 md:mb-1.5">Décorez.</p>
-                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-satisfy">Personnalisez.</p>
+                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-satisfy mb-1 md:mb-1.5">Louez</p>
+                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-satisfy mb-1 md:mb-1.5">Décorez</p>
+                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-satisfy">Personnalisez</p>
               </div>
 
               {/* Existing content centered */}
               <div className="text-center max-w-3xl mx-auto">
                 <p className="text-s md:text-xl text-white/90 font-semibold tracking-wide mt-4 animate-fade-in-up delay-200">
-                  Tout pour votre évènement &U+00B7 100% en ligne.
+                  Tout pour vos évènements · 100% en ligne
                 </p>
               </div>
             </div>
