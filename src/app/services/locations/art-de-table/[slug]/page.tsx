@@ -2,11 +2,13 @@
 
 import Navbar from '@/components/Navbar'
 import Breadcrumb from '@/components/Breadcrumb'
+import DateRangePicker from '@/components/DateRangePicker'
 import { useState, useEffect, use } from 'react'
 import { getProductBySlug } from '@/actions/products'
 import type { Product } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
+import type { DateRange } from 'react-day-picker'
 
 export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params)
@@ -14,6 +16,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   const [quantity, setQuantity] = useState(1)
   const [loading, setLoading] = useState(true)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [rentalPeriod, setRentalPeriod] = useState<DateRange | undefined>()
+  const [startTime, setStartTime] = useState('09:00')
+  const [endTime, setEndTime] = useState('18:00')
 
   useEffect(() => {
     async function loadProduct() {
@@ -157,38 +162,78 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 )}
 
                 <div className="border-t border-stone-200 pt-6">
-                  <div className="flex items-center gap-4 mb-4">
-                    <label htmlFor="quantity" className="text-lg font-semibold">
-                      Quantité :
-                    </label>
-                    <div className="flex items-center border border-stone-300 rounded-lg">
-                      <button
-                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        className="px-4 py-2 hover:bg-stone-100 transition-colors"
-                        aria-label="Diminuer la quantité"
-                      >
-                        -
-                      </button>
-                      <input
-                        id="quantity"
-                        type="number"
-                        min="1"
-                        value={quantity}
-                        onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-16 text-center border-x border-stone-300 py-2 focus:outline-none"
-                      />
-                      <button
-                        onClick={() => setQuantity(quantity + 1)}
-                        className="px-4 py-2 hover:bg-stone-100 transition-colors"
-                        aria-label="Augmenter la quantité"
-                      >
-                        +
-                      </button>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-4">
+                      <label htmlFor="quantity" className="text-lg font-semibold">
+                        Quantité :
+                      </label>
+                      <div className="flex items-center border border-stone-300 rounded-lg">
+                        <button
+                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                          className="px-4 py-2 hover:bg-stone-100 transition-colors"
+                          aria-label="Diminuer la quantité"
+                        >
+                          -
+                        </button>
+                        <input
+                          id="quantity"
+                          type="number"
+                          min="1"
+                          max={product.stock}
+                          value={quantity}
+                          onChange={(e) => setQuantity(Math.max(1, Math.min(product.stock, parseInt(e.target.value) || 1)))}
+                          className="w-16 text-center border-x border-stone-300 py-2 focus:outline-none"
+                        />
+                        <button
+                          onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                          className="px-4 py-2 hover:bg-stone-100 transition-colors"
+                          aria-label="Augmenter la quantité"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
+                    <p className="text-sm text-stone-600">
+                      {product.stock} en stock
+                    </p>
                   </div>
+                </div>
+
+                <div className="border-t border-stone-200 pt-6">
+                  <h2 className="text-xl font-semibold mb-3">Période de location</h2>
+                  <p className="text-sm text-stone-600 mb-4">
+                    Sélectionnez une date de début et une date de fin pour votre location
+                  </p>
+                  <DateRangePicker
+                    unavailabilities={product.unavailabilities}
+                    stock={product.stock}
+                    requestedQuantity={quantity}
+                    selectedRange={rentalPeriod}
+                    onRangeSelect={setRentalPeriod}
+                    startTime={startTime}
+                    endTime={endTime}
+                    onTimeChange={(start, end) => {
+                      setStartTime(start)
+                      setEndTime(end)
+                    }}
+                  />
+                  {rentalPeriod?.from && rentalPeriod?.to && (
+                    <div className="mt-4 p-4 bg-stone-50 rounded-lg">
+                      <p className="text-sm font-medium">
+                        Période sélectionnée :
+                        <span className="ml-2 text-black">
+                          {rentalPeriod.from.toLocaleDateString('fr-FR')} {startTime} - {rentalPeriod.to.toLocaleDateString('fr-FR')} {endTime}
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-stone-200 pt-6">
                   <button
                     onClick={handleAddToCart}
-                    className="w-full bg-black text-white px-8 py-4 rounded-lg hover:bg-stone-800 transition-colors text-lg font-medium"
+                    disabled={!rentalPeriod?.from || !rentalPeriod?.to}
+                    className="w-full bg-black text-white px-8 py-4 rounded-lg hover:bg-stone-800 transition-colors text-lg font-medium disabled:bg-stone-300 disabled:cursor-not-allowed"
                   >
                     Ajouter au panier
                   </button>

@@ -12,6 +12,11 @@ export function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseAnonKey)
 }
 
+export interface UnavailabilityEntry {
+  date: string // YYYY-MM-DD
+  reserved_products: number
+}
+
 export interface Product {
   id: number
   name: string
@@ -22,5 +27,7 @@ export interface Product {
   features?: string[]
   category: string
   subcategory: string
+  stock: number
+  unavailabilities?: UnavailabilityEntry[]
   created_at?: string
 }
