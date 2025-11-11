@@ -79,8 +79,8 @@ export default function LocationsPage() {
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 text-white">
-                      <h2 className="text-2xl md:text-3xl font-bold mb-3">
+                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                      <h2 className="text-3xl md:text-4xl font-bold mb-3 font-satisfy">
                         {category.title}
                       </h2>
                       <p className="text-sm md:text-base text-white/90 font-light">

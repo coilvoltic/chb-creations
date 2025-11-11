@@ -1,7 +1,7 @@
 'use server'
 
-import { createClient } from '@supabase/supabase-js'
 import type { Product } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 
 function getSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -19,7 +19,7 @@ export async function getArtDeTableProducts(): Promise<Product[]> {
     const supabase = getSupabaseClient()
 
     const { data, error } = await supabase
-      .from('chb-creations-products-table')
+      .from('products')
       .select('*')
       .eq('subcategory', 'art-de-table')
       .order('created_at', { ascending: true })
@@ -41,7 +41,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
     const supabase = getSupabaseClient()
 
     const { data, error } = await supabase
-      .from('chb-creations-products-table')
+      .from('products')
       .select('*')
       .eq('slug', slug)
       .single()
@@ -51,7 +51,22 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
       return null
     }
 
-    return data as Product
+    const product = data as Product
+
+    // Fetch unavailabilities dynamically using the SQL function
+    const { data: unavailabilities, error: unavailError } = await supabase.rpc(
+      'get_product_unavailabilities',
+      { product_id_param: product.id }
+    )
+
+    if (unavailError) {
+      console.error('Error fetching unavailabilities:', unavailError.message)
+    }
+
+    // Attach unavailabilities to the product
+    product.unavailabilities = unavailabilities || []
+
+    return product
   } catch (err) {
     console.error('Exception fetching product by slug:', err)
     return null

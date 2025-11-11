@@ -165,7 +165,7 @@ export default function GoogleReviews() {
       <div className="container mx-auto px-6 md:px-8 lg:px-12">
         {/* Section Title */}
         <div className="text-center mb-12 md:mb-16">
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-4">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-4 font-satisfy">
             Nos avis Google
           </h2>
           <p className="text-s md:text-xl text-gray-600 max-w-2xl mx-auto">

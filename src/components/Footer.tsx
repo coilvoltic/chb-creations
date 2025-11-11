@@ -5,7 +5,7 @@ export default function Footer() {
         <div className="grid md:grid-cols-3 gap-8">
           {/* Company Info */}
           <div>
-            <h3 className="text-stone-900 text-xl font-bold mb-4">CHB Créations</h3>
+            <h3 className="text-stone-900 text-xl font-bold mb-4 font-satisfy">CHB Créations</h3>
             <p className="text-sm leading-relaxed text-stone-600">
               Votre partenaire de confiance pour la location et la personnalisation à Marseille.
             </p>

@@ -5,22 +5,86 @@ import Link from 'next/link'
 import { useCart } from '@/contexts/CartContext'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import type { CustomerInfo } from '@/lib/supabase'
 
 export default function CartPage() {
-  const { cart, removeFromCart, updateQuantity, clearCart } = useCart()
+  const { cart, removeFromCart, clearCart } = useCart()
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showCheckoutForm, setShowCheckoutForm] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Customer info form state
+  const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+  })
+
+  const depositPercentage = 0.5 // 50% acompte
+  const depositAmount = cart.totalPrice * depositPercentage
+  const cautionAmount = 100 // Caution fixe de 100€ (à ajuster selon vos besoins)
 
   const handleValidateOrder = async () => {
+    // Validation des champs
+    if (!customerInfo.firstName || !customerInfo.lastName || !customerInfo.email || !customerInfo.phone) {
+      setError('Veuillez remplir tous les champs')
+      return
+    }
+
+    // Validation email basique
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(customerInfo.email)) {
+      setError('Email invalide')
+      return
+    }
+
     setIsSubmitting(true)
+    setError(null)
 
-    // TODO: Send order to backend/Supabase
-    // For now, just simulate success
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    try {
+      // Préparer les données pour l'API
+      const payload = {
+        customerInfo,
+        items: cart.items.map((item) => ({
+          productId: item.productId,
+          productName: item.productName,
+          quantity: item.quantity,
+          pricePerUnit: item.pricePerUnit,
+          rentalStart: new Date(
+            item.rentalPeriod.from.toISOString().split('T')[0] + 'T' + item.startTime
+          ).toISOString(),
+          rentalEnd: new Date(
+            item.rentalPeriod.to.toISOString().split('T')[0] + 'T' + item.endTime
+          ).toISOString(),
+        })),
+        deposit: depositAmount,
+        caution: cautionAmount,
+      }
 
-    alert('Commande validée ! Nous vous contacterons bientôt.')
-    clearCart()
-    router.push('/')
+      const response = await fetch('/api/reservations/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de la création de la réservation')
+      }
+
+      // Succès
+      clearCart()
+      alert(`Réservation #${data.reservationId} créée avec succès ! Nous vous contacterons bientôt.`)
+      router.push('/')
+    } catch (err) {
+      console.error('Erreur validation commande:', err)
+      setError(err instanceof Error ? err.message : 'Erreur lors de la validation')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (cart.items.length === 0) {
@@ -118,7 +182,7 @@ export default function CartPage() {
             ))}
           </div>
 
-          {/* Order Summary */}
+          {/* Order Summary & Checkout Form */}
           <div className="lg:col-span-1">
             <div className="border border-stone-200 rounded-xl p-6 sticky top-24">
               <h2 className="text-2xl font-bold mb-6">Récapitulatif</h2>
@@ -128,26 +192,123 @@ export default function CartPage() {
                   <span>Articles ({cart.totalItems})</span>
                   <span>{cart.totalPrice.toFixed(2)} €</span>
                 </div>
+                <div className="flex justify-between text-stone-700 text-sm">
+                  <span>Acompte (50%)</span>
+                  <span>{depositAmount.toFixed(2)} €</span>
+                </div>
+                <div className="flex justify-between text-stone-700 text-sm">
+                  <span>Caution</span>
+                  <span>{cautionAmount.toFixed(2)} €</span>
+                </div>
                 <div className="border-t border-stone-200 pt-3 flex justify-between font-bold text-lg">
                   <span>Total</span>
                   <span>{cart.totalPrice.toFixed(2)} €</span>
                 </div>
               </div>
 
-              <button
-                onClick={handleValidateOrder}
-                disabled={isSubmitting}
-                className="w-full bg-black text-white px-6 py-4 rounded-lg hover:bg-stone-800 transition-colors font-medium disabled:bg-stone-400 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? 'Validation...' : 'Valider la commande'}
-              </button>
+              {!showCheckoutForm ? (
+                <>
+                  <button
+                    onClick={() => setShowCheckoutForm(true)}
+                    className="w-full bg-black text-white px-6 py-4 rounded-lg hover:bg-stone-800 transition-colors font-medium"
+                  >
+                    Valider la commande
+                  </button>
 
-              <Link
-                href="/services/locations"
-                className="block text-center mt-4 text-stone-600 hover:text-black transition-colors"
-              >
-                Continuer mes achats
-              </Link>
+                  <Link
+                    href="/services/locations"
+                    className="block text-center mt-4 text-stone-600 hover:text-black transition-colors"
+                  >
+                    Continuer mes achats
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-4 mb-6">
+                    <h3 className="font-semibold text-lg">Vos informations</h3>
+
+                    {error && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                        {error}
+                      </div>
+                    )}
+
+                    <div>
+                      <label htmlFor="firstName" className="block text-sm font-medium text-stone-700 mb-1">
+                        Prénom *
+                      </label>
+                      <input
+                        id="firstName"
+                        type="text"
+                        value={customerInfo.firstName}
+                        onChange={(e) => setCustomerInfo({ ...customerInfo, firstName: e.target.value })}
+                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="lastName" className="block text-sm font-medium text-stone-700 mb-1">
+                        Nom *
+                      </label>
+                      <input
+                        id="lastName"
+                        type="text"
+                        value={customerInfo.lastName}
+                        onChange={(e) => setCustomerInfo({ ...customerInfo, lastName: e.target.value })}
+                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-stone-700 mb-1">
+                        Email *
+                      </label>
+                      <input
+                        id="email"
+                        type="email"
+                        value={customerInfo.email}
+                        onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
+                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="phone" className="block text-sm font-medium text-stone-700 mb-1">
+                        Téléphone *
+                      </label>
+                      <input
+                        id="phone"
+                        type="tel"
+                        value={customerInfo.phone}
+                        onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
+                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleValidateOrder}
+                    disabled={isSubmitting}
+                    className="w-full bg-black text-white px-6 py-4 rounded-lg hover:bg-stone-800 transition-colors font-medium disabled:bg-stone-400 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? 'Validation en cours...' : 'Confirmer la réservation'}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowCheckoutForm(false)
+                      setError(null)
+                    }}
+                    className="w-full mt-2 text-stone-600 hover:text-black transition-colors text-sm"
+                  >
+                    Retour
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

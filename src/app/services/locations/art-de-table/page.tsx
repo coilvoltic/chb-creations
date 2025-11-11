@@ -54,18 +54,19 @@ export default async function ArtDeTablePage() {
                 <Link
                   key={product.id}
                   href={`/services/locations/art-de-table/${product.slug}`}
-                  className={`group block animate-scale-in delay-${(index + 1) * 100} cursor-pointer`}
+                  className="group block animate-scale-in cursor-pointer"
+                  style={{ animationDelay: `${(index + 1) * 100}ms` }}
                 >
-                  <div className="relative aspect-square overflow-hidden bg-white mb-4 rounded-xl shadow-soft hover:shadow-dark transition-all duration-300">
+                  <div className="relative aspect-square overflow-hidden bg-white mb-4 rounded-xl shadow-soft group-hover:shadow-dark transition-all duration-300">
                     <img
                       src={product.images[0]}
                       alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out opacity-90"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
                   </div>
                   <div className="text-left space-y-1">
-                    <h3 className="text-base font-medium group-hover:text-gray-600 transition-colors duration-300">
+                    <h3 className="text-base font-medium">
                       {product.name}
                     </h3>
                     <p className="text-lg font-bold text-black">

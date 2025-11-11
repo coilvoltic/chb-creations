@@ -68,8 +68,8 @@ export default function Home() {
           <div className="container mx-auto px-6 md:px-8 lg:px-12">
             {/* Section Title - on white background */}
             <div className="text-center">
-              <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-4">
-                Tous nos services.
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-4 font-satisfy">
+                Tous nos services
               </h2>
               <p className="text-s md:text-xl text-gray-600 max-w-2xl mx-auto">
                 Tout ce dont vous avez besoin pour sublimer vos événements.
@@ -94,7 +94,7 @@ export default function Home() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 lg:p-10 text-white">
-                      <h2 className="text-3xl md:text-4xl font-bold mb-3">Locations</h2>
+                      <h2 className="text-4xl md:text-5xl font-bold mb-3 font-satisfy">Locations</h2>
                       <p className="text-base md:text-lg text-white/80 mb-4 md:mb-5">
                         Art de table, trônes, décoration et tenues
                       </p>
@@ -120,7 +120,7 @@ export default function Home() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 lg:p-10 text-white">
-                      <h2 className="text-3xl md:text-4xl font-bold mb-3">Accessoires</h2>
+                      <h2 className="text-4xl md:text-5xl font-bold mb-3 font-satisfy">Accessoires</h2>
                       <p className="text-base md:text-lg text-white/80 mb-4 md:mb-5">
                         Créations uniques et personnalisées
                       </p>
@@ -146,7 +146,7 @@ export default function Home() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 lg:p-10 text-white">
-                      <h2 className="text-3xl md:text-4xl font-bold mb-3">Henné</h2>
+                      <h2 className="text-4xl md:text-5xl font-bold mb-3 font-satisfy">Henné</h2>
                       <p className="text-base md:text-lg text-white/80 mb-4 md:mb-5">
                         Art traditionnel et contemporain
                       </p>
@@ -172,7 +172,7 @@ export default function Home() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 lg:p-10 text-white">
-                      <h2 className="text-3xl md:text-4xl font-bold mb-3">Décoration</h2>
+                      <h2 className="text-4xl md:text-5xl font-bold mb-3 font-satisfy">Décoration</h2>
                       <p className="text-base md:text-lg text-white/80 mb-4 md:mb-5">
                         Livraison et installation
                       </p>

@@ -31,3 +31,51 @@ export interface Product {
   unavailabilities?: UnavailabilityEntry[]
   created_at?: string
 }
+
+// Enum for reservation status matching Supabase
+export type ReservationStatus = 'DONE' | 'CANCELLED' | 'CONFIRMED' | 'CONFIRMED_NO_DEPOSIT'
+
+export interface CustomerInfo {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+}
+
+export interface Reservation {
+  id: number
+  created_at: string
+  customer_infos: CustomerInfo
+  deposit: number
+  caution: number
+  reservation_status: ReservationStatus
+  total_price?: number
+}
+
+export interface ReservationItem {
+  id: number
+  reservation_id: number
+  product_id: number
+  rental_start: string // ISO timestamp
+  rental_end: string // ISO timestamp
+  quantity: number
+}
+
+// Helper function to get product unavailabilities dynamically from reservation_items
+export async function getProductUnavailabilities(
+  productId: number
+): Promise<UnavailabilityEntry[]> {
+  const supabase = getSupabaseClient()
+
+  // Call the SQL function get_product_unavailabilities
+  const { data, error } = await supabase.rpc('get_product_unavailabilities', {
+    product_id_param: productId,
+  })
+
+  if (error) {
+    console.error('Error fetching unavailabilities:', error)
+    return []
+  }
+
+  return (data || []) as UnavailabilityEntry[]
+}
