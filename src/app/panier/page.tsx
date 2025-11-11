@@ -25,8 +25,20 @@ export default function CartPage() {
     phone: '',
   })
 
-  const depositPercentage = 0.5 // 50% acompte
-  const depositAmount = cart.totalPrice * depositPercentage
+  // Calculate deposit based on products with deposit requirements
+  const calculateDeposit = () => {
+    let totalDeposit = 0
+    cart.items.forEach((item) => {
+      if (item.depositPercentage && item.depositPercentage > 0) {
+        const itemPrice = item.pricePerUnit + (item.selectedOption?.additional_fee || 0)
+        const itemTotal = itemPrice * item.quantity
+        totalDeposit += (itemTotal * item.depositPercentage) / 100
+      }
+    })
+    return totalDeposit
+  }
+
+  const depositAmount = calculateDeposit()
   const cautionAmount = 100 // Caution fixe de 100€ (à ajuster selon vos besoins)
 
   const handleValidateOrder = async () => {
@@ -50,18 +62,22 @@ export default function CartPage() {
       // Préparer les données pour l'API
       const payload = {
         customerInfo,
-        items: cart.items.map((item) => ({
-          productId: item.productId,
-          productName: item.productName,
-          quantity: item.quantity,
-          pricePerUnit: item.pricePerUnit,
-          rentalStart: new Date(
-            item.rentalPeriod.from.toISOString().split('T')[0] + 'T' + item.startTime
-          ).toISOString(),
-          rentalEnd: new Date(
-            item.rentalPeriod.to.toISOString().split('T')[0] + 'T' + item.endTime
-          ).toISOString(),
-        })),
+        items: cart.items.map((item) => {
+          const unitPrice = item.pricePerUnit + (item.selectedOption?.additional_fee || 0)
+          return {
+            productId: item.productId,
+            productName: item.productName,
+            quantity: item.quantity,
+            pricePerUnit: unitPrice,
+            selectedOption: item.selectedOption,
+            rentalStart: new Date(
+              item.rentalPeriod.from.toISOString().split('T')[0] + 'T' + item.startTime
+            ).toISOString(),
+            rentalEnd: new Date(
+              item.rentalPeriod.to.toISOString().split('T')[0] + 'T' + item.endTime
+            ).toISOString(),
+          }
+        }),
         deposit: depositAmount,
         caution: cautionAmount,
       }
@@ -168,6 +184,16 @@ export default function CartPage() {
                       <p>
                         <span className="font-medium">Prix unitaire :</span> {item.pricePerUnit.toFixed(2)} €
                       </p>
+                      {item.selectedOption && (
+                        <p className="text-amber-700">
+                          <span className="font-medium">Option :</span> {item.selectedOption.name} (+{item.selectedOption.additional_fee.toFixed(2)} €)
+                        </p>
+                      )}
+                      {item.depositPercentage && item.depositPercentage > 0 && (
+                        <p className="text-amber-700">
+                          <span className="font-medium">Acompte requis :</span> {item.depositPercentage}%
+                        </p>
+                      )}
                       <p>
                         <span className="font-medium">Quantité :</span> {item.quantity}
                       </p>
@@ -176,7 +202,7 @@ export default function CartPage() {
                     {/* Subtotal */}
                     <div className="mt-4 text-right">
                       <p className="text-lg font-bold">
-                        {(item.quantity * item.pricePerUnit).toFixed(2)} €
+                        {(item.quantity * (item.pricePerUnit + (item.selectedOption?.additional_fee || 0))).toFixed(2)} €
                       </p>
                     </div>
                   </div>
@@ -195,10 +221,12 @@ export default function CartPage() {
                   <span>Articles ({cart.totalItems})</span>
                   <span>{cart.totalPrice.toFixed(2)} €</span>
                 </div>
-                <div className="flex justify-between text-stone-700 text-sm">
-                  <span>Acompte (50%)</span>
-                  <span>{depositAmount.toFixed(2)} €</span>
-                </div>
+                {depositAmount > 0 && (
+                  <div className="flex justify-between text-amber-700 text-sm font-medium">
+                    <span>Acompte à payer</span>
+                    <span>{depositAmount.toFixed(2)} €</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-stone-700 text-sm">
                   <span>Caution</span>
                   <span>{cautionAmount.toFixed(2)} €</span>
@@ -207,6 +235,12 @@ export default function CartPage() {
                   <span>Total</span>
                   <span>{cart.totalPrice.toFixed(2)} €</span>
                 </div>
+                {depositAmount > 0 && (
+                  <div className="text-xs text-amber-700 bg-amber-50 p-3 rounded-lg">
+                    <p className="font-medium mb-1">Informations sur l&apos;acompte :</p>
+                    <p>Un acompte de {depositAmount.toFixed(2)} € sera requis pour valider la réservation. Le solde restant de {(cart.totalPrice - depositAmount).toFixed(2)} € sera à régler lors de la récupération.</p>
+                  </div>
+                )}
               </div>
 
               {!showCheckoutForm ? (

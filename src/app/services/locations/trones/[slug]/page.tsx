@@ -25,9 +25,26 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   const [endTime, setEndTime] = useState('18:00')
   const [activeTab, setActiveTab] = useState<'description' | 'faq'>('description')
   const [expandedFaqIndex, setExpandedFaqIndex] = useState<number | null>(null)
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState(0)
 
   // Check if product is already in cart
   const isInCart = product ? cart.items.some(item => item.productId === product.id) : false
+
+  // Calculate total price with selected option
+  const getTotalPrice = () => {
+    if (!product) return 0
+    const basePrice = product.price
+    const optionFee = product.options && product.options.length > 0
+      ? product.options[selectedOptionIndex]?.additional_fee || 0
+      : 0
+    return basePrice + optionFee
+  }
+
+  // Calculate deposit amount if applicable
+  const getDepositAmount = () => {
+    if (!product || !product.deposit) return 0
+    return (getTotalPrice() * quantity * product.deposit) / 100
+  }
 
   useEffect(() => {
     async function loadProduct() {
@@ -48,6 +65,10 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   const handleAddToCart = () => {
     if (!product || !rentalPeriod?.from || !rentalPeriod?.to) return
 
+    const selectedOption = product.options && product.options.length > 0
+      ? product.options[selectedOptionIndex]
+      : undefined
+
     addToCart({
       productId: product.id,
       productName: product.name,
@@ -55,6 +76,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
       productImage: product.images[0],
       quantity,
       pricePerUnit: product.price,
+      selectedOption,
+      depositPercentage: product.deposit || undefined,
       rentalPeriod: {
         from: rentalPeriod.from,
         to: rentalPeriod.to,
@@ -161,9 +184,16 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                   <h1 className="text-4xl font-bold text-black mb-4">
                     {product.name}
                   </h1>
-                  <p className="text-3xl font-bold text-black">
-                    {product.price.toFixed(2)} €
-                  </p>
+                  <div>
+                    <p className="text-3xl font-bold text-black">
+                      {getTotalPrice().toFixed(2)} €
+                    </p>
+                    {product.options && product.options.length > 0 && product.options[selectedOptionIndex]?.additional_fee > 0 && (
+                      <p className="text-sm text-stone-600 mt-1">
+                        Prix de base: {product.price.toFixed(2)} € + Option: {product.options[selectedOptionIndex].additional_fee.toFixed(2)} €
+                      </p>
+                    )}
+                  </div>
                   <p className="text-stone-600 mt-2">
                     Prix de location
                   </p>
@@ -264,6 +294,67 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         ))}
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Options selector */}
+                {product.options && product.options.length > 0 && (
+                  <div className="border-t border-stone-200 pt-6">
+                    <h2 className={`text-xl font-semibold mb-3 ${isInCart ? 'text-stone-400' : ''}`}>Options disponibles</h2>
+                    <div className="space-y-3">
+                      {product.options.map((option, index) => (
+                        <label
+                          key={index}
+                          className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                            selectedOptionIndex === index
+                              ? 'border-black bg-stone-50'
+                              : 'border-stone-200 hover:border-stone-300'
+                          } ${isInCart ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          <input
+                            type="radio"
+                            name="product-option"
+                            value={index}
+                            checked={selectedOptionIndex === index}
+                            onChange={() => !isInCart && setSelectedOptionIndex(index)}
+                            disabled={isInCart}
+                            className="mt-1 mr-3"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1 gap-1 md:gap-2">
+                              <span className="font-medium text-black">{option.name}</span>
+                              {option.additional_fee > 0 && (
+                                <span className="text-sm font-semibold text-black">
+                                  +{option.additional_fee.toFixed(0)}€
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-stone-600">{option.description}</p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Deposit warning */}
+                {product.deposit && product.deposit > 0 && (
+                  <div className="border-t border-stone-200 pt-6">
+                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <svg className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-amber-900 mb-1">
+                            Acompte requis : {product.deposit}%
+                          </p>
+                          <p className="text-sm text-amber-800">
+                            Un acompte de <strong>{getDepositAmount().toFixed(2)} €</strong> sera requis pour valider cette réservation.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 

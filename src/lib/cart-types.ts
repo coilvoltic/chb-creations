@@ -1,5 +1,11 @@
 import { DateRange } from 'react-day-picker'
 
+export interface SelectedOption {
+  name: string
+  description: string
+  additional_fee: number
+}
+
 export interface CartItem {
   id: string // unique cart item id
   productId: number
@@ -8,6 +14,8 @@ export interface CartItem {
   productImage: string
   quantity: number
   pricePerUnit: number
+  selectedOption?: SelectedOption
+  depositPercentage?: number
   rentalPeriod: {
     from: Date
     to: Date

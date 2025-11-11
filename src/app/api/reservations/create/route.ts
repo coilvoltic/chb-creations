@@ -3,6 +3,12 @@ import { createClient } from '@supabase/supabase-js'
 import type { CustomerInfo, ReservationStatus } from '@/lib/supabase'
 import { sendReservationConfirmation } from '@/lib/email'
 
+interface SelectedOption {
+  name: string
+  description: string
+  additional_fee: number
+}
+
 interface CartItemPayload {
   productId: number
   productName: string
@@ -10,6 +16,7 @@ interface CartItemPayload {
   pricePerUnit: number
   rentalStart: string // ISO timestamp
   rentalEnd: string // ISO timestamp
+  selectedOption?: SelectedOption
 }
 
 interface CreateReservationPayload {
@@ -83,6 +90,7 @@ export async function POST(request: NextRequest) {
       quantity: item.quantity,
       rental_start: item.rentalStart,
       rental_end: item.rentalEnd,
+      options: item.selectedOption || null,
     }))
 
     const { error: itemsError } = await supabase
@@ -115,6 +123,7 @@ export async function POST(request: NextRequest) {
           rental_end: item.rentalEnd,
           unit_price: item.pricePerUnit,
           total_price: item.quantity * item.pricePerUnit,
+          selectedOption: item.selectedOption,
         })),
       }
 

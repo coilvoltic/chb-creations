@@ -2,6 +2,12 @@ import React from 'react'
 import { Document, Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/renderer'
 
 // Types
+interface SelectedOption {
+  name: string
+  description: string
+  additional_fee: number
+}
+
 interface ReservationItem {
   product_name: string
   quantity: number
@@ -9,6 +15,7 @@ interface ReservationItem {
   rental_end: string
   unit_price: number
   total_price: number
+  selectedOption?: SelectedOption
 }
 
 interface ReservationData {
@@ -177,13 +184,22 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
 
             {/* Lignes du tableau */}
             {reservation.items.map((item, index) => (
-              <View key={index} style={styles.tableRow}>
-                <Text style={styles.col1}>{item.product_name}</Text>
-                <Text style={styles.col2}>{item.quantity}</Text>
-                <Text style={styles.col3}>
-                  {formatDate(item.rental_start)} - {formatDate(item.rental_end)}
-                </Text>
-                <Text style={styles.col4}>{item.total_price.toFixed(2)} €</Text>
+              <View key={index}>
+                <View style={styles.tableRow}>
+                  <Text style={styles.col1}>
+                    {item.product_name}
+                    {item.selectedOption && (
+                      <Text style={{ fontSize: 9, color: '#666' }}>
+                        {'\n'}Option: {item.selectedOption.name}
+                      </Text>
+                    )}
+                  </Text>
+                  <Text style={styles.col2}>{item.quantity}</Text>
+                  <Text style={styles.col3}>
+                    {formatDate(item.rental_start)} - {formatDate(item.rental_end)}
+                  </Text>
+                  <Text style={styles.col4}>{item.total_price.toFixed(2)} €</Text>
+                </View>
               </View>
             ))}
           </View>

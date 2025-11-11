@@ -22,6 +22,12 @@ export interface FAQItem {
   answer: string
 }
 
+export interface ProductOption {
+  name: string
+  description: string
+  additional_fee: number
+}
+
 export interface Product {
   id: number
   name: string
@@ -31,6 +37,8 @@ export interface Product {
   description?: string
   features?: string[]
   faq?: FAQItem[]
+  options?: ProductOption[]
+  deposit?: number // Percentage (0-100) or null
   category: string
   subcategory: string
   stock: number

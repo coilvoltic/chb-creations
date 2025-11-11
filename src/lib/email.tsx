@@ -5,6 +5,12 @@ import React from 'react'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+interface SelectedOption {
+  name: string
+  description: string
+  additional_fee: number
+}
+
 interface ReservationItem {
   product_name: string
   quantity: number
@@ -12,6 +18,7 @@ interface ReservationItem {
   rental_end: string
   unit_price: number
   total_price: number
+  selectedOption?: SelectedOption
 }
 
 interface ReservationData {
