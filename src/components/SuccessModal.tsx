@@ -94,7 +94,7 @@ export default function SuccessModal({
               onClick={onClose}
               className="w-full bg-black text-white px-6 py-3 rounded-lg hover:bg-stone-800 transition-colors font-medium"
             >
-              Retour à l'accueil
+              Retour à l&apos;accueil
             </button>
 
             {/* Note */}

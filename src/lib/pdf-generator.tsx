@@ -207,10 +207,10 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
             • Une caution pourra être demandée lors de la récupération
           </Text>
           <Text style={styles.text}>
-            • Les articles doivent être retournés dans l'état dans lequel ils ont été loués
+            • Les articles doivent être retournés dans l&apos;état dans lequel ils ont été loués
           </Text>
           <Text style={styles.text}>
-            • Pour toute question, n'hésitez pas à nous contacter
+            • Pour toute question, n&apos;hésitez pas à nous contacter
           </Text>
         </View>
 
