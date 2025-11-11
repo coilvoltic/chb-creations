@@ -305,7 +305,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                       {product.options.map((option, index) => (
                         <label
                           key={index}
-                          className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                          className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
                             selectedOptionIndex === index
                               ? 'border-black bg-stone-50'
                               : 'border-stone-200 hover:border-stone-300'
@@ -318,7 +318,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             checked={selectedOptionIndex === index}
                             onChange={() => !isInCart && setSelectedOptionIndex(index)}
                             disabled={isInCart}
-                            className="mt-1 mr-3"
+                            className="mr-3 flex-shrink-0"
                           />
                           <div className="flex-1">
                             <div className="flex items-center justify-between mb-1">
