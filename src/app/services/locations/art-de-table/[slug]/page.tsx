@@ -23,6 +23,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   const [rentalPeriod, setRentalPeriod] = useState<DateRange | undefined>()
   const [startTime, setStartTime] = useState('09:00')
   const [endTime, setEndTime] = useState('18:00')
+  const [activeTab, setActiveTab] = useState<'description' | 'faq'>('description')
+  const [expandedFaqIndex, setExpandedFaqIndex] = useState<number | null>(null)
 
   // Check if product is already in cart
   const isInCart = product ? cart.items.some(item => item.productId === product.id) : false
@@ -167,23 +169,101 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                   </p>
                 </div>
 
-                {product.description && (
+                {/* Onglets Description / FAQ */}
+                {(product.description || (product.faq && product.faq.length > 0)) && (
                   <div className="border-t border-stone-200 pt-6">
-                    <h2 className="text-xl font-semibold mb-3">Description</h2>
-                    <div className="text-stone-700 leading-relaxed prose prose-stone max-w-none">
-                      <ReactMarkdown>{product.description}</ReactMarkdown>
-                    </div>
-                  </div>
-                )}
+                    {/* Tabs Header */}
+                    {product.faq && product.faq.length > 0 && (
+                      <div className="flex border-b border-stone-200 mb-4">
+                        <button
+                          onClick={() => setActiveTab('description')}
+                          className={`px-4 py-2 font-medium transition-colors ${
+                            activeTab === 'description'
+                              ? 'text-black border-b-2 border-black'
+                              : 'text-stone-500 hover:text-stone-700'
+                          }`}
+                        >
+                          Description
+                        </button>
+                        <button
+                          onClick={() => setActiveTab('faq')}
+                          className={`px-4 py-2 font-medium transition-colors ${
+                            activeTab === 'faq'
+                              ? 'text-black border-b-2 border-black'
+                              : 'text-stone-500 hover:text-stone-700'
+                          }`}
+                        >
+                          FAQ
+                        </button>
+                      </div>
+                    )}
 
-                {product.features && product.features.length > 0 && (
-                  <div className="border-t border-stone-200 pt-6">
-                    <h2 className="text-xl font-semibold mb-3">Informations</h2>
-                    <ul className="space-y-2 text-stone-700">
-                      {product.features.map((feature, index) => (
-                        <li key={index}>• {feature}</li>
-                      ))}
-                    </ul>
+                    {/* Tab Content */}
+                    {activeTab === 'description' && (
+                      <>
+                        {product.description && (
+                          <div className="mb-6">
+                            <h2 className="text-xl font-semibold mb-3">Description</h2>
+                            <div className="text-stone-700 leading-relaxed prose prose-stone max-w-none">
+                              <ReactMarkdown>{product.description}</ReactMarkdown>
+                            </div>
+                          </div>
+                        )}
+
+                        {product.features && product.features.length > 0 && (
+                          <div className={product.description ? 'border-t border-stone-200 pt-6' : ''}>
+                            <h2 className="text-xl font-semibold mb-3">Informations</h2>
+                            <ul className="space-y-2 text-stone-700">
+                              {product.features.map((feature, index) => (
+                                <li key={index}>• {feature}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {activeTab === 'faq' && product.faq && product.faq.length > 0 && (
+                      <div className="space-y-3">
+                        {product.faq.map((faqItem, index) => (
+                          <div
+                            key={index}
+                            className="border border-stone-200 rounded-lg overflow-hidden"
+                          >
+                            <button
+                              onClick={() => setExpandedFaqIndex(expandedFaqIndex === index ? null : index)}
+                              className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-stone-50 transition-colors"
+                            >
+                              <span className="font-medium text-black pr-4">
+                                {faqItem.question}
+                              </span>
+                              <svg
+                                className={`w-5 h-5 text-stone-600 transition-transform flex-shrink-0 ${
+                                  expandedFaqIndex === index ? 'transform rotate-180' : ''
+                                }`}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 9l-7 7-7-7"
+                                />
+                              </svg>
+                            </button>
+                            {expandedFaqIndex === index && (
+                              <div className="px-4 py-3 bg-stone-50 border-t border-stone-200 animate-fade-in">
+                                <p className="text-stone-700 leading-relaxed">
+                                  {faqItem.answer}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 

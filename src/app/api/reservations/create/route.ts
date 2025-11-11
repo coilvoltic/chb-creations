@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import type { CustomerInfo, ReservationStatus } from '@/lib/supabase'
+import { sendReservationConfirmation } from '@/lib/email'
 
 interface CartItemPayload {
   productId: number
@@ -98,7 +99,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. Retourner le succès avec l'ID de réservation
+    // 3. Envoyer l'email de confirmation avec le PDF
+    try {
+      const emailData = {
+        id: reservation.id,
+        customer_name: `${customerInfo.firstName} ${customerInfo.lastName}`,
+        customer_email: customerInfo.email,
+        customer_phone: customerInfo.phone,
+        total_amount: totalPrice,
+        created_at: reservation.created_at,
+        items: items.map((item) => ({
+          product_name: item.productName,
+          quantity: item.quantity,
+          rental_start: item.rentalStart,
+          rental_end: item.rentalEnd,
+          unit_price: item.pricePerUnit,
+          total_price: item.quantity * item.pricePerUnit,
+        })),
+      }
+
+      await sendReservationConfirmation(emailData)
+      console.log('Email de confirmation envoyé à:', customerInfo.email)
+    } catch (emailError) {
+      // Ne pas faire échouer la réservation si l'email échoue
+      // La réservation est déjà créée en base
+      console.error('Erreur envoi email (réservation créée):', emailError)
+    }
+
+    // 4. Retourner le succès avec l'ID de réservation
     return NextResponse.json({
       success: true,
       reservationId: reservation.id,

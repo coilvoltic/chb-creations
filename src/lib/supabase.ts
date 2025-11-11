@@ -17,6 +17,11 @@ export interface UnavailabilityEntry {
   reserved_products: number
 }
 
+export interface FAQItem {
+  question: string
+  answer: string
+}
+
 export interface Product {
   id: number
   name: string
@@ -25,6 +30,7 @@ export interface Product {
   images: string[]
   description?: string
   features?: string[]
+  faq?: FAQItem[]
   category: string
   subcategory: string
   stock: number

@@ -6,6 +6,7 @@ import { useCart } from '@/contexts/CartContext'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { CustomerInfo } from '@/lib/supabase'
+import SuccessModal from '@/components/SuccessModal'
 
 export default function CartPage() {
   const { cart, removeFromCart, clearCart } = useCart()
@@ -13,6 +14,8 @@ export default function CartPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCheckoutForm, setShowCheckoutForm] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [reservationId, setReservationId] = useState<number | null>(null)
 
   // Customer info form state
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
@@ -77,8 +80,8 @@ export default function CartPage() {
 
       // Succès
       clearCart()
-      alert(`Réservation #${data.reservationId} créée avec succès ! Nous vous contacterons bientôt.`)
-      router.push('/')
+      setReservationId(data.reservationId)
+      setShowSuccessModal(true)
     } catch (err) {
       console.error('Erreur validation commande:', err)
       setError(err instanceof Error ? err.message : 'Erreur lors de la validation')
@@ -313,6 +316,16 @@ export default function CartPage() {
           </div>
         </div>
       </div>
+
+      {/* Modale de succès */}
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false)
+          router.push('/')
+        }}
+        reservationId={reservationId || 0}
+      />
     </div>
   )
 }

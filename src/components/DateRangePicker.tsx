@@ -134,16 +134,6 @@ export default function DateRangePicker({
 
   return (
     <div className={`border border-stone-200 rounded-xl p-4 ${disabled ? 'bg-stone-50 opacity-60' : 'bg-white'}`}>
-      {errorMessage && !disabled && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-          {errorMessage}
-        </div>
-      )}
-      {infoMessage && !disabled && (
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
-          {infoMessage}
-        </div>
-      )}
       <DayPicker
         mode="range"
         selected={selectedRange}
@@ -163,6 +153,16 @@ export default function DateRangePicker({
           range_middle: 'rdp-range-middle',
         }}
       />
+      {errorMessage && !disabled && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          {errorMessage}
+        </div>
+      )}
+      {infoMessage && !disabled && (
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+          {infoMessage}
+        </div>
+      )}
 
       {/* Time selection */}
       {selectedRange?.from && selectedRange?.to && (
