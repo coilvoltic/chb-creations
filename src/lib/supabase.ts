@@ -33,12 +33,14 @@ export interface Product {
   name: string
   slug: string
   price: number
+  new_price?: number // Promotional price (if set, display this instead of price)
   images: string[]
   description?: string
   features?: string[]
   faq?: FAQItem[]
   options?: ProductOption[]
   deposit?: number // Percentage (0-100) or null
+  is_out_of_stock?: boolean // True if product is out of stock
   category: string
   subcategory: string
   stock: number

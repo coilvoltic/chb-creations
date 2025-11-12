@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CHB Créations is a Next.js 15 e-commerce website for event decoration services, personalized accessories, henna services, and event rentals based in Marseille. The site is in French and uses the App Router architecture.
+CHB Créations is a Next.js 15 e-commerce website for event decoration services, personalized accessories, henna services, and event rentals based in Marseille. The site is in French and uses the App Router architecture with Supabase as the backend database.
 
 ## Development Commands
 
@@ -32,22 +32,57 @@ The development server runs on http://localhost:3000
 - **TypeScript** with strict mode enabled
 - **Tailwind CSS 4** with @tailwindcss/postcss for styling
 - **Turbopack** for both dev and build (enabled via --turbopack flag)
+- **Supabase** for database, authentication, and backend services
+- **Resend** for transactional emails with PDF attachments
+- **@react-pdf/renderer** for generating reservation confirmation PDFs
 
 ### Path Aliases
 - `@/*` maps to `./src/*` (configured in tsconfig.json)
-- Use this consistently for all imports: `@/components/...`, `@/app/...`
+- Use this consistently for all imports: `@/components/...`, `@/app/...`, `@/lib/...`
 
 ### Fonts
-The app uses two Google Fonts configured in [src/app/layout.tsx](src/app/layout.tsx:6-16):
+The app uses three Google Fonts configured in [src/app/layout.tsx](src/app/layout.tsx):
 - **Inter**: Primary font (variable: `--font-inter`)
 - **Outfit**: Secondary font (variable: `--font-outfit`)
-- Both loaded with weights 300-800
+- **Satisfy**: Display font for titles (variable: `--font-satisfy`)
+- All loaded with weights 300-800
+
+## Database Architecture (Supabase)
+
+### Core Tables
+1. **products**: Product catalog with:
+   - Basic info: name, slug, price, images[], description, features[]
+   - **options**: JSONB array of product options with `{name, description, additional_fee}`
+   - **deposit**: Integer percentage (0-100) for required deposit
+   - **faq**: JSONB array of `{question, answer}` pairs
+   - Stock management and categorization (category, subcategory)
+
+2. **reservations**: Customer reservations with:
+   - customer_infos (JSONB): firstName, lastName, email, phone
+   - deposit, caution, total_price
+   - reservation_status: 'DONE' | 'CANCELLED' | 'CONFIRMED' | 'CONFIRMED_NO_DEPOSIT'
+
+3. **reservation_items**: Individual items in a reservation:
+   - Links to product_id and reservation_id
+   - rental_start, rental_end (ISO timestamps)
+   - quantity
+   - **options**: JSONB storing selected option for this item
+
+### Data Access Patterns
+- **Server Actions** (`src/actions/products.ts`): Use anon key for product fetching
+- **API Routes** (`src/app/api/reservations/create/route.ts`): Use service_role key to bypass RLS for reservation creation
+- **SQL Functions**: `get_product_unavailabilities(product_id)` dynamically computes product availability from reservation_items
+
+### Environment Variables
+Required in `.env.local`:
+- `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Public anon key for client-side queries
+- `SUPABASE_SERVICE_ROLE_KEY`: Secret service role key for server-side operations (⚠️ bypasses RLS)
+- `RESEND_API_KEY`: API key for email service
 
 ## Project Structure
 
 ### Page Hierarchy & Routing
-
-The app follows a hierarchical breadcrumb structure with dynamic nested routes:
 
 **Main sections** (4 services):
 1. **Locations** (`/services/locations`)
@@ -63,53 +98,98 @@ The app follows a hierarchical breadcrumb structure with dynamic nested routes:
 4. **Décoration** (`/services/decoration`)
 
 **Individual products** follow pattern: `/services/locations/[category]/[product-slug]`
-Example: `/services/locations/art-de-table/lot-2-assiettes-lisere-dore`
 
-### Data Management
+### State Management
 
-Product data is stored in JSON files in `public/imgs/[category]/`. Example:
-- `/public/imgs/location/art-de-table/artDeTable.json` contains product listings with name, price, and image path
-- Product pages import and use this data directly in page components
-- Images follow the same directory structure: `/public/imgs/location/art-de-table/articles/[product-image].png`
+**CartContext** (`src/contexts/CartContext.tsx`):
+- Global shopping cart state using React Context
+- Persists to localStorage
+- Handles cart operations: addToCart, removeFromCart, updateQuantity, clearCart
+- Automatically calculates totals including option fees
+- Cart items include: product info, quantity, rental period, times, selected option, deposit percentage
+
+### Product Options & Deposits
+
+Products can have optional features:
+- **Options**: Array of choices (e.g., different color schemes) with additional fees
+  - Default: First option is pre-selected
+  - Stored in cart and reservation_items
+  - Display: Radio buttons with price adjustments
+- **Deposits**: Required percentage of total price to validate reservation
+  - Only shown if deposit > 0
+  - Calculated per-item based on quantity and selected option
+  - Displayed prominently with amber warning styling
 
 ### Components
 
 **Core components** in `src/components/`:
-- **Navbar.tsx**: Sticky navigation with transparent-on-scroll behavior for homepage, mega menu dropdown for services
+- **Navbar.tsx**: Sticky navigation with mega menu dropdown for services
 - **Footer.tsx**: Site footer
 - **Breadcrumb.tsx**: Navigation breadcrumbs using lucide-react's ChevronRight icon
+- **DateRangePicker.tsx**: Rental period selector with unavailability checking and time selection
+- **SuccessModal.tsx**: Custom modal for reservation confirmation (replaces browser alerts)
+- **GoogleReviews.tsx**: Displays Google Business reviews
 
 **UI components** in `src/components/ui/`:
 - Uses shadcn/ui convention (configured via components.json)
 - navigation-menu.tsx from Radix UI
 
-### Styling Patterns
-
-The site uses a luxury/elegant design inspired by hotelmahfouf.com:
-- Custom shadows: `shadow-soft`, `shadow-dark`
-- Rounded corners: `rounded-3xl` for cards
-- Gradients: `bg-gradient-to-t from-black/60 to-transparent` on images
-- Hover effects: `group-hover:scale-110` for images, smooth transitions
-- Animation classes: `animate-fade-in-up`, `animate-scale-in` with delays
-
 ### API Routes
 
-**Contact form**: `/api/contact/route.ts`
-- POST endpoint for contact form submissions
-- Validates email, name, subject, message
-- Currently logs to console (TODO: integrate email service like SendGrid/Resend)
-- Target email in comments: `chaymaeb.creations@gmail.com`
+1. **`/api/reservations/create`** (POST):
+   - Creates reservation and reservation_items
+   - Includes selected options in database
+   - Sends confirmation email with PDF attachment
+   - Uses service_role key to bypass RLS
+   - Includes rollback on item creation failure
 
-## Design Requirements
+2. **`/api/contact`** (POST):
+   - Contact form submissions
+   - Validates email, name, subject, message
 
-Following `Informations.md` specifications:
-- Navigation structure: Accueil, Nos services (dropdown), Contact
-- Services dropdown with 4 cards showing main images and descriptions
-- Breadcrumb navigation for all sub-pages
-- Hero sections with overlay gradients
-- Product grids with hover effects
-- French language throughout
-- SVG icons from inline SVG or lucide-react
+3. **`/api/google-reviews`** (GET):
+   - Fetches Google Business reviews via Places API
+
+### Email & PDF System
+
+**Email** (`src/lib/email.tsx`):
+- Uses Resend API for sending
+- Currently in test mode (sends to volticthedev@gmail.com only)
+- Attaches generated PDF
+- Includes reservation details and selected options
+
+**PDF Generator** (`src/lib/pdf-generator.tsx`):
+- Uses @react-pdf/renderer
+- Generates confirmation documents with:
+  - Company branding (text-based, not images)
+  - Reservation number and customer info
+  - Itemized table with options displayed
+  - Total amount
+- Limitations: Cannot use local image files, must use base64 or text
+
+### Styling Patterns
+
+The site uses a luxury/elegant design:
+- Custom shadows: `shadow-soft`, `shadow-dark`
+- Rounded corners: `rounded-3xl` for cards
+- Gradients: `bg-gradient-to-b from-black/40 via-black/60 to-black/85` on hero images
+- Hover effects: `group-hover:scale-105` for images with `transition-transform duration-500`
+- Animation classes: `animate-fade-in-up`, `animate-scale-in` with inline style delays
+- Amber color scheme for warnings (deposits, options)
+
+### Product Page Architecture
+
+Product detail pages (`[slug]/page.tsx`) follow a consistent structure:
+1. **Image carousel** with navigation arrows and dot indicators
+2. **Price display** with option fee breakdown if applicable
+3. **Tabs system**: Description / FAQ (if FAQ exists)
+4. **Options selector**: Radio buttons in bordered cards (if options exist)
+5. **Deposit warning**: Amber alert box with calculated amount (if deposit required)
+6. **Quantity selector**: With stock limit
+7. **Date picker**: With unavailability checking
+8. **Add to cart**: Disabled if already in cart or no dates selected
+
+All product pages are client components (`'use client'`) to enable interactivity.
 
 ## Key Conventions
 
@@ -120,6 +200,16 @@ Following `Informations.md` specifications:
 5. **Pricing**: Display as `{price.toFixed(2)} €` for consistency
 6. **Links**: Use Next.js `<Link>` component with proper href paths
 7. **Metadata**: Set page title and description in layout.tsx or page metadata exports
+8. **Error handling**: Log errors but don't fail reservations if email sending fails
+9. **TypeScript**: Use interfaces from `@/lib/supabase` and `@/lib/cart-types` for type safety
+
+## Code Factorization
+
+Product pages (art-de-table, trônes, etc.) share identical structure:
+- Same component layout and logic
+- Only differ in: route params, breadcrumbs, hero images
+- When adding new categories, copy existing product page structure
+- Server actions in `src/actions/products.ts` follow pattern: `get[Category]Products()`
 
 ## shadcn/ui Integration
 

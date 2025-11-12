@@ -30,10 +30,16 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   // Check if product is already in cart
   const isInCart = product ? cart.items.some(item => item.productId === product.id) : false
 
+  // Get effective price (new_price if available, otherwise price)
+  const getEffectivePrice = () => {
+    if (!product) return 0
+    return product.new_price ?? product.price
+  }
+
   // Calculate total price with selected option
   const getTotalPrice = () => {
     if (!product) return 0
-    const basePrice = product.price
+    const basePrice = getEffectivePrice()
     const optionFee = product.options && product.options.length > 0
       ? product.options[selectedOptionIndex]?.additional_fee || 0
       : 0
@@ -50,6 +56,10 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     async function loadProduct() {
       const data = await getProductBySlug(slug)
       if (!data) {
+        notFound()
+      }
+      // Block access to out of stock products
+      if (data.is_out_of_stock === true) {
         notFound()
       }
       // Remove duplicate images
@@ -75,7 +85,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
       productSlug: product.slug,
       productImage: product.images[0],
       quantity,
-      pricePerUnit: product.price,
+      pricePerUnit: getEffectivePrice(),
       selectedOption,
       depositPercentage: product.deposit || undefined,
       rentalPeriod: {
@@ -185,12 +195,19 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                     {product.name}
                   </h1>
                   <div>
-                    <p className="text-3xl font-bold text-black">
-                      {getTotalPrice().toFixed(2)} €
-                    </p>
+                    <div className="flex items-baseline gap-3">
+                      <p className={`text-3xl font-bold ${product.new_price ? 'text-red-600' : 'text-black'}`}>
+                        {getTotalPrice().toFixed(2)} €
+                      </p>
+                      {product.new_price && (
+                        <p className="text-xl text-stone-500 line-through">
+                          {(product.price + (product.options && product.options.length > 0 ? product.options[selectedOptionIndex]?.additional_fee || 0 : 0)).toFixed(2)} €
+                        </p>
+                      )}
+                    </div>
                     {product.options && product.options.length > 0 && product.options[selectedOptionIndex]?.additional_fee > 0 && (
                       <p className="text-sm text-stone-600 mt-1">
-                        Prix de base: {product.price.toFixed(2)} € + Option: {product.options[selectedOptionIndex].additional_fee.toFixed(2)} €
+                        Prix de base: {getEffectivePrice().toFixed(2)} € + Option: {product.options[selectedOptionIndex].additional_fee.toFixed(2)} €
                       </p>
                     )}
                   </div>

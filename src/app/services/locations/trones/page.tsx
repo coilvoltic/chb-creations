@@ -51,31 +51,88 @@ export default async function TronesPage() {
 
             {/* Products Grid */}
             <div className="mt-2 md:mt-4 grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-10 lg:gap-12">
-              {tronesData.map((product, index) => (
-                <Link
-                  key={product.id}
-                  href={`/services/locations/trones/${product.slug}`}
-                  className="group block animate-scale-in cursor-pointer"
-                  style={{ animationDelay: `${(index + 1) * 100}ms` }}
-                >
-                  <div className="relative aspect-square overflow-hidden bg-white mb-4 rounded-xl shadow-soft group-hover:shadow-dark transition-all duration-300">
-                    <img
-                      src={product.images[0]}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
+              {tronesData.map((product, index) => {
+                const isOutOfStock = product.is_out_of_stock === true
+
+                return (
+                  <div
+                    key={product.id}
+                    className={`group block animate-scale-in ${!isOutOfStock ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                    style={{ animationDelay: `${(index + 1) * 100}ms` }}
+                  >
+                    {isOutOfStock ? (
+                      <div className="opacity-60">
+                        <div className="relative aspect-square overflow-hidden bg-white mb-4 rounded-xl shadow-soft">
+                          <img
+                            src={product.images[0]}
+                            alt={product.name}
+                            className="w-full h-full object-cover grayscale"
+                          />
+                          <div className="absolute inset-0 bg-black/40" />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold text-sm md:text-xl">
+                              Rupture de stock
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-left space-y-1">
+                          <h3 className="text-base font-medium text-stone-500">
+                            {product.name}
+                          </h3>
+                          <div className="flex items-center gap-2">
+                            {product.new_price ? (
+                              <>
+                                <p className="text-lg font-bold text-stone-400">
+                                  {product.new_price.toFixed(2)} €
+                                </p>
+                                <p className="text-sm text-stone-400 line-through">
+                                  {product.price.toFixed(2)} €
+                                </p>
+                              </>
+                            ) : (
+                              <p className="text-lg font-bold text-stone-400">
+                                {product.price.toFixed(2)} €
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <Link href={`/services/locations/trones/${product.slug}`}>
+                        <div className="relative aspect-square overflow-hidden bg-white mb-4 rounded-xl shadow-soft group-hover:shadow-dark transition-all duration-300">
+                          <img
+                            src={product.images[0]}
+                            alt={product.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
+                        </div>
+                        <div className="text-left space-y-1">
+                          <h3 className="text-base font-medium">
+                            {product.name}
+                          </h3>
+                          <div className="flex items-center gap-2">
+                            {product.new_price ? (
+                              <>
+                                <p className="text-lg font-bold text-red-600">
+                                  {product.new_price.toFixed(2)} €
+                                </p>
+                                <p className="text-sm text-stone-500 line-through">
+                                  {product.price.toFixed(2)} €
+                                </p>
+                              </>
+                            ) : (
+                              <p className="text-lg font-bold text-black">
+                                {product.price.toFixed(2)} €
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                    )}
                   </div>
-                  <div className="text-left space-y-1">
-                    <h3 className="text-base font-medium">
-                      {product.name}
-                    </h3>
-                    <p className="text-lg font-bold text-black">
-                      {product.price.toFixed(2)} €
-                    </p>
-                  </div>
-                </Link>
-              ))}
+                )
+              })}
             </div>
           </div>
         </div>
