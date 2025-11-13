@@ -59,15 +59,27 @@ export default function Contact() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative bg-stone-100 py-16 md:py-20">
-        <div className="container mx-auto px-4 md:px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto text-center space-y-4">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black tracking-tight">
-              Contact
-            </h1>
-            <p className="text-xl text-stone-600">
-              Une question ? Un projet ? N&apos;hésitez pas à nous contacter
-            </p>
+      <section className="relative w-full h-[50vh] overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src="/imgs/contactMain.png"
+            alt="Contact"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/60 to-black/85" />
+        </div>
+        <div className="relative h-full flex items-center justify-center">
+          <div className="container mx-auto px-6 md:px-12 lg:px-16">
+            <div className="max-w-3xl mx-auto text-center">
+              <h1 className="text-4xl md:text-5xl font-semibold text-white animate-fade-in-up font-satisfy">
+                Contact
+              </h1>
+              <div className="text-center max-w-3xl mx-auto">
+                <p className="text-s md:text-xl text-white/90 font-semibold tracking-wide mt-4 md:mt-6 animate-fade-in-up delay-200">
+                  Une question ? Un projet ? N&apos;hésitez pas à nous contacter.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -77,7 +89,7 @@ export default function Contact() {
 
           <div className="grid md:grid-cols-2 gap-12">
             {/* Contact Form */}
-            <div className="bg-white border border-stone-200 rounded-sm p-8">
+            <div className="bg-white border border-stone-200 rounded-lg p-8">
               <h2 className="text-2xl font-bold text-stone-900 mb-6">
                 Envoyez-nous un message
               </h2>
@@ -93,7 +105,7 @@ export default function Contact() {
                     value={formData.name}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 border border-stone-300 rounded-sm focus:ring-1 focus:ring-stone-500 focus:border-stone-500"
+                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-1 focus:ring-stone-500 focus:border-stone-500"
                   />
                 </div>
 
@@ -108,7 +120,7 @@ export default function Contact() {
                     value={formData.email}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 border border-stone-300 rounded-sm focus:ring-1 focus:ring-stone-500 focus:border-stone-500"
+                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-1 focus:ring-stone-500 focus:border-stone-500"
                   />
                 </div>
 
@@ -122,7 +134,7 @@ export default function Contact() {
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-stone-300 rounded-sm focus:ring-1 focus:ring-stone-500 focus:border-stone-500"
+                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-1 focus:ring-stone-500 focus:border-stone-500"
                   />
                 </div>
 
@@ -136,7 +148,7 @@ export default function Contact() {
                     value={formData.subject}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 border border-stone-300 rounded-sm focus:ring-1 focus:ring-stone-500 focus:border-stone-500"
+                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-1 focus:ring-stone-500 focus:border-stone-500"
                   >
                     <option value="">Sélectionnez un sujet</option>
                     <option value="locations">Location</option>
@@ -158,19 +170,19 @@ export default function Contact() {
                     onChange={handleChange}
                     required
                     rows={5}
-                    className="w-full px-4 py-2 border border-stone-300 rounded-sm focus:ring-1 focus:ring-stone-500 focus:border-stone-500"
+                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-1 focus:ring-stone-500 focus:border-stone-500"
                   />
                 </div>
 
                 {/* Submit Status Messages */}
                 {submitStatus === 'success' && (
-                  <div className="p-4 bg-green-50 border border-green-200 text-green-800 rounded-sm">
+                  <div className="p-4 bg-green-50 border border-green-200 text-green-800 rounded-lg">
                     Merci ! Votre message a été envoyé avec succès. Nous vous répondrons dans les plus brefs délais.
                   </div>
                 )}
 
                 {submitStatus === 'error' && (
-                  <div className="p-4 bg-red-50 border border-red-200 text-red-800 rounded-sm">
+                  <div className="p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg">
                     Une erreur s&apos;est produite. Veuillez réessayer ou nous contacter directement.
                   </div>
                 )}
@@ -178,7 +190,7 @@ export default function Contact() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-black text-white px-6 py-3 font-semibold hover:bg-stone-800 transition-colors disabled:bg-stone-400 disabled:cursor-not-allowed"
+                  className="w-full bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-stone-800 transition-colors disabled:bg-stone-400 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? 'Envoi en cours...' : 'Envoyer le message'}
                 </button>
@@ -187,7 +199,7 @@ export default function Contact() {
 
             {/* Contact Information */}
             <div className="space-y-8">
-              <div className="bg-white border border-stone-200 rounded-sm p-8">
+              <div className="bg-white border border-stone-200 rounded-lg p-8">
                 <h2 className="text-2xl font-bold text-stone-900 mb-6">
                   Informations de contact
                 </h2>
@@ -268,7 +280,7 @@ export default function Contact() {
                 </div>
               </div>
 
-              <div className="bg-stone-800 border border-stone-700 rounded-sm p-8 text-stone-50">
+              <div className="bg-stone-800 border border-stone-700 rounded-lg p-8 text-stone-50">
                 <h2 className="text-2xl font-bold mb-4">
                   Horaires d&apos;ouverture
                 </h2>
