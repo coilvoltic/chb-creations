@@ -134,7 +134,12 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
       <section className="pb-12">
         <div className="container mx-auto px-4 md:px-6 lg:px-8">
           <div className="max-w-6xl mx-auto">
-            <Breadcrumb items={breadcrumbItems} />
+            <Breadcrumb
+              items={[
+                ...breadcrumbItems,
+                { label: product.name, href: `${breadcrumbItems[breadcrumbItems.length - 1].href}/${product.slug}` }
+              ]}
+            />
 
             <div className="grid md:grid-cols-2 gap-6 md:gap-8">
               {/* Product Images Carousel */}
@@ -195,7 +200,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
               {/* Product Details */}
               <div className="space-y-6">
                 <div>
-                  <h1 className="text-3xl md:text-4xl font-bold text-black mb-4">
+                  <h1 className="text-3xl md:text-4xl font-bold text-black mb-3 md:mb-4">
                     {product.name}
                   </h1>
                   <div>

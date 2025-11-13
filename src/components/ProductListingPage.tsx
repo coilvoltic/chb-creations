@@ -82,9 +82,9 @@ export default function ProductListingPage({
                             alt={product.name}
                             className="w-full h-full object-cover"
                           />
-                          <div className="absolute inset-0 bg-black/90" />
+                          <div className="absolute inset-0 bg-black/30" />
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold text-sm md:text-xl">
+                            <span className="bg-red-700 text-white px-4 py-2 rounded-lg font-semibold text-sm md:text-xl">
                               Rupture de stock
                             </span>
                           </div>
