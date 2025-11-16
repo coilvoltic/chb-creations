@@ -4,6 +4,22 @@ import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { generateReservationPDF } from '@/lib/pdf-generator'
 
+interface SelectedOption {
+  name: string
+  description: string
+  additional_fee: number
+}
+
+interface ReservationItem {
+  productId: number
+  productName: string
+  quantity: number
+  pricePerUnit: number
+  rentalStart: string
+  rentalEnd: string
+  selectedOption?: SelectedOption
+}
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-12-18.acacia',
 })
@@ -68,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Créer les items de réservation
-    const itemsToInsert = reservationData.items.map((item: any) => ({
+    const itemsToInsert = reservationData.items.map((item: ReservationItem) => ({
       reservation_id: reservation.id,
       product_id: item.productId,
       quantity: item.quantity,

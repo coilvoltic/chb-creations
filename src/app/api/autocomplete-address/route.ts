@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+interface PlacePrediction {
+  text?: {
+    text?: string
+  }
+  placeId?: string
+}
+
+interface Suggestion {
+  placePrediction?: PlacePrediction
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { input } = await request.json()
@@ -41,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Retourner les prédictions avec la nouvelle structure
-    const predictions = (data.suggestions || []).map((suggestion: any) => ({
+    const predictions = (data.suggestions || []).map((suggestion: Suggestion) => ({
       description: suggestion.placePrediction?.text?.text || '',
       placeId: suggestion.placePrediction?.placeId || '',
     }))
