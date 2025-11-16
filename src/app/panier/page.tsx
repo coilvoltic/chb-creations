@@ -584,7 +584,7 @@ export default function CartPage() {
                     <div className="flex gap-3">
                       <button
                         onClick={() => {
-                          setShowPaymentOptions(false)
+                          setShowConfirmation(false)
                           setError(null)
                         }}
                         className="flex-1 px-6 py-3 border border-stone-300 rounded-lg hover:bg-stone-50 transition-colors font-medium"
