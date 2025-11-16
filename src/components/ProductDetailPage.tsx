@@ -36,6 +36,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
   const [activeTab, setActiveTab] = useState<'description' | 'faq'>('description')
   const [expandedFaqIndex, setExpandedFaqIndex] = useState<number | null>(null)
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(0)
+  const [needsInstallation, setNeedsInstallation] = useState(false)
 
   // Check if product is already in cart
   const isInCart = product ? cart.items.some(item => item.productId === product.id) : false
@@ -46,14 +47,15 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
     return product.new_price ?? product.price
   }
 
-  // Calculate total price with selected option
+  // Calculate total price with selected option and installation
   const getTotalPrice = () => {
     if (!product) return 0
     const basePrice = getEffectivePrice()
     const optionFee = product.options && product.options.length > 0
       ? product.options[selectedOptionIndex]?.additional_fee || 0
       : 0
-    return basePrice + optionFee
+    const installationFee = (needsInstallation && product.installation_fees) ? product.installation_fees : 0
+    return basePrice + optionFee + installationFee
   }
 
   // Calculate deposit amount if applicable
@@ -99,6 +101,8 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
       selectedOption,
       depositPercentage: product.deposit || undefined,
       baseDeliveryFees: product.base_delivery_fees || undefined,
+      installationFees: product.installation_fees || undefined,
+      needsInstallation,
       rentalPeriod: {
         from: rentalPeriod.from,
         to: rentalPeriod.to,
@@ -364,6 +368,41 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                   </div>
                 )}
 
+                {/* Installation service option */}
+                {product.installation_fees && product.installation_fees > 0 && (
+                  <div className="border-t border-stone-200 pt-6">
+                    <h2 className={`text-xl font-semibold mb-3 ${isInCart ? 'text-stone-400' : ''}`}>Service d'installation</h2>
+                    <label
+                      className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                        needsInstallation
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-stone-200 hover:border-stone-300'
+                      } ${isInCart ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={needsInstallation}
+                        onChange={(e) => setNeedsInstallation(e.target.checked)}
+                        disabled={isInCart}
+                        className="mt-1 w-5 h-5 text-blue-600 border-stone-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      <div className="ml-3 flex-1">
+                        <div className="font-medium text-black">
+                          Aide à l'installation (+{product.installation_fees}€ / unité)
+                        </div>
+                        <p className="text-sm text-stone-600 mt-1">
+                          Notre équipe vous accompagne dans l'installation de votre location.
+                        </p>
+                        {needsInstallation && (
+                          <p className="text-sm font-medium text-blue-700 mt-2">
+                            Total frais d'installation : {(product.installation_fees * quantity).toFixed(2)} €
+                          </p>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+                )}
+
                 {/* Deposit warning */}
                 {product.deposit && product.deposit > 0 && (
                   <div className="border-t border-stone-200 pt-6">
@@ -377,7 +416,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                             Acompte requis : {product.deposit}%
                           </p>
                           <p className="text-sm text-amber-800">
-                            Un acompte de <strong>{getDepositAmount().toFixed(2)} €</strong> sera requis pour valider cette réservation.
+                            Un acompte de <strong>{getDepositAmount().toFixed(2)} €</strong> sera requis pour valider cette réservation (à payer en ligne ou en boutique).
                           </p>
                         </div>
                       </div>
@@ -388,8 +427,8 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                 <div className="border-t border-stone-200 pt-6">
                   {isInCart && (
                     <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-sm text-blue-800 font-medium mb-2">
-                        Ce produit est déjà dans votre panier
+                      <p className="text-sm text-blue-800 font-medium mb-1">
+                        Ce produit est déjà dans votre panier.
                       </p>
                       <p className="text-sm text-blue-700">
                         <Link href="/panier" className="underline font-semibold hover:text-blue-900">

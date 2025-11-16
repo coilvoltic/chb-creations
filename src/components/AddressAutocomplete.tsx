@@ -115,7 +115,7 @@ export default function AddressAutocomplete({
       {/* Indicateur de chargement */}
       {isLoading && (
         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-          <div className="w-4 h-4 border-2 border-stone-400 border-t-black rounded-full animate-spin"></div>
+          <div className="w-4 h-4 border-2 border-stone-200 border-t-black rounded-full animate-spin"></div>
         </div>
       )}
 

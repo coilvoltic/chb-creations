@@ -17,6 +17,8 @@ interface CartItemPayload {
   rentalStart: string // ISO timestamp
   rentalEnd: string // ISO timestamp
   selectedOption?: SelectedOption
+  needsInstallation?: boolean
+  installationFees?: number
 }
 
 interface CreateReservationPayload {
@@ -105,7 +107,14 @@ export async function POST(request: NextRequest) {
       quantity: item.quantity,
       rental_start: item.rentalStart,
       rental_end: item.rentalEnd,
-      options: item.selectedOption || null,
+      options: item.selectedOption ? {
+        ...item.selectedOption,
+        needsInstallation: item.needsInstallation,
+        installationFees: item.installationFees
+      } : (item.needsInstallation && item.installationFees ? {
+        needsInstallation: item.needsInstallation,
+        installationFees: item.installationFees
+      } : null),
     }))
 
     const { error: itemsError } = await supabase

@@ -17,6 +17,8 @@ export interface CartItem {
   selectedOption?: SelectedOption
   depositPercentage?: number
   baseDeliveryFees?: number // Base delivery fees for this product
+  installationFees?: number // Installation fees per unit
+  needsInstallation?: boolean // True if customer wants installation service
   rentalPeriod: {
     from: Date
     to: Date

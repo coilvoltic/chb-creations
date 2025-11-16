@@ -42,6 +42,7 @@ export interface Product {
   deposit?: number // Percentage (0-100) or null
   is_out_of_stock?: boolean // True if product is out of stock
   base_delivery_fees?: number // Base delivery fees for this product
+  installation_fees?: number // Optional installation fees
   category: string
   subcategory: string
   stock: number
@@ -81,6 +82,12 @@ export interface ReservationItem {
   quantity: number
 }
 
+export interface PromotionalMessage {
+  id: number
+  msg: string
+  created_at?: string
+}
+
 // Helper function to get product unavailabilities dynamically from reservation_items
 export async function getProductUnavailabilities(
   productId: number
@@ -98,4 +105,21 @@ export async function getProductUnavailabilities(
   }
 
   return (data || []) as UnavailabilityEntry[]
+}
+
+// Helper function to get promotional messages for carousel
+export async function getPromotionalMessages(): Promise<PromotionalMessage[]> {
+  const supabase = getSupabaseClient()
+
+  const { data, error } = await supabase
+    .from('promotional_messages')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching promotional messages:', error)
+    return []
+  }
+
+  return data || []
 }

@@ -176,11 +176,18 @@ export default function GoogleReviews() {
         {/* Carousel */}
         <div className="relative max-w-7xl mx-auto">
           <div className="overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-              {getCurrentReviews().map((review) => (
+            <div
+              className="flex transition-transform duration-500 ease-out"
+              style={{
+                transform: `translateX(-${currentIndex * (100 / reviewsPerSlide)}%)`,
+                gap: reviewsPerSlide === 1 ? '0' : reviewsPerSlide === 2 ? '1.5rem' : '2rem'
+              }}
+            >
+              {reviews.map((review) => (
                 <div
                   key={review.id}
-                  className="bg-white rounded-2xl p-6 md:p-8 border border-gray-200 transition-all duration-300 animate-fade-in-up min-h-[400px] flex flex-col"
+                  className="bg-white rounded-2xl p-6 md:p-8 border border-gray-200 transition-all duration-300 min-h-[400px] flex flex-col flex-shrink-0"
+                  style={{ width: `calc((100% - ${(reviewsPerSlide - 1) * (reviewsPerSlide === 1 ? 0 : reviewsPerSlide === 2 ? 1.5 : 2)}rem) / ${reviewsPerSlide})` }}
                 >
                   {/* Rating Stars */}
                   <div className="flex gap-1 mb-4">

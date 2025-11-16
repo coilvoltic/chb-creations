@@ -55,7 +55,7 @@ function PaymentSuccessContent() {
         <Navbar />
         <div className="container mx-auto px-6 py-20">
           <div className="max-w-2xl mx-auto text-center">
-            <div className="w-16 h-16 border-4 border-stone-300 border-t-black rounded-full animate-spin mx-auto mb-6"></div>
+            <div className="w-16 h-16 border-4 border-stone-200 border-t-black rounded-full animate-spin mx-auto mb-6"></div>
             <h1 className="text-2xl font-bold mb-4">Traitement de votre paiement...</h1>
             <p className="text-stone-600">Veuillez patienter pendant que nous confirmons votre réservation.</p>
           </div>
@@ -140,7 +140,7 @@ export default function PaymentSuccessPage() {
         <Navbar />
         <div className="container mx-auto px-6 py-20">
           <div className="max-w-2xl mx-auto text-center">
-            <div className="w-16 h-16 border-4 border-stone-300 border-t-black rounded-full animate-spin mx-auto mb-6"></div>
+            <div className="w-16 h-16 border-4 border-stone-200 border-t-black rounded-full animate-spin mx-auto mb-6"></div>
             <h1 className="text-2xl font-bold mb-4">Chargement...</h1>
           </div>
         </div>

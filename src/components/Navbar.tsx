@@ -4,14 +4,46 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { useCart } from '@/contexts/CartContext'
+import { getPromotionalMessages, type PromotionalMessage } from '@/lib/supabase'
 
 export default function Navbar() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const [isScrolled, setIsScrolled] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
+  const [promotionalMessages, setPromotionalMessages] = useState<PromotionalMessage[]>([])
+  const [currentMessageIndex, setCurrentMessageIndex] = useState(0)
   const pathname = usePathname()
   const isHomePage = pathname === '/'
   const { cart } = useCart()
+
+  // Message statique local (toujours présent)
+  const localMessage = "Délais de confection : 30 jours"
+
+  // Combiner le message local avec les messages de la base
+  const allMessages = [
+    { id: -1, msg: localMessage }, // Message local avec id négatif
+    ...promotionalMessages
+  ]
+
+  // Fetch promotional messages
+  useEffect(() => {
+    const fetchMessages = async () => {
+      const messages = await getPromotionalMessages()
+      setPromotionalMessages(messages)
+    }
+    fetchMessages()
+  }, [])
+
+  // Auto-scroll carousel
+  useEffect(() => {
+    if (allMessages.length <= 1) return
+
+    const interval = setInterval(() => {
+      setCurrentMessageIndex((prev) => (prev + 1) % allMessages.length)
+    }, 4000) // Change message every 4 seconds
+
+    return () => clearInterval(interval)
+  }, [allMessages.length])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -37,9 +69,24 @@ export default function Navbar() {
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="mx-auto max-w-screen-2xl">
-        {/* Top banner */}
-        <div className={`${bannerBg} text-white py-2 px-4 text-center transition-all duration-300`}>
-          <p className="text-sm font-medium">Livraison gratuite dès 50€ d&apos;achat</p>
+        {/* Top banner - Promotional messages carousel */}
+        <div className={`${bannerBg} text-white py-2 px-4 text-center transition-all duration-300 overflow-hidden`}>
+          <div className="relative h-5">
+            {allMessages.map((message, index) => (
+              <p
+                key={message.id}
+                className={`text-sm font-medium absolute inset-0 flex items-center justify-center transition-all duration-500 ${
+                  index === currentMessageIndex
+                    ? 'opacity-100 translate-x-0'
+                    : index < currentMessageIndex
+                    ? 'opacity-0 -translate-x-full'
+                    : 'opacity-0 translate-x-full'
+                }`}
+              >
+                {message.msg}
+              </p>
+            ))}
+          </div>
         </div>
 
         {/* Main navbar */}

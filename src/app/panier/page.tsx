@@ -63,8 +63,18 @@ export default function CartPage() {
 
       console.log('totalBaseDeliveryFees:', totalBaseDeliveryFees)
 
+      // Si les frais de base sont à 0, on enregistre quand même l'adresse avec des frais à 0
       if (totalBaseDeliveryFees === 0) {
-        setError('Aucun produit dans le panier ne nécessite de frais de livraison. Les frais de livraison doivent être configurés pour ce produit.')
+        setDeliveryInfo({
+          distance: 0,
+          distanceText: '0 km',
+          duration: 'N/A',
+          baseDeliveryFees: 0,
+          distanceFees: 0,
+          totalDeliveryFees: 0,
+        })
+        setDeliveryAddress(addressToUse)
+        updateDeliveryFees(0, 0)
         setIsCalculatingFees(false)
         return
       }
@@ -254,6 +264,11 @@ export default function CartPage() {
                           <span className="font-medium">Option :</span> {item.selectedOption.name} (+{item.selectedOption.additional_fee.toFixed(2)} €)
                         </p>
                       )}
+                      {item.needsInstallation && item.installationFees && (
+                        <p className="text-blue-700">
+                          <span className="font-medium">Installation :</span> +{item.installationFees}€ / unité
+                        </p>
+                      )}
                       {item.depositPercentage && item.depositPercentage > 0 && (
                         <p className="text-amber-700">
                           <span className="font-medium">Acompte requis :</span> {item.depositPercentage}%
@@ -267,7 +282,7 @@ export default function CartPage() {
                     {/* Subtotal */}
                     <div className="mt-4 text-right">
                       <p className="text-lg font-bold">
-                        {(item.quantity * (item.pricePerUnit + (item.selectedOption?.additional_fee || 0))).toFixed(2)} €
+                        {(item.quantity * (item.pricePerUnit + (item.selectedOption?.additional_fee || 0) + ((item.needsInstallation && item.installationFees) ? item.installationFees : 0))).toFixed(2)} €
                       </p>
                     </div>
                   </div>
@@ -342,19 +357,28 @@ export default function CartPage() {
 
                           {isCalculatingFees && (
                             <div className="flex items-center gap-2 text-sm text-stone-600">
-                              <div className="w-4 h-4 border-2 border-stone-400 border-t-black rounded-full animate-spin"></div>
+                              <div className="w-4 h-4 border-2 border-stone-200 border-t-black rounded-full animate-spin"></div>
                               <span>Calcul des frais en cours...</span>
                             </div>
                           )}
 
                           {deliveryInfo && (
-                            <div className="bg-green-50 border border-green-200 p-3 rounded-lg text-xs space-y-1">
-                              <p className="font-medium text-green-800">Frais calculés :</p>
-                              <p className="text-stone-700">Distance : {deliveryInfo.distanceText} ({deliveryInfo.distance.toFixed(1)} km)</p>
-                              <p className="text-stone-700">Durée estimée : {deliveryInfo.duration}</p>
-                              <p className="text-stone-700">Frais de base : {deliveryInfo.baseDeliveryFees.toFixed(2)} €</p>
-                              <p className="text-stone-700">Frais de distance (1€/km) : {deliveryInfo.distanceFees.toFixed(2)} €</p>
-                              <p className="font-semibold text-green-800">Total livraison : {deliveryInfo.totalDeliveryFees.toFixed(2)} €</p>
+                            <div className={`${deliveryInfo.totalDeliveryFees === 0 ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'} border p-3 rounded-lg text-xs space-y-1`}>
+                              {deliveryInfo.totalDeliveryFees === 0 ? (
+                                <>
+                                  <p className="font-medium text-blue-800">Livraison gratuite !</p>
+                                  <p className="text-stone-700">Adresse enregistrée : {deliveryAddressInput}</p>
+                                </>
+                              ) : (
+                                <>
+                                  <p className="font-medium text-green-800">Frais calculés :</p>
+                                  <p className="text-stone-700">Distance : {deliveryInfo.distanceText} ({deliveryInfo.distance.toFixed(1)} km)</p>
+                                  <p className="text-stone-700">Durée estimée : {deliveryInfo.duration}</p>
+                                  <p className="text-stone-700">Frais de base : {deliveryInfo.baseDeliveryFees.toFixed(2)} €</p>
+                                  <p className="text-stone-700">Frais de distance (1€/km) : {deliveryInfo.distanceFees.toFixed(2)} €</p>
+                                  <p className="font-semibold text-green-800">Total livraison : {deliveryInfo.totalDeliveryFees.toFixed(2)} €</p>
+                                </>
+                              )}
                             </div>
                           )}
                         </div>
@@ -369,7 +393,7 @@ export default function CartPage() {
                   <span>Articles ({cart.totalItems})</span>
                   <span>{cart.totalPrice.toFixed(2)} €</span>
                 </div>
-                {cart.deliveryOption === 'delivery' && cart.totalDeliveryFees && cart.totalDeliveryFees > 0 && (
+                {cart.deliveryOption === 'delivery' && cart.totalDeliveryFees !== undefined && (
                   <div className="flex justify-between text-stone-700">
                     <span>Frais de livraison</span>
                     <span>{cart.totalDeliveryFees.toFixed(2)} €</span>
@@ -392,7 +416,7 @@ export default function CartPage() {
                 {depositAmount > 0 && (
                   <div className="text-xs text-amber-700 bg-amber-50 p-3 rounded-lg">
                     <p className="font-medium mb-1">Informations sur l&apos;acompte :</p>
-                    <p>Un acompte de {depositAmount.toFixed(2)} € sera requis pour valider la réservation. Le solde restant de {(cart.totalPrice + (cart.totalDeliveryFees || 0) - depositAmount).toFixed(2)} € sera à régler lors de la {cart.deliveryOption === 'delivery' ? 'livraison' : 'récupération'}.</p>
+                    <p>Un acompte de {depositAmount.toFixed(2)} € sera requis pour valider la réservation. Vous pouvez payer cet acompte en ligne ou en boutique. Le solde restant de {(cart.totalPrice + (cart.totalDeliveryFees || 0) - depositAmount).toFixed(2)} € sera à régler lors de la {cart.deliveryOption === 'delivery' ? 'livraison' : 'récupération'} de la commande.</p>
                   </div>
                 )}
               </div>
@@ -560,19 +584,19 @@ export default function CartPage() {
                     <div className="flex gap-3">
                       <button
                         onClick={() => {
-                          setShowConfirmation(false)
+                          setShowPaymentOptions(false)
                           setError(null)
                         }}
                         className="flex-1 px-6 py-3 border border-stone-300 rounded-lg hover:bg-stone-50 transition-colors font-medium"
                       >
-                        Annuler
+                        Retour
                       </button>
                       <button
                         onClick={handleValidateOrder}
                         disabled={isSubmitting}
                         className="flex-1 bg-black text-white px-6 py-3 rounded-lg hover:bg-stone-800 transition-colors font-medium disabled:bg-stone-400 disabled:cursor-not-allowed"
                       >
-                        {isSubmitting ? 'En cours...' : 'Confirmer'}
+                        {isSubmitting ? 'En cours...' : 'Confirmer la réservation'}
                       </button>
                     </div>
                   </div>
