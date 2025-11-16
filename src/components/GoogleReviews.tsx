@@ -116,6 +116,11 @@ export default function GoogleReviews() {
     setCurrentIndex((prev) => (prev - 1 + totalSlides) % totalSlides)
   }
 
+  // Reset expanded state when changing slides
+  useEffect(() => {
+    setExpandedReviews(new Set())
+  }, [currentIndex])
+
 
   const getCurrentReviews = () => {
     const start = currentIndex * reviewsPerSlide
