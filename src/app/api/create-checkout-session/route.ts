@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-10-29.clover',
-})
-
 export async function POST(request: NextRequest) {
   try {
     const { amount, reservationData } = await request.json()
@@ -15,6 +11,20 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Vérifier que la clé Stripe est configurée
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY
+    if (!stripeSecretKey) {
+      console.error('STRIPE_SECRET_KEY non configurée')
+      return NextResponse.json(
+        { error: 'Le paiement en ligne n\'est pas configuré. Veuillez choisir le paiement en espèces.' },
+        { status: 500 }
+      )
+    }
+
+    const stripe = new Stripe(stripeSecretKey, {
+      apiVersion: '2025-10-29.clover',
+    })
 
     // Créer une session Stripe Checkout
     const session = await stripe.checkout.sessions.create({
