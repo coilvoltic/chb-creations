@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 
-export default function PaymentSuccessPage() {
+function PaymentSuccessContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [isProcessing, setIsProcessing] = useState(true)
@@ -130,5 +130,23 @@ export default function PaymentSuccessPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white">
+        <Navbar />
+        <div className="container mx-auto px-6 py-20">
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="w-16 h-16 border-4 border-stone-300 border-t-black rounded-full animate-spin mx-auto mb-6"></div>
+            <h1 className="text-2xl font-bold mb-4">Chargement...</h1>
+          </div>
+        </div>
+      </div>
+    }>
+      <PaymentSuccessContent />
+    </Suspense>
   )
 }
