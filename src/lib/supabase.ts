@@ -41,6 +41,7 @@ export interface Product {
   options?: ProductOption[]
   deposit?: number // Percentage (0-100) or null
   is_out_of_stock?: boolean // True if product is out of stock
+  base_delivery_fees?: number // Base delivery fees for this product
   category: string
   subcategory: string
   stock: number
@@ -66,6 +67,9 @@ export interface Reservation {
   caution: number
   reservation_status: ReservationStatus
   total_price?: number
+  delivery_option?: 'pickup' | 'delivery'
+  delivery_fees?: number
+  stripe_payment_id?: string
 }
 
 export interface ReservationItem {

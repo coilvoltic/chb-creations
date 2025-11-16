@@ -16,6 +16,7 @@ export interface CartItem {
   pricePerUnit: number
   selectedOption?: SelectedOption
   depositPercentage?: number
+  baseDeliveryFees?: number // Base delivery fees for this product
   rentalPeriod: {
     from: Date
     to: Date
@@ -30,4 +31,8 @@ export interface Cart {
   items: CartItem[]
   totalItems: number
   totalPrice: number
+  deliveryOption?: 'pickup' | 'delivery' // pickup = retrait en boutique, delivery = livraison
+  deliveryAddress?: string // Adresse de livraison
+  totalDeliveryFees?: number
+  deliveryDistance?: number // Distance en km
 }

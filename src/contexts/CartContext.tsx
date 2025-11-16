@@ -8,6 +8,9 @@ interface CartContextType {
   addToCart: (item: Omit<CartItem, 'id'>) => void
   removeFromCart: (itemId: string) => void
   updateQuantity: (itemId: string, quantity: number) => void
+  setDeliveryOption: (option: 'pickup' | 'delivery') => void
+  setDeliveryAddress: (address: string) => void
+  updateDeliveryFees: (fees: number, distance: number) => void
   clearCart: () => void
 }
 
@@ -18,6 +21,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     items: [],
     totalItems: 0,
     totalPrice: 0,
+    deliveryOption: 'pickup', // Par défaut: retrait en boutique
+    totalDeliveryFees: 0,
   })
 
   // Load cart from localStorage on mount
@@ -46,14 +51,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('chb-cart', JSON.stringify(cart))
   }, [cart])
 
-  const calculateTotals = (items: CartItem[]) => {
+  const calculateDeliveryFees = (items: CartItem[], deliveryOption: 'pickup' | 'delivery') => {
+    if (deliveryOption === 'pickup') return 0
+
+    // Calculer les frais de livraison totaux
+    return items.reduce((sum, item) => {
+      const deliveryFee = item.baseDeliveryFees || 0
+      return sum + (deliveryFee * item.quantity)
+    }, 0)
+  }
+
+  const calculateTotals = (items: CartItem[], deliveryOption: 'pickup' | 'delivery' = 'pickup') => {
     const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
     const totalPrice = items.reduce((sum, item) => {
       const basePrice = item.pricePerUnit
       const optionFee = item.selectedOption?.additional_fee || 0
       return sum + item.quantity * (basePrice + optionFee)
     }, 0)
-    return { totalItems, totalPrice }
+    const totalDeliveryFees = calculateDeliveryFees(items, deliveryOption)
+    return { totalItems, totalPrice, totalDeliveryFees }
   }
 
   const addToCart = (newItem: Omit<CartItem, 'id'>) => {
@@ -61,16 +77,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const id = `${newItem.productId}-${Date.now()}`
       const item: CartItem = { ...newItem, id }
       const items = [...prevCart.items, item]
-      const { totalItems, totalPrice } = calculateTotals(items)
-      return { items, totalItems, totalPrice }
+      const { totalItems, totalPrice, totalDeliveryFees } = calculateTotals(items, prevCart.deliveryOption)
+      return {
+        items,
+        totalItems,
+        totalPrice,
+        deliveryOption: prevCart.deliveryOption,
+        totalDeliveryFees
+      }
     })
   }
 
   const removeFromCart = (itemId: string) => {
     setCart((prevCart) => {
       const items = prevCart.items.filter((item) => item.id !== itemId)
-      const { totalItems, totalPrice } = calculateTotals(items)
-      return { items, totalItems, totalPrice }
+      const { totalItems, totalPrice, totalDeliveryFees } = calculateTotals(items, prevCart.deliveryOption)
+      return {
+        items,
+        totalItems,
+        totalPrice,
+        deliveryOption: prevCart.deliveryOption,
+        totalDeliveryFees
+      }
     })
   }
 
@@ -83,18 +111,69 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const items = prevCart.items.map((item) =>
         item.id === itemId ? { ...item, quantity } : item
       )
-      const { totalItems, totalPrice } = calculateTotals(items)
-      return { items, totalItems, totalPrice }
+      const { totalItems, totalPrice, totalDeliveryFees } = calculateTotals(items, prevCart.deliveryOption)
+      return {
+        items,
+        totalItems,
+        totalPrice,
+        deliveryOption: prevCart.deliveryOption,
+        totalDeliveryFees
+      }
     })
   }
 
+  const setDeliveryOption = (option: 'pickup' | 'delivery') => {
+    setCart((prevCart) => {
+      // Si on passe en mode pickup, réinitialiser les frais et l'adresse
+      if (option === 'pickup') {
+        return {
+          ...prevCart,
+          deliveryOption: option,
+          deliveryAddress: undefined,
+          totalDeliveryFees: 0,
+          deliveryDistance: undefined
+        }
+      }
+      // Si on passe en mode delivery, calculer les frais de base
+      const { totalItems, totalPrice, totalDeliveryFees } = calculateTotals(prevCart.items, option)
+      return {
+        ...prevCart,
+        deliveryOption: option,
+        totalDeliveryFees
+      }
+    })
+  }
+
+  const setDeliveryAddress = (address: string) => {
+    setCart((prevCart) => ({
+      ...prevCart,
+      deliveryAddress: address
+    }))
+  }
+
+  const updateDeliveryFees = (fees: number, distance: number) => {
+    setCart((prevCart) => ({
+      ...prevCart,
+      totalDeliveryFees: fees,
+      deliveryDistance: distance
+    }))
+  }
+
   const clearCart = () => {
-    setCart({ items: [], totalItems: 0, totalPrice: 0 })
+    setCart({
+      items: [],
+      totalItems: 0,
+      totalPrice: 0,
+      deliveryOption: 'pickup',
+      deliveryAddress: undefined,
+      totalDeliveryFees: 0,
+      deliveryDistance: undefined
+    })
   }
 
   return (
     <CartContext.Provider
-      value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart }}
+      value={{ cart, addToCart, removeFromCart, updateQuantity, setDeliveryOption, setDeliveryAddress, updateDeliveryFees, clearCart }}
     >
       {children}
     </CartContext.Provider>

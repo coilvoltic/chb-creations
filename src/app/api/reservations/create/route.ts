@@ -24,6 +24,10 @@ interface CreateReservationPayload {
   items: CartItemPayload[]
   deposit: number
   caution: number
+  deliveryOption?: 'pickup' | 'delivery'
+  deliveryFees?: number
+  totalPrice: number
+  paymentMethod?: 'online' | 'cash' | null
 }
 
 export async function POST(request: NextRequest) {
@@ -38,13 +42,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { customerInfo, items, deposit, caution } = payload
-
-    // Calcul du prix total
-    const totalPrice = items.reduce(
-      (sum, item) => sum + item.quantity * item.pricePerUnit,
-      0
-    )
+    const { customerInfo, items, deposit, caution, deliveryOption, deliveryFees, totalPrice, paymentMethod } = payload
 
     // Create Supabase client with service_role key (bypasses RLS)
     // This is safe because:
@@ -62,6 +60,21 @@ export async function POST(request: NextRequest) {
       }
     )
 
+    // Déterminer le statut de la réservation
+    // Si paiement en ligne choisi mais qu'on arrive ici, c'est qu'il y a eu un problème
+    // Normalement, le paiement en ligne passe par l'API /process-payment
+    let reservationStatus: ReservationStatus
+    if (paymentMethod === 'cash' && deposit > 0) {
+      // Réservation avec acompte non payé (à payer en espèces)
+      reservationStatus = 'CONFIRMED_NO_DEPOSIT'
+    } else if (deposit === 0) {
+      // Pas d'acompte requis
+      reservationStatus = 'CONFIRMED_NO_DEPOSIT'
+    } else {
+      // Acompte payé (ne devrait pas arriver ici car géré par /process-payment)
+      reservationStatus = 'CONFIRMED'
+    }
+
     // 1. Créer la réservation
     const { data: reservation, error: reservationError } = await supabase
       .from('reservations')
@@ -69,7 +82,9 @@ export async function POST(request: NextRequest) {
         customer_infos: customerInfo,
         deposit,
         caution,
-        reservation_status: (deposit > 0 ? 'CONFIRMED' : 'CONFIRMED_NO_DEPOSIT') as ReservationStatus,
+        delivery_option: deliveryOption || 'pickup',
+        delivery_fees: deliveryFees || 0,
+        reservation_status: reservationStatus,
         total_price: totalPrice,
       })
       .select()

@@ -98,6 +98,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
       pricePerUnit: getEffectivePrice(),
       selectedOption,
       depositPercentage: product.deposit || undefined,
+      baseDeliveryFees: product.base_delivery_fees || undefined,
       rentalPeriod: {
         from: rentalPeriod.from,
         to: rentalPeriod.to,
@@ -347,11 +348,11 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                             className="mr-3 flex-shrink-0"
                           />
                           <div className="flex-1">
-                            <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center justify-between mb-1 gap-2">
                               <span className="font-medium text-black">{option.name}</span>
                               {option.additional_fee > 0 && (
                                 <span className="text-sm font-semibold text-black">
-                                  +{option.additional_fee.toFixed(2)} €
+                                  +{option.additional_fee.toFixed(0)}€
                                 </span>
                               )}
                             </div>

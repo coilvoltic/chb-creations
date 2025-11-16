@@ -7,15 +7,29 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { CustomerInfo } from '@/lib/supabase'
 import SuccessModal from '@/components/SuccessModal'
+import AddressAutocomplete from '@/components/AddressAutocomplete'
 
 export default function CartPage() {
-  const { cart, removeFromCart, clearCart } = useCart()
+  const { cart, removeFromCart, clearCart, setDeliveryOption, setDeliveryAddress, updateDeliveryFees } = useCart()
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCheckoutForm, setShowCheckoutForm] = useState(false)
+  const [showPaymentOptions, setShowPaymentOptions] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cash' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [reservationId, setReservationId] = useState<number | null>(null)
+  const [deliveryAddressInput, setDeliveryAddressInput] = useState('')
+  const [isAddressSelected, setIsAddressSelected] = useState(false) // Track if user selected from autocomplete
+  const [isCalculatingFees, setIsCalculatingFees] = useState(false)
+  const [deliveryInfo, setDeliveryInfo] = useState<{
+    distance: number
+    distanceText: string
+    duration: string
+    baseDeliveryFees: number
+    distanceFees: number
+    totalDeliveryFees: number
+  } | null>(null)
 
   // Customer info form state
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
@@ -24,6 +38,64 @@ export default function CartPage() {
     email: '',
     phone: '',
   })
+
+  // Calculer les frais de livraison en fonction de l'adresse
+  const handleCalculateDeliveryFees = async (address?: string) => {
+    const addressToUse = address || deliveryAddressInput
+
+    console.log('handleCalculateDeliveryFees called')
+    console.log('addressToUse:', addressToUse)
+    console.log('cart.items:', cart.items)
+
+    if (!addressToUse.trim()) {
+      setError('Veuillez saisir une adresse de livraison')
+      return
+    }
+
+    setIsCalculatingFees(true)
+    setError(null)
+
+    try {
+      // Calculer les frais de base totaux
+      const totalBaseDeliveryFees = cart.items.reduce((sum, item) => {
+        console.log(`Item ${item.productName}: baseDeliveryFees=${item.baseDeliveryFees}, quantity=${item.quantity}`)
+        return sum + (item.baseDeliveryFees || 0) * item.quantity
+      }, 0)
+
+      console.log('totalBaseDeliveryFees:', totalBaseDeliveryFees)
+
+      if (totalBaseDeliveryFees === 0) {
+        setError('Aucun produit dans le panier ne nécessite de frais de livraison. Les frais de livraison doivent être configurés pour ce produit.')
+        setIsCalculatingFees(false)
+        return
+      }
+
+      const response = await fetch('/api/calculate-delivery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deliveryAddress: addressToUse,
+          baseDeliveryFees: totalBaseDeliveryFees,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors du calcul des frais')
+      }
+
+      // Mettre à jour les informations de livraison
+      setDeliveryInfo(data)
+      setDeliveryAddress(addressToUse)
+      updateDeliveryFees(data.totalDeliveryFees, data.distance)
+    } catch (err) {
+      console.error('Erreur calcul frais:', err)
+      setError(err instanceof Error ? err.message : 'Erreur lors du calcul des frais de livraison')
+    } finally {
+      setIsCalculatingFees(false)
+    }
+  }
 
   // Calculate deposit based on products with deposit requirements
   const calculateDeposit = () => {
@@ -42,16 +114,9 @@ export default function CartPage() {
   const cautionAmount = 100 // Caution fixe de 100€ (à ajuster selon vos besoins)
 
   const handleValidateOrder = async () => {
-    // Validation des champs
-    if (!customerInfo.firstName || !customerInfo.lastName || !customerInfo.email || !customerInfo.phone) {
-      setError('Veuillez remplir tous les champs')
-      return
-    }
-
-    // Validation email basique
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(customerInfo.email)) {
-      setError('Email invalide')
+    // Vérification du mode de paiement si un acompte est requis
+    if (depositAmount > 0 && !paymentMethod) {
+      setError('Veuillez sélectionner un mode de paiement')
       return
     }
 
@@ -60,6 +125,7 @@ export default function CartPage() {
 
     try {
       // Préparer les données pour l'API
+      const totalWithDelivery = cart.totalPrice + (cart.totalDeliveryFees || 0)
       const payload = {
         customerInfo,
         items: cart.items.map((item) => {
@@ -80,8 +146,35 @@ export default function CartPage() {
         }),
         deposit: depositAmount,
         caution: cautionAmount,
+        deliveryOption: cart.deliveryOption,
+        deliveryFees: cart.totalDeliveryFees || 0,
+        totalPrice: totalWithDelivery,
+        paymentMethod: paymentMethod, // 'online' | 'cash' | null
       }
 
+      // Si paiement en ligne, créer une session Stripe
+      if (paymentMethod === 'online' && depositAmount > 0) {
+        const response = await fetch('/api/create-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: depositAmount,
+            reservationData: payload,
+          }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Erreur lors de la création de la session de paiement')
+        }
+
+        // Rediriger vers Stripe Checkout
+        window.location.href = data.url
+        return
+      }
+
+      // Si paiement en espèces ou pas d'acompte, créer la réservation directement
       const response = await fetch('/api/reservations/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -216,11 +309,100 @@ export default function CartPage() {
             <div className="border border-stone-200 rounded-xl p-6 sticky top-24">
               <h2 className="text-2xl font-bold mb-6">Récapitulatif</h2>
 
+              {/* Delivery Option Selection */}
+              <div className="mb-6 p-4 bg-stone-50 rounded-lg">
+                <h3 className="font-semibold mb-3">Mode de récupération</h3>
+                <div className="space-y-3">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="deliveryOption"
+                      value="pickup"
+                      checked={cart.deliveryOption === 'pickup'}
+                      onChange={() => {
+                        setDeliveryOption('pickup')
+                        setDeliveryAddressInput('')
+                        setIsAddressSelected(false)
+                        setDeliveryInfo(null)
+                        setError(null)
+                      }}
+                      className="mr-3 w-5 h-5 cursor-pointer"
+                    />
+                    <div className="flex-1">
+                      <span className="font-medium">Retrait en boutique</span>
+                      <p className="text-xs text-stone-600">100 Boulevard de Saint-Loup, 13010 Marseille</p>
+                    </div>
+                  </label>
+                  <label className="flex items-start cursor-pointer">
+                    <input
+                      type="radio"
+                      name="deliveryOption"
+                      value="delivery"
+                      checked={cart.deliveryOption === 'delivery'}
+                      onChange={() => setDeliveryOption('delivery')}
+                      className="mr-3 w-5 h-5 cursor-pointer mt-1"
+                    />
+                    <div className="flex-1">
+                      <span className="font-medium">Livraison à domicile</span>
+                      <p className="text-xs text-stone-600 mb-2">Frais calculés selon la distance</p>
+
+                      {cart.deliveryOption === 'delivery' && (
+                        <div className="mt-2 space-y-2">
+                          <AddressAutocomplete
+                            value={deliveryAddressInput}
+                            onChange={(value) => {
+                              setDeliveryAddressInput(value)
+                              // Réinitialiser le flag si l'utilisateur modifie l'adresse manuellement
+                              setIsAddressSelected(false)
+                              // Réinitialiser les infos de livraison si l'adresse change
+                              setDeliveryInfo(null)
+                            }}
+                            onSelect={(address) => {
+                              console.log('Address selected:', address)
+                              setDeliveryAddressInput(address)
+                              setIsAddressSelected(true)
+                              // Calculer automatiquement les frais après sélection
+                              handleCalculateDeliveryFees(address)
+                            }}
+                            placeholder="Saisissez votre adresse de livraison"
+                            className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black cursor-pointer bg-white hover:border-black transition-colors"
+                          />
+
+                          {isCalculatingFees && (
+                            <div className="flex items-center gap-2 text-sm text-stone-600">
+                              <div className="w-4 h-4 border-2 border-stone-400 border-t-black rounded-full animate-spin"></div>
+                              <span>Calcul des frais en cours...</span>
+                            </div>
+                          )}
+
+                          {deliveryInfo && (
+                            <div className="bg-green-50 border border-green-200 p-3 rounded-lg text-xs space-y-1">
+                              <p className="font-medium text-green-800">Frais calculés :</p>
+                              <p className="text-stone-700">Distance : {deliveryInfo.distanceText} ({deliveryInfo.distance.toFixed(1)} km)</p>
+                              <p className="text-stone-700">Durée estimée : {deliveryInfo.duration}</p>
+                              <p className="text-stone-700">Frais de base : {deliveryInfo.baseDeliveryFees.toFixed(2)} €</p>
+                              <p className="text-stone-700">Frais de distance (1€/km) : {deliveryInfo.distanceFees.toFixed(2)} €</p>
+                              <p className="font-semibold text-green-800">Total livraison : {deliveryInfo.totalDeliveryFees.toFixed(2)} €</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-stone-700">
                   <span>Articles ({cart.totalItems})</span>
                   <span>{cart.totalPrice.toFixed(2)} €</span>
                 </div>
+                {cart.deliveryOption === 'delivery' && cart.totalDeliveryFees && cart.totalDeliveryFees > 0 && (
+                  <div className="flex justify-between text-stone-700">
+                    <span>Frais de livraison</span>
+                    <span>{cart.totalDeliveryFees.toFixed(2)} €</span>
+                  </div>
+                )}
                 {depositAmount > 0 && (
                   <div className="flex justify-between text-amber-700 text-sm font-medium">
                     <span>Acompte à payer</span>
@@ -233,12 +415,12 @@ export default function CartPage() {
                 </div>
                 <div className="border-t border-stone-200 pt-3 flex justify-between font-bold text-lg">
                   <span>Total</span>
-                  <span>{cart.totalPrice.toFixed(2)} €</span>
+                  <span>{(cart.totalPrice + (cart.totalDeliveryFees || 0)).toFixed(2)} €</span>
                 </div>
                 {depositAmount > 0 && (
                   <div className="text-xs text-amber-700 bg-amber-50 p-3 rounded-lg">
                     <p className="font-medium mb-1">Informations sur l&apos;acompte :</p>
-                    <p>Un acompte de {depositAmount.toFixed(2)} € sera requis pour valider la réservation. Le solde restant de {(cart.totalPrice - depositAmount).toFixed(2)} € sera à régler lors de la récupération.</p>
+                    <p>Un acompte de {depositAmount.toFixed(2)} € sera requis pour valider la réservation. Le solde restant de {(cart.totalPrice + (cart.totalDeliveryFees || 0) - depositAmount).toFixed(2)} € sera à régler lors de la {cart.deliveryOption === 'delivery' ? 'livraison' : 'récupération'}.</p>
                   </div>
                 )}
               </div>
@@ -328,16 +510,38 @@ export default function CartPage() {
                   </div>
 
                   <button
-                    onClick={handleValidateOrder}
-                    disabled={isSubmitting}
-                    className="w-full bg-black text-white px-6 py-4 rounded-lg hover:bg-stone-800 transition-colors font-medium disabled:bg-stone-400 disabled:cursor-not-allowed"
+                    onClick={() => {
+                      // Validation des champs
+                      if (!customerInfo.firstName || !customerInfo.lastName || !customerInfo.email || !customerInfo.phone) {
+                        setError('Veuillez remplir tous les champs')
+                        return
+                      }
+
+                      // Validation email
+                      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+                      if (!emailRegex.test(customerInfo.email)) {
+                        setError('Email invalide')
+                        return
+                      }
+
+                      // Validation de l'adresse de livraison si option livraison choisie
+                      if (cart.deliveryOption === 'delivery' && !cart.deliveryAddress) {
+                        setError('Veuillez calculer les frais de livraison en saisissant votre adresse')
+                        return
+                      }
+
+                      setError(null)
+                      setShowPaymentOptions(true)
+                    }}
+                    className="w-full bg-black text-white px-6 py-4 rounded-lg hover:bg-stone-800 transition-colors font-medium"
                   >
-                    {isSubmitting ? 'Validation en cours...' : 'Confirmer la réservation'}
+                    Continuer vers le paiement
                   </button>
 
                   <button
                     onClick={() => {
                       setShowCheckoutForm(false)
+                      setShowPaymentOptions(false)
                       setError(null)
                     }}
                     className="w-full mt-2 text-stone-600 hover:text-black transition-colors text-sm"
@@ -345,6 +549,123 @@ export default function CartPage() {
                     Retour
                   </button>
                 </>
+              )}
+
+              {/* Payment Options Modal */}
+              {showPaymentOptions && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+                    <h2 className="text-2xl font-bold mb-4">Mode de paiement</h2>
+
+                    {depositAmount > 0 ? (
+                      <>
+                        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                          <p className="text-sm text-amber-800 mb-2">
+                            <span className="font-semibold">Acompte requis :</span> {depositAmount.toFixed(2)} €
+                          </p>
+                          <p className="text-xs text-amber-700">
+                            Le solde restant de {(cart.totalPrice + (cart.totalDeliveryFees || 0) - depositAmount).toFixed(2)} € sera à régler lors de la {cart.deliveryOption === 'delivery' ? 'livraison' : 'récupération'}.
+                          </p>
+                        </div>
+
+                        <div className="space-y-3 mb-6">
+                          <p className="text-sm font-medium text-stone-700 mb-3">
+                            Choisissez votre mode de paiement pour l&apos;acompte :
+                          </p>
+
+                          {/* Paiement en ligne */}
+                          <button
+                            onClick={() => setPaymentMethod('online')}
+                            className={`w-full p-4 border-2 rounded-xl text-left transition-all ${
+                              paymentMethod === 'online'
+                                ? 'border-black bg-stone-50'
+                                : 'border-stone-200 hover:border-stone-400'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center ${
+                                paymentMethod === 'online' ? 'border-black' : 'border-stone-300'
+                              }`}>
+                                {paymentMethod === 'online' && (
+                                  <div className="w-3 h-3 rounded-full bg-black"></div>
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-semibold mb-1">Payer l&apos;acompte en ligne</p>
+                                <p className="text-xs text-stone-600 mb-2">
+                                  Carte bancaire, Apple Pay ou Google Pay
+                                </p>
+                                <div className="flex gap-2">
+                                  <span className="text-xs bg-stone-100 px-2 py-1 rounded">💳 CB</span>
+                                  <span className="text-xs bg-stone-100 px-2 py-1 rounded">🍎 Apple Pay</span>
+                                  <span className="text-xs bg-stone-100 px-2 py-1 rounded">📱 Google Pay</span>
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+
+                          {/* Paiement en espèces */}
+                          <button
+                            onClick={() => setPaymentMethod('cash')}
+                            className={`w-full p-4 border-2 rounded-xl text-left transition-all ${
+                              paymentMethod === 'cash'
+                                ? 'border-black bg-stone-50'
+                                : 'border-stone-200 hover:border-stone-400'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center ${
+                                paymentMethod === 'cash' ? 'border-black' : 'border-stone-300'
+                              }`}>
+                                {paymentMethod === 'cash' && (
+                                  <div className="w-3 h-3 rounded-full bg-black"></div>
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-semibold mb-1">Réserver sans payer l&apos;acompte</p>
+                                <p className="text-xs text-stone-600">
+                                  Paiement de l&apos;acompte en espèces à la boutique
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="mb-6 p-4 bg-stone-50 border border-stone-200 rounded-lg">
+                        <p className="text-sm text-stone-700">
+                          Aucun acompte requis pour cette réservation.
+                        </p>
+                      </div>
+                    )}
+
+                    {error && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 mb-4">
+                        {error}
+                      </div>
+                    )}
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => {
+                          setShowPaymentOptions(false)
+                          setPaymentMethod(null)
+                          setError(null)
+                        }}
+                        className="flex-1 px-6 py-3 border border-stone-300 rounded-lg hover:bg-stone-50 transition-colors font-medium"
+                      >
+                        Retour
+                      </button>
+                      <button
+                        onClick={handleValidateOrder}
+                        disabled={isSubmitting || (depositAmount > 0 && !paymentMethod)}
+                        className="flex-1 bg-black text-white px-6 py-3 rounded-lg hover:bg-stone-800 transition-colors font-medium disabled:bg-stone-400 disabled:cursor-not-allowed"
+                      >
+                        {isSubmitting ? 'En cours...' : 'Valider'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           </div>
