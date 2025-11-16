@@ -1,5 +1,5 @@
 import React from 'react'
-import { Document, Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/renderer'
+import { Document, Page, Text, View, Image, StyleSheet, Font, pdf } from '@react-pdf/renderer'
 
 // Types
 interface SelectedOption {
@@ -26,6 +26,29 @@ interface ReservationData {
   total_amount: number
   created_at: string
   items: ReservationItem[]
+}
+
+interface GenerateReservationPDFParams {
+  reservationId: number
+  customerInfo: {
+    firstName: string
+    lastName: string
+    email: string
+    phone: string
+  }
+  items: Array<{
+    productName: string
+    quantity: number
+    pricePerUnit: number
+    rentalStart: string
+    rentalEnd: string
+    selectedOption?: SelectedOption
+  }>
+  totalPrice: number
+  deposit: number
+  caution: number
+  deliveryOption?: 'pickup' | 'delivery'
+  deliveryFees?: number
 }
 
 // Styles pour le PDF
@@ -241,4 +264,31 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
       </Page>
     </Document>
   )
+}
+
+// Fonction pour générer le PDF et le retourner en Buffer
+export async function generateReservationPDF(params: GenerateReservationPDFParams): Promise<Buffer> {
+  const reservationData: ReservationData = {
+    id: params.reservationId,
+    customer_name: `${params.customerInfo.firstName} ${params.customerInfo.lastName}`,
+    customer_email: params.customerInfo.email,
+    customer_phone: params.customerInfo.phone,
+    total_amount: params.totalPrice,
+    created_at: new Date().toISOString(),
+    items: params.items.map((item) => ({
+      product_name: item.productName,
+      quantity: item.quantity,
+      rental_start: item.rentalStart,
+      rental_end: item.rentalEnd,
+      unit_price: item.pricePerUnit,
+      total_price: item.quantity * item.pricePerUnit,
+      selectedOption: item.selectedOption,
+    })),
+  }
+
+  const doc = <ReservationPDF reservation={reservationData} />
+  const asPdf = pdf(doc)
+  const blob = await asPdf.toBlob()
+  const arrayBuffer = await blob.arrayBuffer()
+  return Buffer.from(arrayBuffer)
 }
