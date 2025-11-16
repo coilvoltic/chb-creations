@@ -371,7 +371,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                 {/* Installation service option */}
                 {product.installation_fees && product.installation_fees > 0 && (
                   <div className="border-t border-stone-200 pt-6">
-                    <h2 className={`text-xl font-semibold mb-3 ${isInCart ? 'text-stone-400' : ''}`}>Service d'installation</h2>
+                    <h2 className={`text-xl font-semibold mb-3 ${isInCart ? 'text-stone-400' : ''}`}>Service d&apos;installation</h2>
                     <label
                       className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
                         needsInstallation
@@ -388,14 +388,14 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                       />
                       <div className="ml-3 flex-1">
                         <div className="font-medium text-black">
-                          Aide à l'installation (+{product.installation_fees}€ / unité)
+                          Aide à l&apos;installation (+{product.installation_fees}€ / unité)
                         </div>
                         <p className="text-sm text-stone-600 mt-1">
-                          Notre équipe vous accompagne dans l'installation de votre location.
+                          Notre équipe vous accompagne dans l&apos;installation de votre location.
                         </p>
                         {needsInstallation && (
                           <p className="text-sm font-medium text-blue-700 mt-2">
-                            Total frais d'installation : {(product.installation_fees * quantity).toFixed(2)} €
+                            Total frais d&apos;installation : {(product.installation_fees * quantity).toFixed(2)} €
                           </p>
                         )}
                       </div>
