@@ -14,8 +14,7 @@ export default function CartPage() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCheckoutForm, setShowCheckoutForm] = useState(false)
-  const [showPaymentOptions, setShowPaymentOptions] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cash' | null>(null)
+  const [showConfirmation, setShowConfirmation] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [reservationId, setReservationId] = useState<number | null>(null)
@@ -114,12 +113,6 @@ export default function CartPage() {
   const cautionAmount = 100 // Caution fixe de 100€ (à ajuster selon vos besoins)
 
   const handleValidateOrder = async () => {
-    // Vérification du mode de paiement si un acompte est requis
-    if (depositAmount > 0 && !paymentMethod) {
-      setError('Veuillez sélectionner un mode de paiement')
-      return
-    }
-
     setIsSubmitting(true)
     setError(null)
 
@@ -149,32 +142,10 @@ export default function CartPage() {
         deliveryOption: cart.deliveryOption,
         deliveryFees: cart.totalDeliveryFees || 0,
         totalPrice: totalWithDelivery,
-        paymentMethod: paymentMethod, // 'online' | 'cash' | null
+        paymentMethod: 'cash', // Toujours en espèces pour le moment
       }
 
-      // Si paiement en ligne, créer une session Stripe
-      if (paymentMethod === 'online' && depositAmount > 0) {
-        const response = await fetch('/api/create-checkout-session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            amount: depositAmount,
-            reservationData: payload,
-          }),
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Erreur lors de la création de la session de paiement')
-        }
-
-        // Rediriger vers Stripe Checkout
-        window.location.href = data.url
-        return
-      }
-
-      // Si paiement en espèces ou pas d'acompte, créer la réservation directement
+      // Créer la réservation directement (paiement en espèces)
       const response = await fetch('/api/reservations/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -191,6 +162,7 @@ export default function CartPage() {
       clearCart()
       setReservationId(data.reservationId)
       setShowSuccessModal(true)
+      setShowConfirmation(false)
     } catch (err) {
       console.error('Erreur validation commande:', err)
       setError(err instanceof Error ? err.message : 'Erreur lors de la validation')
@@ -531,7 +503,7 @@ export default function CartPage() {
                       }
 
                       setError(null)
-                      setShowPaymentOptions(true)
+                      setShowConfirmation(true)
                     }}
                     className="w-full bg-black text-white px-6 py-4 rounded-lg hover:bg-stone-800 transition-colors font-medium"
                   >
@@ -541,7 +513,7 @@ export default function CartPage() {
                   <button
                     onClick={() => {
                       setShowCheckoutForm(false)
-                      setShowPaymentOptions(false)
+                      setShowConfirmation(false)
                       setError(null)
                     }}
                     className="w-full mt-2 text-stone-600 hover:text-black transition-colors text-sm"
@@ -551,11 +523,11 @@ export default function CartPage() {
                 </>
               )}
 
-              {/* Payment Options Modal */}
-              {showPaymentOptions && (
+              {/* Confirmation Modal */}
+              {showConfirmation && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                   <div className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
-                    <h2 className="text-2xl font-bold mb-4">Mode de paiement</h2>
+                    <h2 className="text-2xl font-bold mb-4">Confirmer la réservation</h2>
 
                     {depositAmount > 0 ? (
                       <>
@@ -564,71 +536,11 @@ export default function CartPage() {
                             <span className="font-semibold">Acompte requis :</span> {depositAmount.toFixed(2)} €
                           </p>
                           <p className="text-xs text-amber-700">
-                            Le solde restant de {(cart.totalPrice + (cart.totalDeliveryFees || 0) - depositAmount).toFixed(2)} € sera à régler lors de la {cart.deliveryOption === 'delivery' ? 'livraison' : 'récupération'}.
+                            L&apos;acompte sera à payer en espèces lors de la {cart.deliveryOption === 'delivery' ? 'livraison' : 'récupération en boutique'}.
                           </p>
-                        </div>
-
-                        <div className="space-y-3 mb-6">
-                          <p className="text-sm font-medium text-stone-700 mb-3">
-                            Choisissez votre mode de paiement pour l&apos;acompte :
+                          <p className="text-xs text-amber-700 mt-2">
+                            Le solde restant de {(cart.totalPrice + (cart.totalDeliveryFees || 0) - depositAmount).toFixed(2)} € sera également à régler à ce moment.
                           </p>
-
-                          {/* Paiement en ligne */}
-                          <button
-                            onClick={() => setPaymentMethod('online')}
-                            className={`w-full p-4 border-2 rounded-xl text-left transition-all ${
-                              paymentMethod === 'online'
-                                ? 'border-black bg-stone-50'
-                                : 'border-stone-200 hover:border-stone-400'
-                            }`}
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center ${
-                                paymentMethod === 'online' ? 'border-black' : 'border-stone-300'
-                              }`}>
-                                {paymentMethod === 'online' && (
-                                  <div className="w-3 h-3 rounded-full bg-black"></div>
-                                )}
-                              </div>
-                              <div className="flex-1">
-                                <p className="font-semibold mb-1">Payer l&apos;acompte en ligne</p>
-                                <p className="text-xs text-stone-600 mb-2">
-                                  Carte bancaire, Apple Pay ou Google Pay
-                                </p>
-                                <div className="flex gap-2">
-                                  <span className="text-xs bg-stone-100 px-2 py-1 rounded">💳 CB</span>
-                                  <span className="text-xs bg-stone-100 px-2 py-1 rounded">🍎 Apple Pay</span>
-                                  <span className="text-xs bg-stone-100 px-2 py-1 rounded">📱 Google Pay</span>
-                                </div>
-                              </div>
-                            </div>
-                          </button>
-
-                          {/* Paiement en espèces */}
-                          <button
-                            onClick={() => setPaymentMethod('cash')}
-                            className={`w-full p-4 border-2 rounded-xl text-left transition-all ${
-                              paymentMethod === 'cash'
-                                ? 'border-black bg-stone-50'
-                                : 'border-stone-200 hover:border-stone-400'
-                            }`}
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center ${
-                                paymentMethod === 'cash' ? 'border-black' : 'border-stone-300'
-                              }`}>
-                                {paymentMethod === 'cash' && (
-                                  <div className="w-3 h-3 rounded-full bg-black"></div>
-                                )}
-                              </div>
-                              <div className="flex-1">
-                                <p className="font-semibold mb-1">Réserver sans payer l&apos;acompte</p>
-                                <p className="text-xs text-stone-600">
-                                  Paiement de l&apos;acompte en espèces à la boutique
-                                </p>
-                              </div>
-                            </div>
-                          </button>
                         </div>
                       </>
                     ) : (
@@ -648,20 +560,19 @@ export default function CartPage() {
                     <div className="flex gap-3">
                       <button
                         onClick={() => {
-                          setShowPaymentOptions(false)
-                          setPaymentMethod(null)
+                          setShowConfirmation(false)
                           setError(null)
                         }}
                         className="flex-1 px-6 py-3 border border-stone-300 rounded-lg hover:bg-stone-50 transition-colors font-medium"
                       >
-                        Retour
+                        Annuler
                       </button>
                       <button
                         onClick={handleValidateOrder}
-                        disabled={isSubmitting || (depositAmount > 0 && !paymentMethod)}
+                        disabled={isSubmitting}
                         className="flex-1 bg-black text-white px-6 py-3 rounded-lg hover:bg-stone-800 transition-colors font-medium disabled:bg-stone-400 disabled:cursor-not-allowed"
                       >
-                        {isSubmitting ? 'En cours...' : 'Valider'}
+                        {isSubmitting ? 'En cours...' : 'Confirmer'}
                       </button>
                     </div>
                   </div>
