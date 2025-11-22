@@ -37,6 +37,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
   const [expandedFaqIndex, setExpandedFaqIndex] = useState<number | null>(null)
   const [selectedOptionIndices, setSelectedOptionIndices] = useState<{ [key: number]: number }>({})
   const [needsInstallation, setNeedsInstallation] = useState(false)
+  const [personalizationValues, setPersonalizationValues] = useState<{ [key: string]: string }>({})
 
   // Check if product is already in cart
   const isInCart = product ? cart.items.some(item => item.productId === product.id) : false
@@ -122,6 +123,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
       quantity,
       pricePerUnit: getEffectivePrice(),
       selectedOptions,
+      personalizations: Object.keys(personalizationValues).length > 0 ? personalizationValues : undefined,
       depositPercentage: product.deposit || undefined,
       cautionPerUnit: product.caution || undefined,
       baseDeliveryFees: product.base_delivery_fees || undefined,
@@ -407,6 +409,44 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* Personalization fields */}
+                {product.personalizations && product.personalizations.length > 0 && (
+                  <div className="border-t border-stone-200 pt-6">
+                    <h2 className={`text-xl font-semibold mb-3 ${isInCart ? 'text-stone-400' : ''}`}>
+                      Personnalisation
+                    </h2>
+                    <div className="space-y-4">
+                      {product.personalizations.map((fieldLabel, index) => (
+                        <div key={index}>
+                          <label htmlFor={`personalization-${index}`} className={`block text-sm font-medium mb-2 ${isInCart ? 'text-stone-400' : 'text-stone-700'}`}>
+                            {fieldLabel}
+                          </label>
+                          <input
+                            id={`personalization-${index}`}
+                            type="text"
+                            value={personalizationValues[fieldLabel] || ''}
+                            onChange={(e) => {
+                              if (!isInCart) {
+                                setPersonalizationValues(prev => ({
+                                  ...prev,
+                                  [fieldLabel]: e.target.value,
+                                }))
+                              }
+                            }}
+                            disabled={isInCart}
+                            placeholder={`Entrez ${fieldLabel.toLowerCase()}`}
+                            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
+                              isInCart
+                                ? 'bg-stone-50 border-stone-200 text-stone-400 cursor-not-allowed'
+                                : 'border-stone-300 bg-white'
+                            }`}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 

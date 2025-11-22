@@ -80,6 +80,28 @@ export async function getDecoEtAccessoiresProducts(): Promise<Product[]> {
   }
 }
 
+export async function getTenuesHommeProducts(): Promise<Product[]> {
+  try {
+    const supabase = getSupabaseClient()
+
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('subcategory', 'tenues-homme')
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      console.error('Error fetching tenues homme products:', error.message)
+      return []
+    }
+
+    return (data as Product[]) || []
+  } catch (err) {
+    console.error('Exception fetching tenues homme products:', err)
+    return []
+  }
+}
+
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   try {
     const supabase = getSupabaseClient()

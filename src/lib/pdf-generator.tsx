@@ -17,6 +17,7 @@ interface ReservationItem {
   unit_price: number
   total_price: number
   selectedOptions?: SelectedOption[]
+  personalizations?: { [key: string]: string }
 }
 
 interface ReservationData {
@@ -216,6 +217,13 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
                       <Text style={{ fontSize: 9, color: '#666' }}>
                         {item.selectedOptions.map((option, idx) => (
                           `\n${option.option_type_name}: ${option.name}`
+                        )).join('')}
+                      </Text>
+                    )}
+                    {item.personalizations && Object.keys(item.personalizations).length > 0 && (
+                      <Text style={{ fontSize: 9, color: '#444', fontStyle: 'italic' }}>
+                        {Object.entries(item.personalizations).map(([key, value]) => (
+                          `\n✏️ ${key}: ${value}`
                         )).join('')}
                       </Text>
                     )}

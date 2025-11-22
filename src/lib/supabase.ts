@@ -44,6 +44,7 @@ export interface Product {
   features?: string[]
   faq?: FAQItem[]
   options?: ProductOptionGroup[] // Array of option groups (e.g., installation options, color options)
+  personalizations?: string[] // Array of personalization field labels (e.g., ["Prénom", "Date de naissance"])
   deposit?: number // Percentage (0-100) or null
   caution?: number // Fixed amount for security deposit (not charged unless damage/loss)
   is_out_of_stock?: boolean // True if product is out of stock

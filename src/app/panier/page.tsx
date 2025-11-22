@@ -157,6 +157,7 @@ export default function CartPage() {
             quantity: item.quantity,
             pricePerUnit: unitPrice,
             selectedOptions: item.selectedOptions,
+            personalizations: item.personalizations,
             rentalStart: new Date(
               item.rentalPeriod.from.toISOString().split('T')[0] + 'T' + item.startTime
             ).toISOString(),
@@ -283,6 +284,15 @@ export default function CartPage() {
                             <p key={idx} className="text-blue-700">
                               <span className="font-medium">{option.option_type_name} :</span> {option.name}
                               {option.additional_fee > 0 && ` (+${option.additional_fee.toFixed(2)} €)`}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                      {item.personalizations && Object.keys(item.personalizations).length > 0 && (
+                        <div className="space-y-1 mt-2">
+                          {Object.entries(item.personalizations).map(([fieldName, value], idx) => (
+                            <p key={idx} className="text-stone-700">
+                              <span className="font-medium">✏️ {fieldName} :</span> {value}
                             </p>
                           ))}
                         </div>

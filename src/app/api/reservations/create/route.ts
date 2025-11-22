@@ -18,6 +18,7 @@ interface CartItemPayload {
   rentalStart: string // ISO timestamp
   rentalEnd: string // ISO timestamp
   selectedOptions?: SelectedOption[] // Array of selected options
+  personalizations?: { [key: string]: string } // Map of personalization field name to value
   needsInstallation?: boolean
   installationFees?: number
 }
@@ -103,12 +104,19 @@ export async function POST(request: NextRequest) {
 
     // 2. Créer les items de réservation
     const reservationItems = items.map((item) => {
-      // Build options object combining selected options and installation info
+      // Build options object combining selected options, personalizations, and installation info
       let optionsData: any = null
 
       if (item.selectedOptions && item.selectedOptions.length > 0) {
         optionsData = {
           selectedOptions: item.selectedOptions,
+          personalizations: item.personalizations,
+          needsInstallation: item.needsInstallation,
+          installationFees: item.installationFees
+        }
+      } else if (item.personalizations && Object.keys(item.personalizations).length > 0) {
+        optionsData = {
+          personalizations: item.personalizations,
           needsInstallation: item.needsInstallation,
           installationFees: item.installationFees
         }
@@ -160,6 +168,7 @@ export async function POST(request: NextRequest) {
           unit_price: item.pricePerUnit,
           total_price: item.quantity * item.pricePerUnit,
           selectedOptions: item.selectedOptions,
+          personalizations: item.personalizations,
         })),
       }
 

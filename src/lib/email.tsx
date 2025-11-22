@@ -20,6 +20,7 @@ interface ReservationItem {
   unit_price: number
   total_price: number
   selectedOptions?: SelectedOption[]
+  personalizations?: { [key: string]: string }
 }
 
 interface ReservationData {
