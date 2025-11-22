@@ -23,6 +23,13 @@ interface CartItemPayload {
   installationFees?: number
 }
 
+interface ReservationItemOptions {
+  selectedOptions?: SelectedOption[]
+  personalizations?: { [key: string]: string }
+  needsInstallation?: boolean
+  installationFees?: number
+}
+
 interface CreateReservationPayload {
   customerInfo: CustomerInfo
   items: CartItemPayload[]
@@ -105,7 +112,7 @@ export async function POST(request: NextRequest) {
     // 2. Créer les items de réservation
     const reservationItems = items.map((item) => {
       // Build options object combining selected options, personalizations, and installation info
-      let optionsData: any = null
+      let optionsData: ReservationItemOptions | null = null
 
       if (item.selectedOptions && item.selectedOptions.length > 0) {
         optionsData = {
