@@ -9,7 +9,7 @@ export default async function TenuesHommePage() {
       products={tenuesHommeData}
       title="Tenues Homme."
       description='Toute la gamme "Tenues Homme".'
-      heroImage="/imgs/location/tenues-homme/tenueHommeMain.png"
+      heroImage="/imgs/locations/tenueHommeMain.png"
       heroAlt="Tenues Homme"
       categorySlug="tenues-homme"
       breadcrumbItems={[

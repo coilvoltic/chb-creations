@@ -9,7 +9,7 @@ export default async function DecoAccessoiresPage() {
       products={decoEtAccessoiresData}
       title="Déco & Accessoires."
       description='Toute la gamme "Déco & Accessoires".'
-      heroImage="/imgs/location/deco-et-accessoires/decoAccessoiresMain.png"
+      heroImage="/imgs/locations/decoAccessoiresMain.png"
       heroAlt="Décoration et Accessoires"
       categorySlug="deco-et-accessoires"
       breadcrumbItems={[

@@ -9,7 +9,7 @@ export default async function ArtDeTablePage() {
       products={artDeTableData}
       title="Art de table."
       description='Tout la gamme "Art de table".'
-      heroImage="/imgs/location/art-de-table/artDeTableMain.png"
+      heroImage="/imgs/locations/artDeTableMain.png"
       heroAlt="Art de table"
       categorySlug="art-de-table"
       breadcrumbItems={[

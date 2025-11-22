@@ -9,7 +9,7 @@ export default async function TronesPage() {
       products={tronesData}
       title="Trônes."
       description='Toute la gamme "Trônes".'
-      heroImage="/imgs/location/trones/troneMain.jpeg"
+      heroImage="/imgs/locations/tronesMain.jpeg"
       heroAlt="Trônes"
       categorySlug="trones"
       breadcrumbItems={[

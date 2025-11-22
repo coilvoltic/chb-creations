@@ -6,25 +6,25 @@ export default function LocationsPage() {
     {
       title: 'Art de table',
       href: '/services/locations/art-de-table',
-      image: '/imgs/location/art-de-table/artDeTableMain.png',
+      image: '/imgs/locations/artDeTableMain.png',
       description: 'Assiettes, couverts et accessoires élégants'
     },
     {
       title: 'Trônes',
       href: '/services/locations/trones',
-      image: '/imgs/location/trones/troneMain.jpeg',
+      image: '/imgs/locations/tronesMain.jpeg',
       description: 'Trônes majestueux pour vos événements'
     },
     {
       title: 'Déco & Accessoires',
       href: '/services/locations/deco-et-accessoires',
-      image: '/imgs/location/deco-et-accessoires/decoAccessoiresMain.png',
+      image: '/imgs/locations/decoAccessoiresMain.png',
       description: 'Décoration et accessoires de table'
     },
     {
       title: 'Tenues Homme',
       href: '/services/locations/tenues-homme',
-      image: '/imgs/location/tenues-homme/tenueHommeMain.png',
+      image: '/imgs/locations/tenueHommeMain.png',
       description: 'Tenues traditionnelles et modernes'
     }
   ]
@@ -37,7 +37,7 @@ export default function LocationsPage() {
       <section className="relative w-full h-[60vh] overflow-hidden">
         <div className="absolute inset-0">
           <img
-            src="/imgs/location/mainLocation.png"
+            src="/imgs/locations/mainLocation.png"
             alt="Locations"
             className="w-full h-full object-cover"
           />

@@ -192,7 +192,7 @@ export default function Navbar() {
               >
                 <div className="relative h-32 overflow-hidden">
                   <img
-                    src="/imgs/location/mainLocation.png"
+                    src="/imgs/locations/mainLocation.png"
                     alt="Locations"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
@@ -212,7 +212,7 @@ export default function Navbar() {
               >
                 <div className="relative h-32 overflow-hidden">
                   <img
-                    src="/imgs/personnalisation/mainPersonnalisation.jpeg"
+                    src="/imgs/accessoires/accessoiresMain.jpeg"
                     alt="Accessoires"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />

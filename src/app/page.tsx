@@ -88,7 +88,7 @@ export default function Home() {
                 <div className="bg-white rounded-2xl overflow-hidden transition-all duration-300 ease-in-out hover:scale-[1.02] hover:-translate-y-2 animate-fade-in-up delay-100">
                   <div className="relative aspect-[3/4] md:aspect-[4/5] overflow-hidden">
                     <img
-                      src="/imgs/location/mainLocation.png"
+                      src="/imgs/locations/mainLocation.png"
                       alt="Locations"
                       className="w-full h-full object-cover"
                     />
@@ -114,7 +114,7 @@ export default function Home() {
                 <div className="bg-white rounded-2xl overflow-hidden transition-all duration-300 ease-in-out hover:scale-[1.02] hover:-translate-y-2 animate-fade-in-up delay-200">
                   <div className="relative aspect-[3/4] md:aspect-[4/5] overflow-hidden">
                     <img
-                      src="/imgs/personnalisation/mainPersonnalisation.jpeg"
+                      src="/imgs/accessoires/accessoiresMain.jpeg"
                       alt="Accessoires"
                       className="w-full h-full object-cover"
                     />
