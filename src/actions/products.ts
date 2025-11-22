@@ -58,6 +58,28 @@ export async function getTronesProducts(): Promise<Product[]> {
   }
 }
 
+export async function getDecoEtAccessoiresProducts(): Promise<Product[]> {
+  try {
+    const supabase = getSupabaseClient()
+
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('subcategory', 'deco-et-accessoires')
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      console.error('Error fetching deco et accessoires products:', error.message)
+      return []
+    }
+
+    return (data as Product[]) || []
+  } catch (err) {
+    console.error('Exception fetching deco et accessoires products:', err)
+    return []
+  }
+}
+
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   try {
     const supabase = getSupabaseClient()

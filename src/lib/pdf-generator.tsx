@@ -3,8 +3,9 @@ import { Document, Page, Text, View, Image, StyleSheet, Font, pdf } from '@react
 
 // Types
 interface SelectedOption {
+  option_type_name: string
   name: string
-  description: string
+  description?: string
   additional_fee: number
 }
 
@@ -15,7 +16,7 @@ interface ReservationItem {
   rental_end: string
   unit_price: number
   total_price: number
-  selectedOption?: SelectedOption
+  selectedOptions?: SelectedOption[]
 }
 
 interface ReservationData {
@@ -42,7 +43,7 @@ interface GenerateReservationPDFParams {
     pricePerUnit: number
     rentalStart: string
     rentalEnd: string
-    selectedOption?: SelectedOption
+    selectedOptions?: SelectedOption[]
   }>
   totalPrice: number
   deposit: number
@@ -211,9 +212,11 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
                 <View style={styles.tableRow}>
                   <Text style={styles.col1}>
                     {item.product_name}
-                    {item.selectedOption && (
+                    {item.selectedOptions && item.selectedOptions.length > 0 && (
                       <Text style={{ fontSize: 9, color: '#666' }}>
-                        {'\n'}Option: {item.selectedOption.name}
+                        {item.selectedOptions.map((option, idx) => (
+                          `\n${option.option_type_name}: ${option.name}`
+                        )).join('')}
                       </Text>
                     )}
                   </Text>
@@ -282,7 +285,7 @@ export async function generateReservationPDF(params: GenerateReservationPDFParam
       rental_end: item.rentalEnd,
       unit_price: item.pricePerUnit,
       total_price: item.quantity * item.pricePerUnit,
-      selectedOption: item.selectedOption,
+      selectedOptions: item.selectedOptions,
     })),
   }
 

@@ -24,8 +24,13 @@ export interface FAQItem {
 
 export interface ProductOption {
   name: string
-  description: string
+  description?: string
   additional_fee: number
+}
+
+export interface ProductOptionGroup {
+  option_type_name: string
+  options: ProductOption[]
 }
 
 export interface Product {
@@ -38,8 +43,9 @@ export interface Product {
   description?: string
   features?: string[]
   faq?: FAQItem[]
-  options?: ProductOption[]
+  options?: ProductOptionGroup[] // Array of option groups (e.g., installation options, color options)
   deposit?: number // Percentage (0-100) or null
+  caution?: number // Fixed amount for security deposit (not charged unless damage/loss)
   is_out_of_stock?: boolean // True if product is out of stock
   base_delivery_fees?: number // Base delivery fees for this product
   installation_fees?: number // Optional installation fees

@@ -106,12 +106,18 @@ export default function CartPage() {
     }
   }
 
+  // Calculate total options fees for an item
+  const getItemOptionsFees = (item: typeof cart.items[0]) => {
+    if (!item.selectedOptions || item.selectedOptions.length === 0) return 0
+    return item.selectedOptions.reduce((sum, option) => sum + option.additional_fee, 0)
+  }
+
   // Calculate deposit based on products with deposit requirements
   const calculateDeposit = () => {
     let totalDeposit = 0
     cart.items.forEach((item) => {
       if (item.depositPercentage && item.depositPercentage > 0) {
-        const itemPrice = item.pricePerUnit + (item.selectedOption?.additional_fee || 0)
+        const itemPrice = item.pricePerUnit + getItemOptionsFees(item)
         const itemTotal = itemPrice * item.quantity
         totalDeposit += (itemTotal * item.depositPercentage) / 100
       }
@@ -120,7 +126,19 @@ export default function CartPage() {
   }
 
   const depositAmount = calculateDeposit()
-  const cautionAmount = 100 // Caution fixe de 100€ (à ajuster selon vos besoins)
+
+  // Calculate total caution based on items with caution
+  const calculateCaution = () => {
+    let totalCaution = 0
+    cart.items.forEach((item) => {
+      if (item.cautionPerUnit && item.cautionPerUnit > 0) {
+        totalCaution += item.cautionPerUnit * item.quantity
+      }
+    })
+    return totalCaution
+  }
+
+  const cautionAmount = calculateCaution()
 
   const handleValidateOrder = async () => {
     setIsSubmitting(true)
@@ -132,13 +150,13 @@ export default function CartPage() {
       const payload = {
         customerInfo,
         items: cart.items.map((item) => {
-          const unitPrice = item.pricePerUnit + (item.selectedOption?.additional_fee || 0)
+          const unitPrice = item.pricePerUnit + getItemOptionsFees(item)
           return {
             productId: item.productId,
             productName: item.productName,
             quantity: item.quantity,
             pricePerUnit: unitPrice,
-            selectedOption: item.selectedOption,
+            selectedOptions: item.selectedOptions,
             rentalStart: new Date(
               item.rentalPeriod.from.toISOString().split('T')[0] + 'T' + item.startTime
             ).toISOString(),
@@ -259,10 +277,15 @@ export default function CartPage() {
                       <p>
                         <span className="font-medium">Prix unitaire :</span> {item.pricePerUnit.toFixed(2)} €
                       </p>
-                      {item.selectedOption && (
-                        <p className="text-amber-700">
-                          <span className="font-medium">Option :</span> {item.selectedOption.name} (+{item.selectedOption.additional_fee.toFixed(2)} €)
-                        </p>
+                      {item.selectedOptions && item.selectedOptions.length > 0 && (
+                        <div className="space-y-1">
+                          {item.selectedOptions.map((option, idx) => (
+                            <p key={idx} className="text-blue-700">
+                              <span className="font-medium">{option.option_type_name} :</span> {option.name}
+                              {option.additional_fee > 0 && ` (+${option.additional_fee.toFixed(2)} €)`}
+                            </p>
+                          ))}
+                        </div>
                       )}
                       {item.needsInstallation && item.installationFees && (
                         <p className="text-blue-700">
@@ -270,8 +293,13 @@ export default function CartPage() {
                         </p>
                       )}
                       {item.depositPercentage && item.depositPercentage > 0 && (
-                        <p className="text-amber-700">
+                        <p className="text-blue-700">
                           <span className="font-medium">Acompte requis :</span> {item.depositPercentage}%
+                        </p>
+                      )}
+                      {item.cautionPerUnit && item.cautionPerUnit > 0 && (
+                        <p className="text-amber-700">
+                          <span className="font-medium">Caution :</span> {item.cautionPerUnit.toFixed(2)}€ / unité (soit {(item.cautionPerUnit * item.quantity).toFixed(2)}€ total, non encaissée)
                         </p>
                       )}
                       <p>
@@ -282,7 +310,7 @@ export default function CartPage() {
                     {/* Subtotal */}
                     <div className="mt-4 text-right">
                       <p className="text-lg font-bold">
-                        {(item.quantity * (item.pricePerUnit + (item.selectedOption?.additional_fee || 0) + ((item.needsInstallation && item.installationFees) ? item.installationFees : 0))).toFixed(2)} €
+                        {(item.quantity * (item.pricePerUnit + getItemOptionsFees(item) + ((item.needsInstallation && item.installationFees) ? item.installationFees : 0))).toFixed(2)} €
                       </p>
                     </div>
                   </div>
@@ -389,34 +417,56 @@ export default function CartPage() {
               </div>
 
               <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-stone-700">
-                  <span>Articles ({cart.totalItems})</span>
-                  <span>{cart.totalPrice.toFixed(2)} €</span>
-                </div>
-                {cart.deliveryOption === 'delivery' && cart.totalDeliveryFees !== undefined && (
+                {/* Montants contribuant au total */}
+                <div className="space-y-3">
                   <div className="flex justify-between text-stone-700">
-                    <span>Frais de livraison</span>
-                    <span>{cart.totalDeliveryFees.toFixed(2)} €</span>
+                    <span>Articles ({cart.totalItems})</span>
+                    <span>{cart.totalPrice.toFixed(2)} €</span>
                   </div>
-                )}
-                {depositAmount > 0 && (
-                  <div className="flex justify-between text-amber-700 text-sm font-medium">
-                    <span>Acompte à payer</span>
-                    <span>{depositAmount.toFixed(2)} €</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-stone-700 text-sm">
-                  <span>Caution</span>
-                  <span>{cautionAmount.toFixed(2)} €</span>
+                  {cart.deliveryOption === 'delivery' && cart.totalDeliveryFees !== undefined && (
+                    <div className="flex justify-between text-stone-700">
+                      <span>Frais de livraison</span>
+                      <span>{cart.totalDeliveryFees.toFixed(2)} €</span>
+                    </div>
+                  )}
                 </div>
-                <div className="border-t border-stone-200 pt-3 flex justify-between font-bold text-lg">
-                  <span>Total</span>
+
+                {/* Total à payer */}
+                <div className="border-t border-stone-300 pt-3 flex justify-between font-bold text-lg">
+                  <span>Total à payer</span>
                   <span>{(cart.totalPrice + (cart.totalDeliveryFees || 0)).toFixed(2)} €</span>
                 </div>
+
+                {/* Informations complémentaires (non incluses dans le total) */}
+                {(depositAmount > 0 || cautionAmount > 0) && (
+                  <div className="border-t border-stone-200 pt-3 space-y-2">
+                    <p className="text-xs font-medium text-stone-600 uppercase tracking-wide">Informations complémentaires</p>
+                    {depositAmount > 0 && (
+                      <div className="flex justify-between text-blue-700 text-sm font-medium">
+                        <span>Acompte à verser</span>
+                        <span>{depositAmount.toFixed(2)} €</span>
+                      </div>
+                    )}
+                    {cautionAmount > 0 && (
+                      <div className="flex justify-between text-amber-700 text-sm font-medium">
+                        <span>Caution (non encaissée)</span>
+                        <span>{cautionAmount.toFixed(2)} €</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Explications détaillées */}
                 {depositAmount > 0 && (
-                  <div className="text-xs text-amber-700 bg-amber-50 p-3 rounded-lg">
-                    <p className="font-medium mb-1">Informations sur l&apos;acompte :</p>
+                  <div className="text-xs text-blue-700 bg-blue-50 p-3 rounded-lg">
+                    <p className="font-medium mb-1">💳 Acompte :</p>
                     <p>Un acompte de {depositAmount.toFixed(2)} € sera requis pour valider la réservation. Vous pouvez payer cet acompte en ligne ou en boutique. Le solde restant de {(cart.totalPrice + (cart.totalDeliveryFees || 0) - depositAmount).toFixed(2)} € sera à régler lors de la {cart.deliveryOption === 'delivery' ? 'livraison' : 'récupération'} de la commande.</p>
+                  </div>
+                )}
+                {cautionAmount > 0 && (
+                  <div className="text-xs text-amber-700 bg-amber-50 p-3 rounded-lg">
+                    <p className="font-medium mb-1">⚠️ Caution :</p>
+                    <p>Une caution de {cautionAmount.toFixed(2)} € sera demandée lors de la {cart.deliveryOption === 'delivery' ? 'livraison' : 'récupération'} (espèces, chèque ou CB). Elle ne sera encaissée qu&apos;en cas de dégradation ou perte du matériel loué.</p>
                   </div>
                 )}
               </div>

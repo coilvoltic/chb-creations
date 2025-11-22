@@ -51,22 +51,29 @@ The app uses three Google Fonts configured in [src/app/layout.tsx](src/app/layou
 
 ### Core Tables
 1. **products**: Product catalog with:
-   - Basic info: name, slug, price, images[], description, features[]
+   - Basic info: name, slug, price, new_price (promotional price), images[], description, features[]
    - **options**: JSONB array of product options with `{name, description, additional_fee}`
-   - **deposit**: Integer percentage (0-100) for required deposit
+   - **deposit**: Integer percentage (0-100) for required deposit (paid upfront)
+   - **caution**: Fixed amount for security deposit (not charged unless damage/loss)
    - **faq**: JSONB array of `{question, answer}` pairs
-   - Stock management and categorization (category, subcategory)
+   - **is_out_of_stock**: Boolean flag to hide products from public access
+   - **base_delivery_fees**: Base delivery cost for this product
+   - **installation_fees**: Optional per-unit installation service fee
+   - Stock management and categorization (category, subcategory, stock)
+   - Dynamic unavailabilities computed via SQL function
 
 2. **reservations**: Customer reservations with:
    - customer_infos (JSONB): firstName, lastName, email, phone
    - deposit, caution, total_price
+   - delivery_option ('pickup' | 'delivery'), delivery_fees
+   - stripe_payment_id (for online payments)
    - reservation_status: 'DONE' | 'CANCELLED' | 'CONFIRMED' | 'CONFIRMED_NO_DEPOSIT'
 
 3. **reservation_items**: Individual items in a reservation:
    - Links to product_id and reservation_id
    - rental_start, rental_end (ISO timestamps)
    - quantity
-   - **options**: JSONB storing selected option for this item
+   - **options**: JSONB storing selected option and installation info: `{name, description, additional_fee, needsInstallation, installationFees}`
 
 ### Data Access Patterns
 - **Server Actions** (`src/actions/products.ts`): Use anon key for product fetching
@@ -79,6 +86,10 @@ Required in `.env.local`:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Public anon key for client-side queries
 - `SUPABASE_SERVICE_ROLE_KEY`: Secret service role key for server-side operations (⚠️ bypasses RLS)
 - `RESEND_API_KEY`: API key for email service
+- `GOOGLE_PLACES_API_KEY`: API key for Google Places and Routes API (address autocomplete and delivery calculation)
+- `STRIPE_SECRET_KEY`: Stripe secret key for payment processing
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: Stripe publishable key for client-side
+- `NEXT_PUBLIC_BASE_URL`: Base URL for redirects (e.g., http://localhost:3000)
 
 ## Project Structure
 
@@ -103,22 +114,38 @@ Required in `.env.local`:
 
 **CartContext** (`src/contexts/CartContext.tsx`):
 - Global shopping cart state using React Context
-- Persists to localStorage
+- Persists to localStorage (key: 'chb-cart')
 - Handles cart operations: addToCart, removeFromCart, updateQuantity, clearCart
-- Automatically calculates totals including option fees
-- Cart items include: product info, quantity, rental period, times, selected option, deposit percentage
+- Delivery management: setDeliveryOption, setDeliveryAddress, updateDeliveryFees
+- Automatically calculates totals including option fees, installation fees, delivery fees, and caution
+- Cart items include: product info, quantity, rental period, times, selected option, deposit percentage, caution per unit, installation options
+- Supports two delivery modes: 'pickup' (retrait en boutique) and 'delivery' (livraison)
 
-### Product Options & Deposits
+### Product Options, Fees & Financial Terms
 
-Products can have optional features:
+Products can have optional features and financial requirements:
 - **Options**: Array of choices (e.g., different color schemes) with additional fees
   - Default: First option is pre-selected
   - Stored in cart and reservation_items
   - Display: Radio buttons with price adjustments
-- **Deposits**: Required percentage of total price to validate reservation
+- **Deposits (Acompte)**: Required percentage of total price to validate reservation
   - Only shown if deposit > 0
   - Calculated per-item based on quantity and selected option
-  - Displayed prominently with amber warning styling
+  - Paid upfront (online or in-store) to confirm reservation
+  - Displayed prominently with blue info styling (info icon)
+- **Caution (Security Deposit)**: Fixed amount per unit as security deposit
+  - Only shown if caution > 0
+  - Calculated: caution × quantity
+  - Requested at pickup/delivery (cash, check, or card)
+  - **NOT charged/cashed unless damage or loss occurs**
+  - Displayed with amber warning styling (warning icon)
+- **Installation Services**: Optional installation with per-unit fees
+  - Products may have `installation_fees` field
+  - Customer can opt-in via checkbox in product detail page
+  - Installation flag and fees stored in cart items
+- **Delivery Fees**: Base delivery fees per product
+  - Products have `base_delivery_fees` field
+  - Total delivery calculated: base fees × quantity + distance-based fees (1€/km from shop)
 
 ### Components
 
@@ -129,6 +156,9 @@ Products can have optional features:
 - **DateRangePicker.tsx**: Rental period selector with unavailability checking and time selection
 - **SuccessModal.tsx**: Custom modal for reservation confirmation (replaces browser alerts)
 - **GoogleReviews.tsx**: Displays Google Business reviews
+- **AddressAutocomplete.tsx**: Google Places autocomplete for delivery addresses
+- **ProductDetailPage.tsx**: Reusable product detail component with carousel, options, dates, and add-to-cart
+- **ProductListingPage.tsx**: Reusable product grid/list component for category pages
 
 **UI components** in `src/components/ui/`:
 - Uses shadcn/ui convention (configured via components.json)
@@ -142,12 +172,33 @@ Products can have optional features:
    - Sends confirmation email with PDF attachment
    - Uses service_role key to bypass RLS
    - Includes rollback on item creation failure
+   - Handles both cash and online payment methods
+   - Sets reservation_status based on payment method and deposit amount
 
-2. **`/api/contact`** (POST):
+2. **`/api/process-payment`** (POST):
+   - Processes Stripe payments for deposits
+   - Creates reservation after successful payment
+   - Updates reservation_status to 'CONFIRMED'
+   - Sends confirmation email with PDF
+
+3. **`/api/create-checkout-session`** (POST):
+   - Creates Stripe Checkout session for deposit payment
+   - Returns session URL for redirect
+
+4. **`/api/calculate-delivery`** (POST):
+   - Calculates delivery distance and fees using Google Routes API
+   - Shop address: 100 Boulevard de Saint-Loup, 13010 Marseille, France
+   - Pricing: 1€ per kilometer + base delivery fees
+
+5. **`/api/autocomplete-address`** (GET):
+   - Google Places autocomplete for address suggestions
+   - Filters results for France only
+
+6. **`/api/contact`** (POST):
    - Contact form submissions
    - Validates email, name, subject, message
 
-3. **`/api/google-reviews`** (GET):
+7. **`/api/google-reviews`** (GET):
    - Fetches Google Business reviews via Places API
 
 ### Email & PDF System
@@ -184,12 +235,33 @@ Product detail pages (`[slug]/page.tsx`) follow a consistent structure:
 2. **Price display** with option fee breakdown if applicable
 3. **Tabs system**: Description / FAQ (if FAQ exists)
 4. **Options selector**: Radio buttons in bordered cards (if options exist)
-5. **Deposit warning**: Amber alert box with calculated amount (if deposit required)
-6. **Quantity selector**: With stock limit
-7. **Date picker**: With unavailability checking
-8. **Add to cart**: Disabled if already in cart or no dates selected
+5. **Installation option**: Checkbox for optional installation service (if product has installation_fees)
+6. **Deposit warning**: Amber alert box with calculated amount (if deposit required)
+7. **Quantity selector**: With stock limit
+8. **Date picker**: With unavailability checking and time selection
+9. **Add to cart**: Disabled if already in cart or no dates selected
 
 All product pages are client components (`'use client'`) to enable interactivity.
+
+### Checkout & Payment Flow
+
+1. **Cart page** (`/panier`):
+   - Display cart items with rental dates and times
+   - Delivery option selector: pickup or delivery
+   - Address autocomplete for delivery (uses Google Places API)
+   - Dynamic delivery fee calculation based on distance
+   - Customer information form
+   - Payment method selection: cash (pay in-store) or online (Stripe)
+
+2. **Payment processing**:
+   - Cash payment: Creates reservation with status 'CONFIRMED_NO_DEPOSIT', customer pays in-store
+   - Online payment: Redirects to Stripe Checkout for deposit payment
+   - After successful Stripe payment: Creates reservation with status 'CONFIRMED'
+
+3. **Success page** (`/panier/success`):
+   - Displays reservation confirmation
+   - Shows reservation number
+   - Clears cart
 
 ## Key Conventions
 
@@ -205,11 +277,15 @@ All product pages are client components (`'use client'`) to enable interactivity
 
 ## Code Factorization
 
-Product pages (art-de-table, trônes, etc.) share identical structure:
+Product pages (art-de-table, trônes, deco-et-accessoires, etc.) share identical structure:
 - Same component layout and logic
 - Only differ in: route params, breadcrumbs, hero images
 - When adding new categories, copy existing product page structure
 - Server actions in `src/actions/products.ts` follow pattern: `get[Category]Products()`
+- Active rental subcategories with full implementation:
+  - `art-de-table`: Art de table products
+  - `trones`: Trônes products
+  - `deco-et-accessoires`: Décoration et accessoires products
 
 ## shadcn/ui Integration
 

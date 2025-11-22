@@ -65,9 +65,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
     const totalPrice = items.reduce((sum, item) => {
       const basePrice = item.pricePerUnit
-      const optionFee = item.selectedOption?.additional_fee || 0
+      // Calculate total options fees from all selected options
+      const optionsFees = item.selectedOptions
+        ? item.selectedOptions.reduce((fees, option) => fees + option.additional_fee, 0)
+        : 0
       const installationFee = (item.needsInstallation && item.installationFees) ? item.installationFees : 0
-      return sum + item.quantity * (basePrice + optionFee + installationFee)
+      return sum + item.quantity * (basePrice + optionsFees + installationFee)
     }, 0)
     const totalDeliveryFees = calculateDeliveryFees(items, deliveryOption)
     return { totalItems, totalPrice, totalDeliveryFees }

@@ -1,8 +1,9 @@
 import { DateRange } from 'react-day-picker'
 
 export interface SelectedOption {
+  option_type_name: string
   name: string
-  description: string
+  description?: string
   additional_fee: number
 }
 
@@ -14,8 +15,9 @@ export interface CartItem {
   productImage: string
   quantity: number
   pricePerUnit: number
-  selectedOption?: SelectedOption
+  selectedOptions?: SelectedOption[] // Array of selected options (one per option group)
   depositPercentage?: number
+  cautionPerUnit?: number // Security deposit per unit (not charged unless damage/loss)
   baseDeliveryFees?: number // Base delivery fees for this product
   installationFees?: number // Installation fees per unit
   needsInstallation?: boolean // True if customer wants installation service

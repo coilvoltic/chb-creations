@@ -4,8 +4,9 @@ import type { CustomerInfo, ReservationStatus } from '@/lib/supabase'
 import { sendReservationConfirmation } from '@/lib/email'
 
 interface SelectedOption {
+  option_type_name: string
   name: string
-  description: string
+  description?: string
   additional_fee: number
 }
 
@@ -16,7 +17,7 @@ interface CartItemPayload {
   pricePerUnit: number
   rentalStart: string // ISO timestamp
   rentalEnd: string // ISO timestamp
-  selectedOption?: SelectedOption
+  selectedOptions?: SelectedOption[] // Array of selected options
   needsInstallation?: boolean
   installationFees?: number
 }
@@ -101,21 +102,32 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Créer les items de réservation
-    const reservationItems = items.map((item) => ({
-      reservation_id: reservation.id,
-      product_id: item.productId,
-      quantity: item.quantity,
-      rental_start: item.rentalStart,
-      rental_end: item.rentalEnd,
-      options: item.selectedOption ? {
-        ...item.selectedOption,
-        needsInstallation: item.needsInstallation,
-        installationFees: item.installationFees
-      } : (item.needsInstallation && item.installationFees ? {
-        needsInstallation: item.needsInstallation,
-        installationFees: item.installationFees
-      } : null),
-    }))
+    const reservationItems = items.map((item) => {
+      // Build options object combining selected options and installation info
+      let optionsData: any = null
+
+      if (item.selectedOptions && item.selectedOptions.length > 0) {
+        optionsData = {
+          selectedOptions: item.selectedOptions,
+          needsInstallation: item.needsInstallation,
+          installationFees: item.installationFees
+        }
+      } else if (item.needsInstallation && item.installationFees) {
+        optionsData = {
+          needsInstallation: item.needsInstallation,
+          installationFees: item.installationFees
+        }
+      }
+
+      return {
+        reservation_id: reservation.id,
+        product_id: item.productId,
+        quantity: item.quantity,
+        rental_start: item.rentalStart,
+        rental_end: item.rentalEnd,
+        options: optionsData,
+      }
+    })
 
     const { error: itemsError } = await supabase
       .from('reservation_items')
@@ -147,7 +159,7 @@ export async function POST(request: NextRequest) {
           rental_end: item.rentalEnd,
           unit_price: item.pricePerUnit,
           total_price: item.quantity * item.pricePerUnit,
-          selectedOption: item.selectedOption,
+          selectedOptions: item.selectedOptions,
         })),
       }
 

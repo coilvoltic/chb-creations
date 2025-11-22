@@ -35,7 +35,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
   const [endTime, setEndTime] = useState('18:00')
   const [activeTab, setActiveTab] = useState<'description' | 'faq'>('description')
   const [expandedFaqIndex, setExpandedFaqIndex] = useState<number | null>(null)
-  const [selectedOptionIndex, setSelectedOptionIndex] = useState(0)
+  const [selectedOptionIndices, setSelectedOptionIndices] = useState<{ [key: number]: number }>({})
   const [needsInstallation, setNeedsInstallation] = useState(false)
 
   // Check if product is already in cart
@@ -47,15 +47,28 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
     return product.new_price ?? product.price
   }
 
-  // Calculate total price with selected option and installation
+  // Calculate total options fees from all selected options
+  const getTotalOptionsFees = () => {
+    if (!product || !product.options || product.options.length === 0) return 0
+
+    let totalFees = 0
+    product.options.forEach((optionGroup, groupIndex) => {
+      const selectedIndex = selectedOptionIndices[groupIndex] ?? 0
+      const selectedOption = optionGroup.options[selectedIndex]
+      if (selectedOption) {
+        totalFees += selectedOption.additional_fee
+      }
+    })
+    return totalFees
+  }
+
+  // Calculate total price with selected options and installation
   const getTotalPrice = () => {
     if (!product) return 0
     const basePrice = getEffectivePrice()
-    const optionFee = product.options && product.options.length > 0
-      ? product.options[selectedOptionIndex]?.additional_fee || 0
-      : 0
+    const optionsFees = getTotalOptionsFees()
     const installationFee = (needsInstallation && product.installation_fees) ? product.installation_fees : 0
-    return basePrice + optionFee + installationFee
+    return basePrice + optionsFees + installationFee
   }
 
   // Calculate deposit amount if applicable
@@ -87,8 +100,18 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
   const handleAddToCart = () => {
     if (!product || !rentalPeriod?.from || !rentalPeriod?.to) return
 
-    const selectedOption = product.options && product.options.length > 0
-      ? product.options[selectedOptionIndex]
+    // Build array of selected options (one per option group)
+    const selectedOptions = product.options && product.options.length > 0
+      ? product.options.map((optionGroup, groupIndex) => {
+          const selectedIndex = selectedOptionIndices[groupIndex] ?? 0
+          const option = optionGroup.options[selectedIndex]
+          return {
+            option_type_name: optionGroup.option_type_name,
+            name: option.name,
+            description: option.description,
+            additional_fee: option.additional_fee,
+          }
+        })
       : undefined
 
     addToCart({
@@ -98,8 +121,9 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
       productImage: product.images[0],
       quantity,
       pricePerUnit: getEffectivePrice(),
-      selectedOption,
+      selectedOptions,
       depositPercentage: product.deposit || undefined,
+      cautionPerUnit: product.caution || undefined,
       baseDeliveryFees: product.base_delivery_fees || undefined,
       installationFees: product.installation_fees || undefined,
       needsInstallation,
@@ -215,13 +239,13 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                       </p>
                       {product.new_price && (
                         <p className="text-l md:text-xl text-stone-500 line-through">
-                          {(product.price + (product.options && product.options.length > 0 ? product.options[selectedOptionIndex]?.additional_fee || 0 : 0)).toFixed(2)} €
+                          {(product.price + getTotalOptionsFees()).toFixed(2)} €
                         </p>
                       )}
                     </div>
-                    {product.options && product.options.length > 0 && product.options[selectedOptionIndex]?.additional_fee > 0 && (
+                    {getTotalOptionsFees() > 0 && (
                       <p className="text-sm text-stone-600 mt-1">
-                        Prix de base: {getEffectivePrice().toFixed(2)} € + Option: {product.options[selectedOptionIndex].additional_fee.toFixed(2)} €
+                        Prix de base: {getEffectivePrice().toFixed(2)} € + Options: {getTotalOptionsFees().toFixed(2)} €
                       </p>
                     )}
                   </div>
@@ -328,43 +352,61 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                   </div>
                 )}
 
-                {/* Options selector */}
+                {/* Options selector - Multiple option groups */}
                 {product.options && product.options.length > 0 && (
-                  <div className="border-t border-stone-200 pt-6">
-                    <h2 className={`text-xl font-semibold mb-3 ${isInCart ? 'text-stone-400' : ''}`}>Options disponibles</h2>
-                    <div className="space-y-3">
-                      {product.options.map((option, index) => (
-                        <label
-                          key={index}
-                          className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                            selectedOptionIndex === index
-                              ? 'border-black bg-stone-50'
-                              : 'border-stone-200 hover:border-stone-300'
-                          } ${isInCart ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                          <input
-                            type="radio"
-                            name="product-option"
-                            value={index}
-                            checked={selectedOptionIndex === index}
-                            onChange={() => !isInCart && setSelectedOptionIndex(index)}
-                            disabled={isInCart}
-                            className="mr-3 flex-shrink-0"
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-1 gap-2">
-                              <span className="font-medium text-black">{option.name}</span>
-                              {option.additional_fee > 0 && (
-                                <span className="text-sm font-semibold text-black">
-                                  +{option.additional_fee.toFixed(0)}€
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-sm text-stone-600">{option.description}</p>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
+                  <div className="border-t border-stone-200 pt-6 space-y-6">
+                    {product.options.map((optionGroup, groupIndex) => (
+                      <div key={groupIndex}>
+                        <h2 className={`text-xl font-semibold mb-3 ${isInCart ? 'text-stone-400' : ''}`}>
+                          {optionGroup.option_type_name}
+                        </h2>
+                        <div className="space-y-3">
+                          {optionGroup.options.map((option, optionIndex) => {
+                            const isSelected = (selectedOptionIndices[groupIndex] ?? 0) === optionIndex
+                            return (
+                              <label
+                                key={optionIndex}
+                                className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                                  isSelected
+                                    ? 'border-black bg-stone-50'
+                                    : 'border-stone-200 hover:border-stone-300'
+                                } ${isInCart ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              >
+                                <input
+                                  type="radio"
+                                  name={`product-option-group-${groupIndex}`}
+                                  value={optionIndex}
+                                  checked={isSelected}
+                                  onChange={() => {
+                                    if (!isInCart) {
+                                      setSelectedOptionIndices(prev => ({
+                                        ...prev,
+                                        [groupIndex]: optionIndex,
+                                      }))
+                                    }
+                                  }}
+                                  disabled={isInCart}
+                                  className="mr-3 flex-shrink-0"
+                                />
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between mb-1 gap-2">
+                                    <span className="font-medium text-black">{option.name}</span>
+                                    {option.additional_fee > 0 && (
+                                      <span className="text-sm font-semibold text-black">
+                                        +{option.additional_fee.toFixed(0)}€
+                                      </span>
+                                    )}
+                                  </div>
+                                  {option.description && (
+                                    <p className="text-sm text-stone-600">{option.description}</p>
+                                  )}
+                                </div>
+                              </label>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
 
@@ -403,9 +445,30 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                   </div>
                 )}
 
-                {/* Deposit warning */}
-                {product.deposit && product.deposit > 0 && (
+                {/* Deposit info */}
+                {product.deposit !== undefined && product.deposit > 0 && (
                   <div className="border-t border-stone-200 pt-6">
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-blue-900 mb-1">
+                            Acompte requis : {product.deposit}%
+                          </p>
+                          <p className="text-sm text-blue-800">
+                            Un acompte de <strong>{getDepositAmount().toFixed(2)} €</strong> sera requis pour valider cette réservation (à payer en ligne ou en boutique).
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Caution warning */}
+                {product.caution !== undefined && product.caution > 0 && (
+                  <div className={product.deposit !== undefined && product.deposit > 0 ? 'border-t border-stone-200 pt-6' : 'border-t border-stone-200 pt-6'}>
                     <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
                       <div className="flex items-start gap-3">
                         <svg className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -413,10 +476,10 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                         </svg>
                         <div className="flex-1">
                           <p className="text-sm font-medium text-amber-900 mb-1">
-                            Acompte requis : {product.deposit}%
+                            Caution : {product.caution.toFixed(2)} € par unité
                           </p>
                           <p className="text-sm text-amber-800">
-                            Un acompte de <strong>{getDepositAmount().toFixed(2)} €</strong> sera requis pour valider cette réservation (à payer en ligne ou en boutique).
+                            Une caution de <strong>{(product.caution * quantity).toFixed(2)} €</strong> sera demandée (espèces, chèque ou CB). Elle ne sera encaissée qu&apos;en cas de dégradation ou perte du matériel.
                           </p>
                         </div>
                       </div>
