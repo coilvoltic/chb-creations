@@ -71,11 +71,11 @@ export interface Reservation {
   id: number
   created_at: string
   customer_infos: CustomerInfo
-  deposit: number
-  caution: number
+  deposit?: number
+  caution?: number
   reservation_status: ReservationStatus
-  total_price?: number
-  delivery_option?: 'pickup' | 'delivery'
+  total_price: number
+  delivery_option: 'pickup' | 'delivery'
   delivery_fees?: number
   stripe_payment_id?: string
 }

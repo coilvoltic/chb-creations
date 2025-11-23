@@ -175,7 +175,7 @@ export default function AdminDashboardPage() {
                         {reservation.total_price.toFixed(2)} €
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-600">
-                        {reservation.deposit.toFixed(2)} €
+                        {(reservation.deposit ?? 0).toFixed(2)} €
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(reservation.reservation_status)}
