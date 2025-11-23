@@ -49,10 +49,49 @@ The app uses three Google Fonts configured in [src/app/layout.tsx](src/app/layou
 
 ## Database Architecture (Supabase)
 
+### New Hierarchical Structure (Updated 2024)
+
+The database now uses a **parent-child hierarchy** to support multiple reservation types (rentals, purchases, services):
+
+```
+customer_orders (parent)
+└── rental_reservations (child for rentals)
+    └── rental_items (items in rental)
+```
+
 ### Core Tables
-1. **products**: Product catalog with:
+
+1. **customer_orders**: Top-level order grouping multiple sub-reservations
+   - `order_number` (bigint): Unique order identifier
+   - `customer_infos` (JSONB): `{firstName, lastName, email, phone}`
+   - `total_price` (real): Total amount for entire order
+   - `created_at`: Order creation timestamp
+   - **Purpose**: Groups all reservations from a single customer transaction
+   - **Future**: Can contain multiple `rental_reservations` AND `purchase_reservations`
+
+2. **rental_reservations**: Sub-reservation for product rentals
+   - `customer_order_id` (FK → customer_orders): Parent order reference
+   - `deposit` (real): Required deposit amount (percentage of total)
+   - `caution` (real): Security deposit (not charged unless damage)
+   - `total_price` (real): Subtotal for this rental reservation
+   - `delivery_address` (text, nullable): Delivery address or null for pickup
+   - `delivery_fees` (real): Delivery cost
+   - `reservation_status`: 'DONE' | 'CANCELLED' | 'CONFIRMED' | 'CONFIRMED_NO_DEPOSIT'
+   - **Note**: No longer contains `customer_infos` (moved to parent)
+
+3. **rental_items**: Individual products in a rental reservation
+   - `rental_reservation_id` (FK → rental_reservations): Parent reservation
+   - `product_id` (FK → products): Product reference
+   - `quantity` (integer): Number of units
+   - `rental_start` (timestamp): Start of rental period
+   - `rental_end` (timestamp): End of rental period
+   - `options` (JSONB): Selected options and installation: `{selectedOptions[], installationFees}`
+   - `personalizations` (JSONB): Custom text inputs: `{field_name: value}`
+   - `needs_installation` (boolean): Installation service requested
+
+4. **products**: Product catalog (unchanged structure)
    - Basic info: name, slug, price, new_price (promotional price), images[], description, features[]
-   - **options**: JSONB array of product options with `{name, description, additional_fee}`
+   - **options**: JSONB array of product option groups
    - **deposit**: Integer percentage (0-100) for required deposit (paid upfront)
    - **caution**: Fixed amount for security deposit (not charged unless damage/loss)
    - **faq**: JSONB array of `{question, answer}` pairs
@@ -62,24 +101,23 @@ The app uses three Google Fonts configured in [src/app/layout.tsx](src/app/layou
    - Stock management and categorization (category, subcategory, stock)
    - Dynamic unavailabilities computed via SQL function
 
-2. **reservations**: Customer reservations with:
-   - customer_infos (JSONB): firstName, lastName, email, phone
-   - deposit, caution, total_price
-   - delivery_address (string, nullable): address if delivery, null if pickup
-   - delivery_fees (number)
-   - stripe_payment_id (for online payments)
-   - reservation_status: 'DONE' | 'CANCELLED' | 'CONFIRMED' | 'CONFIRMED_NO_DEPOSIT'
-
-3. **reservation_items**: Individual items in a reservation:
-   - Links to product_id and reservation_id
-   - rental_start, rental_end (ISO timestamps)
-   - quantity
-   - **options**: JSONB storing selected option and installation info: `{name, description, additional_fee, needsInstallation, installationFees}`
+5. **promotional_messages**: Marketing messages for homepage carousel
+   - `msg` (text): Message content
+   - `created_at`: Timestamp for ordering
 
 ### Data Access Patterns
-- **Server Actions** (`src/actions/products.ts`): Use anon key for product fetching
-- **API Routes** (`src/app/api/reservations/create/route.ts`): Use service_role key to bypass RLS for reservation creation
-- **SQL Functions**: `get_product_unavailabilities(product_id)` dynamically computes product availability from reservation_items
+- **Server Actions** ([src/actions/products.ts](src/actions/products.ts)): Use anon key for product fetching
+- **API Routes**: Use service_role key to bypass RLS for order/reservation creation
+  - [/api/reservations/create](src/app/api/reservations/create/route.ts): Creates `customer_order` → `rental_reservation` → `rental_items`
+  - [/api/process-payment](src/app/api/process-payment/route.ts): Same flow after Stripe payment confirmation
+- **SQL Functions**:
+  - `get_product_unavailabilities(product_id)`: Computes product availability from `rental_items`
+  - `update_past_reservations_to_done()`: Auto-updates rental status when rental period ends
+- **RLS Policies**: See [src/lib/rls-policies.sql](src/lib/rls-policies.sql)
+  - `customer_orders`: Only accessible via service_role (API routes)
+  - `rental_reservations`: Only accessible via service_role (API routes)
+  - `rental_items`: Read-only for anon (for availability checks), writes restricted to service_role
+  - `products`: Public read access, service_role write access
 
 ### Environment Variables
 Required in `.env.local`:

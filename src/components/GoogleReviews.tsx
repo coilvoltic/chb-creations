@@ -120,13 +120,6 @@ export default function GoogleReviews() {
   useEffect(() => {
     setExpandedReviews(new Set())
   }, [currentIndex])
-
-
-  const getCurrentReviews = () => {
-    const start = currentIndex * reviewsPerSlide
-    return reviews.slice(start, start + reviewsPerSlide)
-  }
-
   // Check if text is truncated after render
   useEffect(() => {
     const checkTruncation = () => {

@@ -85,11 +85,30 @@ export async function POST(request: NextRequest) {
       reservationStatus = 'CONFIRMED'
     }
 
-    // 1. Créer la réservation
-    const { data: reservation, error: reservationError } = await supabase
-      .from('reservations')
+    // 1. Créer la commande client (customer_order)
+    const { data: customerOrder, error: orderError } = await supabase
+      .from('customer_orders')
       .insert({
         customer_infos: customerInfo,
+        total_price: totalPrice,
+        order_number: Date.now(), // Génération simple d'un numéro de commande (à améliorer plus tard)
+      })
+      .select()
+      .single()
+
+    if (orderError || !customerOrder) {
+      console.error('Erreur création customer_order:', orderError)
+      return NextResponse.json(
+        { error: 'Erreur lors de la création de la commande' },
+        { status: 500 }
+      )
+    }
+
+    // 2. Créer la rental_reservation (liée à customer_order)
+    const { data: rentalReservation, error: reservationError } = await supabase
+      .from('rental_reservations')
+      .insert({
+        customer_order_id: customerOrder.id,
         deposit,
         caution,
         delivery_address: deliveryOption === 'delivery' ? (deliveryAddress || null) : null,
@@ -100,16 +119,18 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
-    if (reservationError || !reservation) {
-      console.error('Erreur création réservation:', reservationError)
+    if (reservationError || !rentalReservation) {
+      console.error('Erreur création rental_reservation:', reservationError)
+      // Rollback: supprimer la commande créée (la FK cascade supprimera aussi)
+      await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
       return NextResponse.json(
         { error: 'Erreur lors de la création de la réservation' },
         { status: 500 }
       )
     }
 
-    // 2. Créer les items de réservation
-    const reservationItems = items.map((item) => {
+    // 3. Créer les rental_items
+    const rentalItems = items.map((item) => {
       // Build options object for selected options and installation fees only
       let optionsData: ReservationItemOptions | null = null
 
@@ -125,7 +146,7 @@ export async function POST(request: NextRequest) {
       }
 
       return {
-        reservation_id: reservation.id,
+        rental_reservation_id: rentalReservation.id,
         product_id: item.productId,
         quantity: item.quantity,
         rental_start: item.rentalStart,
@@ -137,28 +158,29 @@ export async function POST(request: NextRequest) {
     })
 
     const { error: itemsError } = await supabase
-      .from('reservation_items')
-      .insert(reservationItems)
+      .from('rental_items')
+      .insert(rentalItems)
 
     if (itemsError) {
-      console.error('Erreur création items:', itemsError)
-      // Rollback: supprimer la réservation créée
-      await supabase.from('reservations').delete().eq('id', reservation.id)
+      console.error('Erreur création rental_items:', itemsError)
+      // Rollback: supprimer la commande (cascade supprimera rental_reservation et rental_items)
+      await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
       return NextResponse.json(
         { error: 'Erreur lors de la création des articles de réservation' },
         { status: 500 }
       )
     }
 
-    // 3. Envoyer l'email de confirmation avec le PDF
+    // 4. Envoyer l'email de confirmation avec le PDF
     try {
       const emailData = {
-        id: reservation.id,
+        id: rentalReservation.id,
+        order_number: customerOrder.order_number,
         customer_name: `${customerInfo.firstName} ${customerInfo.lastName}`,
         customer_email: customerInfo.email,
         customer_phone: customerInfo.phone,
         total_amount: totalPrice,
-        created_at: reservation.created_at,
+        created_at: rentalReservation.created_at,
         delivery_address: deliveryOption === 'delivery' ? deliveryAddress : null,
         delivery_fees: deliveryFees,
         items: items.map((item) => ({
@@ -181,10 +203,12 @@ export async function POST(request: NextRequest) {
       console.error('Erreur envoi email (réservation créée):', emailError)
     }
 
-    // 4. Retourner le succès avec l'ID de réservation
+    // 5. Retourner le succès avec les IDs
     return NextResponse.json({
       success: true,
-      reservationId: reservation.id,
+      orderId: customerOrder.id,
+      orderNumber: customerOrder.order_number,
+      reservationId: rentalReservation.id,
       message: 'Réservation créée avec succès',
     })
   } catch (error) {

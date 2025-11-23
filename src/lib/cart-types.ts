@@ -1,5 +1,3 @@
-import { DateRange } from 'react-day-picker'
-
 export interface SelectedOption {
   option_type_name: string
   name: string

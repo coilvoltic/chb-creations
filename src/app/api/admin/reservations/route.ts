@@ -32,18 +32,33 @@ export async function GET() {
       // Ne pas bloquer si l'update échoue, continuer avec la récupération
     }
 
-    // Récupérer toutes les réservations triées par date (plus récentes en premier)
-    const { data: reservations, error } = await supabase
-      .from('reservations')
+    // Récupérer toutes les commandes avec leurs sous-réservations
+    const { data: orders, error: ordersError } = await supabase
+      .from('customer_orders')
       .select('*')
       .order('created_at', { ascending: false })
 
-    if (error) {
-      console.error('Erreur récupération réservations:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    if (ordersError) {
+      console.error('Erreur récupération commandes:', ordersError)
+      return NextResponse.json({ error: ordersError.message }, { status: 500 })
     }
 
-    return NextResponse.json({ reservations })
+    // Pour chaque commande, récupérer ses rental_reservations
+    const ordersWithReservations = await Promise.all(
+      (orders || []).map(async (order) => {
+        const { data: rentalReservations } = await supabase
+          .from('rental_reservations')
+          .select('*')
+          .eq('customer_order_id', order.id)
+
+        return {
+          ...order,
+          rental_reservations: rentalReservations || [],
+        }
+      })
+    )
+
+    return NextResponse.json({ orders: ordersWithReservations })
   } catch (error) {
     console.error('Erreur API admin/reservations:', error)
     return NextResponse.json({ error: 'Erreur serveur interne' }, { status: 500 })

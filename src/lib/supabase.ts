@@ -67,27 +67,53 @@ export interface CustomerInfo {
   phone: string
 }
 
-export interface Reservation {
+// New schema: Customer Order (parent table)
+export interface CustomerOrder {
   id: number
   created_at: string
+  order_number: number
   customer_infos: CustomerInfo
+  total_price: number
+}
+
+// Rental Reservation (child of CustomerOrder)
+export interface RentalReservation {
+  id: number
+  created_at: string
+  customer_order_id: number
+  total_price: number
   deposit?: number
   caution?: number
   reservation_status: ReservationStatus
-  total_price: number
   delivery_address?: string
   delivery_fees?: number
-  stripe_payment_id?: string
 }
 
-export interface ReservationItem {
+// Product option stored in rental item
+export interface RentalItemOption {
+  name: string
+  description: string
+  additional_fee: number
+  needsInstallation?: boolean
+  installationFees?: number
+}
+
+// Rental Item (items in a rental reservation)
+export interface RentalItem {
   id: number
-  reservation_id: number
+  rental_reservation_id: number
   product_id: number
   rental_start: string // ISO timestamp
   rental_end: string // ISO timestamp
   quantity: number
+  options?: RentalItemOption // JSONB with selected options and installation info
 }
+
+// Legacy aliases for backward compatibility (will be removed later)
+/** @deprecated Use RentalReservation instead */
+export type Reservation = RentalReservation & { customer_infos: CustomerInfo }
+/** @deprecated Use RentalItem instead */
+export type ReservationItem = RentalItem & { reservation_id: number }
 
 export interface PromotionalMessage {
   id: number

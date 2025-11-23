@@ -27,47 +27,65 @@ export async function GET(
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 
-    // Récupérer la réservation
-    const { data: reservation, error: reservationError } = await supabase
-      .from('reservations')
+    // Récupérer la commande client
+    const { data: order, error: orderError } = await supabase
+      .from('customer_orders')
       .select('*')
       .eq('id', id)
       .single()
 
-    if (reservationError) {
-      console.error('Erreur récupération réservation:', reservationError)
-      return NextResponse.json({ error: reservationError.message }, { status: 500 })
+    if (orderError || !order) {
+      console.error('Erreur récupération commande:', orderError)
+      return NextResponse.json({ error: 'Commande non trouvée' }, { status: 404 })
     }
 
-    if (!reservation) {
-      console.error('Réservation non trouvée:', id)
-      return NextResponse.json({ error: 'Réservation non trouvée' }, { status: 404 })
-    }
+    console.log('Commande trouvée:', order.id)
 
-    console.log('Réservation trouvée:', reservation.id)
-
-    // Récupérer les items de la réservation avec les informations produit
-    const { data: items, error: itemsError } = await supabase
-      .from('reservation_items')
-      .select(`
-        *,
-        products (
-          name,
-          slug,
-          images
-        )
-      `)
-      .eq('reservation_id', id)
+    // Récupérer les rental_reservations de cette commande
+    const { data: rentalReservations, error: reservationsError } = await supabase
+      .from('rental_reservations')
+      .select('*')
+      .eq('customer_order_id', id)
       .order('id', { ascending: true })
 
-    if (itemsError) {
-      console.error('Erreur récupération items:', itemsError)
-      return NextResponse.json({ error: itemsError.message }, { status: 500 })
+    if (reservationsError) {
+      console.error('Erreur récupération rental_reservations:', reservationsError)
+      return NextResponse.json({ error: reservationsError.message }, { status: 500 })
     }
 
-    console.log('Items trouvés:', items?.length || 0)
+    console.log('Rental reservations trouvées:', rentalReservations?.length || 0)
 
-    return NextResponse.json({ reservation, items })
+    // Pour chaque rental_reservation, récupérer ses items
+    const reservationsWithItems = await Promise.all(
+      (rentalReservations || []).map(async (reservation) => {
+        const { data: items, error: itemsError } = await supabase
+          .from('rental_items')
+          .select(`
+            *,
+            products (
+              name,
+              slug,
+              images
+            )
+          `)
+          .eq('rental_reservation_id', reservation.id)
+          .order('id', { ascending: true })
+
+        if (itemsError) {
+          console.error('Erreur récupération items:', itemsError)
+        }
+
+        return {
+          ...reservation,
+          items: items || [],
+        }
+      })
+    )
+
+    return NextResponse.json({
+      order,
+      rental_reservations: reservationsWithItems
+    })
   } catch (error) {
     console.error('Erreur API admin/reservations/[id]:', error)
     return NextResponse.json({ error: 'Erreur serveur interne' }, { status: 500 })

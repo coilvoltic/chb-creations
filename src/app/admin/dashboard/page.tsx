@@ -3,20 +3,24 @@
 import { useEffect, useState } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
-import type { Reservation } from '@/lib/supabase'
+import type { CustomerOrder, RentalReservation } from '@/lib/supabase'
+
+interface OrderWithReservations extends CustomerOrder {
+  rental_reservations: RentalReservation[]
+}
 
 export default function AdminDashboardPage() {
-  const [reservations, setReservations] = useState<Reservation[]>([])
+  const [orders, setOrders] = useState<OrderWithReservations[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const router = useRouter()
   const supabase = createClientComponentClient()
 
   useEffect(() => {
-    loadReservations()
+    loadOrders()
   }, [])
 
-  const loadReservations = async () => {
+  const loadOrders = async () => {
     try {
       const response = await fetch('/api/admin/reservations')
 
@@ -26,14 +30,14 @@ export default function AdminDashboardPage() {
       }
 
       if (!response.ok) {
-        throw new Error('Erreur lors du chargement des réservations')
+        throw new Error('Erreur lors du chargement des commandes')
       }
 
       const data = await response.json()
-      setReservations(data.reservations || [])
+      setOrders(data.orders || [])
     } catch (err) {
       console.error('Erreur:', err)
-      setError('Impossible de charger les réservations')
+      setError('Impossible de charger les commandes')
     } finally {
       setLoading(false)
     }
@@ -113,16 +117,16 @@ export default function AdminDashboardPage() {
         <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
           <div className="p-6 border-b border-stone-200">
             <h2 className="text-xl font-semibold text-black">
-              Réservations ({reservations.length})
+              Commandes ({orders.length})
             </h2>
             <p className="text-sm text-stone-600 mt-1">
               Triées par date de création (plus récentes en premier)
             </p>
           </div>
 
-          {reservations.length === 0 ? (
+          {orders.length === 0 ? (
             <div className="p-12 text-center">
-              <p className="text-stone-500">Aucune réservation pour le moment</p>
+              <p className="text-stone-500">Aucune commande pour le moment</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -130,7 +134,7 @@ export default function AdminDashboardPage() {
                 <thead className="bg-stone-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                      ID
+                      N° Commande
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                       Client
@@ -142,10 +146,7 @@ export default function AdminDashboardPage() {
                       Montant
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                      Acompte
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                      Livraison
+                      Sous-réservations
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                       Statut
@@ -156,53 +157,64 @@ export default function AdminDashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-stone-200">
-                  {reservations.map((reservation) => (
-                    <tr
-                      key={reservation.id}
-                      className="hover:bg-stone-50 cursor-pointer transition-colors"
-                      onClick={() => router.push(`/admin/reservations/${reservation.id}`)}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-black">
-                        #{reservation.id}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-black">
-                          {reservation.customer_infos.firstName} {reservation.customer_infos.lastName}
-                        </div>
-                        <div className="text-xs text-stone-500">{reservation.customer_infos.email}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-600">
-                        {formatDate(reservation.created_at)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-black">
-                        {reservation.total_price.toFixed(2)} €
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-600">
-                        {(reservation.deposit ?? 0).toFixed(2)} €
-                      </td>
-                      <td className="px-6 py-4 text-sm text-stone-600 max-w-xs truncate">
-                        {reservation.delivery_address ? (
-                          <span className="text-green-700" title={reservation.delivery_address}>📦 {reservation.delivery_address}</span>
-                        ) : (
-                          <span className="text-stone-500">🏪 Retrait en boutique</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(reservation.reservation_status)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            router.push(`/admin/reservations/${reservation.id}`)
-                          }}
-                          className="text-black hover:text-stone-600 font-medium"
-                        >
-                          Voir détails →
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {orders.map((order) => {
+                    // Get first rental reservation for display (assuming one rental reservation per order for now)
+                    const firstRental = order.rental_reservations[0]
+
+                    return (
+                      <tr
+                        key={order.id}
+                        className="hover:bg-stone-50 cursor-pointer transition-colors"
+                        onClick={() => router.push(`/admin/reservations/${order.id}`)}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-black">
+                          #{order.order_number}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-black">
+                            {order.customer_infos.firstName} {order.customer_infos.lastName}
+                          </div>
+                          <div className="text-xs text-stone-500">{order.customer_infos.email}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-600">
+                          {formatDate(order.created_at)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-black">
+                          {order.total_price.toFixed(2)} €
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-600">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-xs text-stone-500">
+                              {order.rental_reservations.length} location(s)
+                            </span>
+                            {firstRental && (
+                              <div className="text-xs">
+                                {firstRental.delivery_address ? (
+                                  <span className="text-green-700" title={firstRental.delivery_address}>📦 Livraison</span>
+                                ) : (
+                                  <span className="text-stone-500">🏪 Retrait</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {firstRental ? getStatusBadge(firstRental.reservation_status) : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              router.push(`/admin/reservations/${order.id}`)
+                            }}
+                            className="text-black hover:text-stone-600 font-medium"
+                          >
+                            Voir détails →
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

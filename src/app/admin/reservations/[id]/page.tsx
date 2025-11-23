@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import type { Reservation } from '@/lib/supabase'
+import type { CustomerOrder, RentalReservation } from '@/lib/supabase'
 
-interface ReservationItem {
+interface RentalItem {
   id: number
-  reservation_id: number
+  rental_reservation_id: number
   product_id: number
   quantity: number
   rental_start: string
@@ -29,13 +29,17 @@ interface ReservationItem {
   }
 }
 
-interface ReservationDetail {
-  reservation: Reservation
-  items: ReservationItem[]
+interface RentalReservationWithItems extends RentalReservation {
+  items: RentalItem[]
+}
+
+interface OrderDetail {
+  order: CustomerOrder
+  rental_reservations: RentalReservationWithItems[]
 }
 
 export default function ReservationDetailPage() {
-  const [data, setData] = useState<ReservationDetail | null>(null)
+  const [data, setData] = useState<OrderDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const router = useRouter()
@@ -44,11 +48,11 @@ export default function ReservationDetailPage() {
 
   useEffect(() => {
     if (id) {
-      loadReservationDetail()
+      loadOrderDetail()
     }
   }, [id])
 
-  const loadReservationDetail = async () => {
+  const loadOrderDetail = async () => {
     try {
       const response = await fetch(`/api/admin/reservations/${id}`)
 
@@ -58,14 +62,14 @@ export default function ReservationDetailPage() {
       }
 
       if (!response.ok) {
-        throw new Error('Erreur lors du chargement de la réservation')
+        throw new Error('Erreur lors du chargement de la commande')
       }
 
       const result = await response.json()
       setData(result)
     } catch (err) {
       console.error('Erreur:', err)
-      setError('Impossible de charger les détails de la réservation')
+      setError('Impossible de charger les détails de la commande')
     } finally {
       setLoading(false)
     }
@@ -121,7 +125,7 @@ export default function ReservationDetailPage() {
     return (
       <div className="min-h-screen bg-stone-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error || 'Réservation non trouvée'}</p>
+          <p className="text-red-600 mb-4">{error || 'Commande non trouvée'}</p>
           <button
             onClick={() => router.push('/admin/dashboard')}
             className="px-4 py-2 bg-black text-white rounded-lg hover:bg-stone-800"
@@ -133,7 +137,10 @@ export default function ReservationDetailPage() {
     )
   }
 
-  const { reservation, items } = data
+  const { order, rental_reservations } = data
+  // Pour l'instant, on affiche la première rental_reservation (plus tard on gérera plusieurs)
+  const firstRental = rental_reservations[0]
+  const allItems = rental_reservations.flatMap(r => r.items)
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -149,11 +156,11 @@ export default function ReservationDetailPage() {
                 ← Retour
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-black">Réservation #{reservation.id}</h1>
-                <p className="text-sm text-stone-600">Créée le {formatDate(reservation.created_at)}</p>
+                <h1 className="text-2xl font-bold text-black">Commande #{order.order_number}</h1>
+                <p className="text-sm text-stone-600">Créée le {formatDate(order.created_at)}</p>
               </div>
             </div>
-            {getStatusBadge(reservation.reservation_status)}
+            {firstRental && getStatusBadge(firstRental.reservation_status)}
           </div>
         </div>
       </header>
@@ -169,16 +176,16 @@ export default function ReservationDetailPage() {
                 <div>
                   <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Nom complet</p>
                   <p className="text-sm font-medium text-black">
-                    {reservation.customer_infos.firstName} {reservation.customer_infos.lastName}
+                    {order.customer_infos.firstName} {order.customer_infos.lastName}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Email</p>
-                  <p className="text-sm text-black">{reservation.customer_infos.email}</p>
+                  <p className="text-sm text-black">{order.customer_infos.email}</p>
                 </div>
                 <div>
                   <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Téléphone</p>
-                  <p className="text-sm text-black">{reservation.customer_infos.phone}</p>
+                  <p className="text-sm text-black">{order.customer_infos.phone}</p>
                 </div>
               </div>
 
@@ -188,39 +195,47 @@ export default function ReservationDetailPage() {
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-sm text-stone-600">Montant total</span>
-                  <span className="text-sm font-semibold text-black">{reservation.total_price.toFixed(2)} €</span>
+                  <span className="text-sm font-semibold text-black">{order.total_price.toFixed(2)} €</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-stone-600">Acompte</span>
-                  <span className="text-sm font-semibold text-blue-600">{(reservation.deposit ?? 0).toFixed(2)} €</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-stone-600">Caution</span>
-                  <span className="text-sm font-semibold text-amber-600">{(reservation.caution ?? 0).toFixed(2)} €</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-stone-600">Frais de livraison</span>
-                  <span className="text-sm font-semibold text-black">{reservation.delivery_fees?.toFixed(2) || '0.00'} €</span>
-                </div>
-              </div>
-
-              <hr className="my-6 border-stone-200" />
-
-              <h3 className="text-lg font-semibold text-black mb-4">Livraison</h3>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Option</p>
-                  <p className="text-sm text-black">
-                    {reservation.delivery_address ? '🚚 Livraison' : '🏪 Retrait en boutique'}
-                  </p>
-                </div>
-                {reservation.delivery_address && (
-                  <div>
-                    <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Adresse de livraison</p>
-                    <p className="text-sm text-black">{reservation.delivery_address}</p>
-                  </div>
+                {firstRental && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-stone-600">Acompte</span>
+                      <span className="text-sm font-semibold text-blue-600">{(firstRental.deposit ?? 0).toFixed(2)} €</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-stone-600">Caution</span>
+                      <span className="text-sm font-semibold text-amber-600">{(firstRental.caution ?? 0).toFixed(2)} €</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-stone-600">Frais de livraison</span>
+                      <span className="text-sm font-semibold text-black">{firstRental.delivery_fees?.toFixed(2) || '0.00'} €</span>
+                    </div>
+                  </>
                 )}
               </div>
+
+              {firstRental && (
+                <>
+                  <hr className="my-6 border-stone-200" />
+
+                  <h3 className="text-lg font-semibold text-black mb-4">Livraison</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Option</p>
+                      <p className="text-sm text-black">
+                        {firstRental.delivery_address ? '🚚 Livraison' : '🏪 Retrait en boutique'}
+                      </p>
+                    </div>
+                    {firstRental.delivery_address && (
+                      <div>
+                        <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Adresse de livraison</p>
+                        <p className="text-sm text-black">{firstRental.delivery_address}</p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -228,11 +243,11 @@ export default function ReservationDetailPage() {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6">
               <h2 className="text-lg font-semibold text-black mb-6">
-                Articles ({items.length})
+                Articles ({allItems.length})
               </h2>
 
               <div className="space-y-6">
-                {items.map((item) => (
+                {allItems.map((item: RentalItem) => (
                   <div key={item.id} className="border border-stone-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                     <div className="flex gap-4">
                       {/* Image produit */}

@@ -25,6 +25,7 @@ interface ReservationItem {
 
 interface ReservationData {
   id: number
+  order_number: number
   customer_name: string
   customer_email: string
   customer_phone: string
@@ -49,7 +50,7 @@ export async function sendReservationConfirmation(reservation: ReservationData) 
     const { data, error } = await resend.emails.send({
       from: 'CHB Créations <onboarding@resend.dev>',
       to: ['volticthedev@gmail.com'], // Mode test - À remplacer par reservation.customer_email après config domaine
-      subject: `[TEST] Confirmation de votre réservation #${reservation.id}`,
+      subject: `[TEST] Confirmation de votre réservation #${reservation.order_number}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -125,7 +126,7 @@ export async function sendReservationConfirmation(reservation: ReservationData) 
               <p>Nous vous confirmons votre réservation pour vos articles de location.</p>
 
               <div class="reservation-number">
-                Numéro de réservation: #${reservation.id}
+                Numéro de commande: #${reservation.order_number}
               </div>
 
               <div class="info-section">
@@ -165,7 +166,7 @@ export async function sendReservationConfirmation(reservation: ReservationData) 
       `,
       attachments: [
         {
-          filename: `reservation-${reservation.id}.pdf`,
+          filename: `commande-${reservation.order_number}.pdf`,
           content: pdfBase64,
         },
       ],

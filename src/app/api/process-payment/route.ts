@@ -62,30 +62,47 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Créer la réservation dans la base de données
-    const { data: reservation, error: reservationError } = await supabase
-      .from('reservations')
+    // 1. Créer la commande client (customer_order)
+    const { data: customerOrder, error: orderError } = await supabase
+      .from('customer_orders')
       .insert({
         customer_infos: reservationData.customerInfo,
-        deposit: reservationData.deposit,
-        caution: reservationData.caution,
-        delivery_option: reservationData.deliveryOption,
-        delivery_fees: reservationData.deliveryFees,
         total_price: reservationData.totalPrice,
-        reservation_status: 'CONFIRMED', // Statut CONFIRMED car l'acompte a été payé
-        stripe_payment_id: session.payment_intent as string,
+        order_number: Date.now(), // Génération simple d'un numéro de commande
       })
       .select()
       .single()
 
-    if (reservationError) {
-      console.error('Erreur création réservation:', reservationError)
+    if (orderError || !customerOrder) {
+      console.error('Erreur création customer_order:', orderError)
+      throw new Error('Erreur lors de la création de la commande')
+    }
+
+    // 2. Créer la rental_reservation (liée à customer_order)
+    const { data: rentalReservation, error: reservationError } = await supabase
+      .from('rental_reservations')
+      .insert({
+        customer_order_id: customerOrder.id,
+        deposit: reservationData.deposit,
+        caution: reservationData.caution,
+        delivery_address: reservationData.deliveryOption === 'delivery' ? reservationData.deliveryAddress : null,
+        delivery_fees: reservationData.deliveryFees,
+        total_price: reservationData.totalPrice,
+        reservation_status: 'CONFIRMED', // Statut CONFIRMED car l'acompte a été payé
+      })
+      .select()
+      .single()
+
+    if (reservationError || !rentalReservation) {
+      console.error('Erreur création rental_reservation:', reservationError)
+      // Rollback: supprimer la commande créée (cascade supprimera aussi)
+      await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
       throw new Error('Erreur lors de la création de la réservation')
     }
 
-    // Créer les items de réservation
+    // 3. Créer les rental_items
     const itemsToInsert = reservationData.items.map((item: ReservationItem) => ({
-      reservation_id: reservation.id,
+      rental_reservation_id: rentalReservation.id,
       product_id: item.productId,
       quantity: item.quantity,
       rental_start: item.rentalStart,
@@ -94,19 +111,20 @@ export async function POST(request: NextRequest) {
     }))
 
     const { error: itemsError } = await supabase
-      .from('reservation_items')
+      .from('rental_items')
       .insert(itemsToInsert)
 
     if (itemsError) {
-      console.error('Erreur création items:', itemsError)
-      // Rollback: supprimer la réservation
-      await supabase.from('reservations').delete().eq('id', reservation.id)
+      console.error('Erreur création rental_items:', itemsError)
+      // Rollback: supprimer la commande (cascade supprimera rental_reservation et rental_items)
+      await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
       throw new Error('Erreur lors de la création des items de réservation')
     }
 
-    // Générer le PDF de confirmation
+    // 4. Générer le PDF de confirmation
     const pdfBuffer = await generateReservationPDF({
-      reservationId: reservation.id,
+      reservationId: rentalReservation.id,
+      orderNumber: customerOrder.order_number,
       customerInfo: reservationData.customerInfo,
       items: reservationData.items,
       totalPrice: reservationData.totalPrice,
@@ -116,16 +134,16 @@ export async function POST(request: NextRequest) {
       deliveryFees: reservationData.deliveryFees,
     })
 
-    // Envoyer l'email de confirmation
+    // 5. Envoyer l'email de confirmation
     try {
       await resend.emails.send({
         from: 'CHB Créations <noreply@chb-creations.fr>',
         to: reservationData.customerInfo.email,
-        subject: `Confirmation de réservation #${reservation.id} - Paiement confirmé`,
+        subject: `Confirmation de commande #${customerOrder.order_number} - Paiement confirmé`,
         html: `
           <h1>Réservation confirmée !</h1>
           <p>Bonjour ${reservationData.customerInfo.firstName} ${reservationData.customerInfo.lastName},</p>
-          <p>Votre réservation #${reservation.id} a été confirmée et votre paiement a été reçu avec succès.</p>
+          <p>Votre commande #${customerOrder.order_number} a été confirmée et votre paiement a été reçu avec succès.</p>
           <p><strong>Montant de l'acompte payé :</strong> ${reservationData.deposit.toFixed(2)} €</p>
           <p><strong>Solde restant :</strong> ${(reservationData.totalPrice - reservationData.deposit).toFixed(2)} €</p>
           <p>Le solde sera à régler lors de la ${reservationData.deliveryOption === 'delivery' ? 'livraison' : 'récupération en boutique'}.</p>
@@ -135,7 +153,7 @@ export async function POST(request: NextRequest) {
         `,
         attachments: [
           {
-            filename: `reservation-${reservation.id}.pdf`,
+            filename: `commande-${customerOrder.order_number}.pdf`,
             content: pdfBuffer,
           },
         ],
@@ -147,7 +165,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      reservationId: reservation.id,
+      orderId: customerOrder.id,
+      orderNumber: customerOrder.order_number,
+      reservationId: rentalReservation.id,
     })
   } catch (error) {
     console.error('Erreur traitement paiement:', error)

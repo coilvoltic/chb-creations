@@ -206,13 +206,13 @@ export default function Navbar() {
 
               {/* Accessoires */}
               <Link
-                href="/services/accessoires"
+                href="/services/accessoires-personnalises"
                 className="group relative overflow-hidden rounded-xl bg-white hover:shadow-lg transition-all duration-300"
                 onClick={() => setActiveDropdown(null)}
               >
                 <div className="relative h-32 overflow-hidden">
                   <img
-                    src="/imgs/accessoires/accessoiresMain.jpeg"
+                    src="/imgs/accessoires-personnalises/accessoiresMain.jpeg"
                     alt="Accessoires"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />

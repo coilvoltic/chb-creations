@@ -19,7 +19,7 @@ export default function CartPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [reservationId, setReservationId] = useState<number | null>(null)
   const [deliveryAddressInput, setDeliveryAddressInput] = useState('')
-  const [isAddressSelected, setIsAddressSelected] = useState(false) // Track if user selected from autocomplete
+  const [_isAddressSelected, setIsAddressSelected] = useState(false) // Track if user selected from autocomplete
   const [isCalculatingFees, setIsCalculatingFees] = useState(false)
   const [deliveryInfo, setDeliveryInfo] = useState<{
     distance: number
@@ -272,11 +272,14 @@ export default function CartPage() {
                     </div>
 
                     <div className="space-y-1 text-sm text-stone-700">
-                      <p>
-                        <span className="font-medium">Période :</span>{' '}
-                        {item.rentalPeriod.from.toLocaleDateString('fr-FR')} {item.startTime} -{' '}
-                        {item.rentalPeriod.to.toLocaleDateString('fr-FR')} {item.endTime}
-                      </p>
+                      {/* Show rental period only for rental products */}
+                      {item.category === 'locations' && (
+                        <p>
+                          <span className="font-medium">Période :</span>{' '}
+                          {item.rentalPeriod.from.toLocaleDateString('fr-FR')} {item.startTime} -{' '}
+                          {item.rentalPeriod.to.toLocaleDateString('fr-FR')} {item.endTime}
+                        </p>
+                      )}
                       <p>
                         <span className="font-medium">Prix unitaire :</span> {item.pricePerUnit.toFixed(2)} €
                       </p>

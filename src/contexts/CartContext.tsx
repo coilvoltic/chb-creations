@@ -139,7 +139,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
       }
       // Si on passe en mode delivery, calculer les frais de base
-      const { totalItems, totalPrice, totalDeliveryFees } = calculateTotals(prevCart.items, option)
+      const { totalDeliveryFees } = calculateTotals(prevCart.items, option)
       return {
         ...prevCart,
         deliveryOption: option,

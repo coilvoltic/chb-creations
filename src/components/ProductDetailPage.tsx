@@ -42,6 +42,10 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
   // Check if product is already in cart
   const isInCart = product ? cart.items.some(item => item.productId === product.id) : false
 
+  // Determine if this is a rental or purchase product
+  const isRentalProduct = product?.category === 'locations'
+  const isPurchaseProduct = product?.category === 'accessoires-personnalises'
+
   // Get effective price (new_price if available, otherwise price)
   const getEffectivePrice = () => {
     if (!product) return 0
@@ -99,7 +103,10 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
   }, [slug])
 
   const handleAddToCart = () => {
-    if (!product || !rentalPeriod?.from || !rentalPeriod?.to) return
+    if (!product) return
+
+    // For rental products, dates are required
+    if (isRentalProduct && (!rentalPeriod?.from || !rentalPeriod?.to)) return
 
     // Build array of selected options (one per option group)
     const selectedOptions = product.options && product.options.length > 0
@@ -114,6 +121,10 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
           }
         })
       : undefined
+
+    // For purchase products, use dummy dates (not displayed or used)
+    const finalFrom = isPurchaseProduct ? new Date() : rentalPeriod!.from!
+    const finalTo = isPurchaseProduct ? new Date() : rentalPeriod!.to!
 
     addToCart({
       productId: product.id,
@@ -130,8 +141,8 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
       installationFees: product.installation_fees || undefined,
       needsInstallation,
       rentalPeriod: {
-        from: rentalPeriod.from,
-        to: rentalPeriod.to,
+        from: finalFrom,
+        to: finalTo,
       },
       startTime,
       endTime,
@@ -592,41 +603,44 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                   </div>
                 </div>
 
-                <div className="border-t border-stone-200 pt-6">
-                  <h2 className={`text-xl font-semibold mb-3 ${isInCart ? 'text-stone-400' : ''}`}>Période de location</h2>
-                  <p className={`text-sm mb-4 ${isInCart ? 'text-stone-400' : 'text-stone-600'}`}>
-                    Sélectionnez une date de début et une date de fin pour votre location
-                  </p>
-                  <DateRangePicker
-                    unavailabilities={product.unavailabilities}
-                    stock={product.stock}
-                    requestedQuantity={quantity}
-                    selectedRange={rentalPeriod}
-                    onRangeSelect={setRentalPeriod}
-                    startTime={startTime}
-                    endTime={endTime}
-                    onTimeChange={(start, end) => {
-                      setStartTime(start)
-                      setEndTime(end)
-                    }}
-                    disabled={isInCart}
-                  />
-                  {rentalPeriod?.from && rentalPeriod?.to && (
-                    <div className={`mt-4 p-4 rounded-lg ${isInCart ? 'bg-stone-100' : 'bg-stone-50'}`}>
-                      <p className={`text-sm font-medium ${isInCart ? 'text-stone-400' : ''}`}>
-                        Période sélectionnée :
-                        <span className={`ml-2 ${isInCart ? 'text-stone-500' : 'text-black'}`}>
-                          {rentalPeriod.from.toLocaleDateString('fr-FR')} {startTime} - {rentalPeriod.to.toLocaleDateString('fr-FR')} {endTime}
-                        </span>
-                      </p>
-                    </div>
-                  )}
-                </div>
+                {/* Date Range Picker - Only for rental products */}
+                {isRentalProduct && (
+                  <div className="border-t border-stone-200 pt-6">
+                    <h2 className={`text-xl font-semibold mb-3 ${isInCart ? 'text-stone-400' : ''}`}>Période de location</h2>
+                    <p className={`text-sm mb-4 ${isInCart ? 'text-stone-400' : 'text-stone-600'}`}>
+                      Sélectionnez une date de début et une date de fin pour votre location
+                    </p>
+                    <DateRangePicker
+                      unavailabilities={product.unavailabilities}
+                      stock={product.stock}
+                      requestedQuantity={quantity}
+                      selectedRange={rentalPeriod}
+                      onRangeSelect={setRentalPeriod}
+                      startTime={startTime}
+                      endTime={endTime}
+                      onTimeChange={(start, end) => {
+                        setStartTime(start)
+                        setEndTime(end)
+                      }}
+                      disabled={isInCart}
+                    />
+                    {rentalPeriod?.from && rentalPeriod?.to && (
+                      <div className={`mt-4 p-4 rounded-lg ${isInCart ? 'bg-stone-100' : 'bg-stone-50'}`}>
+                        <p className={`text-sm font-medium ${isInCart ? 'text-stone-400' : ''}`}>
+                          Période sélectionnée :
+                          <span className={`ml-2 ${isInCart ? 'text-stone-500' : 'text-black'}`}>
+                            {rentalPeriod.from.toLocaleDateString('fr-FR')} {startTime} - {rentalPeriod.to.toLocaleDateString('fr-FR')} {endTime}
+                          </span>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="border-t border-stone-200 pt-6">
                   <button
                     onClick={handleAddToCart}
-                    disabled={!rentalPeriod?.from || !rentalPeriod?.to || isInCart}
+                    disabled={(isRentalProduct && (!rentalPeriod?.from || !rentalPeriod?.to)) || isInCart}
                     className="w-full bg-black text-white px-8 py-4 rounded-lg hover:bg-stone-800 transition-colors text-lg font-medium disabled:bg-stone-300 disabled:cursor-not-allowed"
                   >
                     {isInCart ? 'Produit déjà dans le panier' : 'Ajouter au panier'}

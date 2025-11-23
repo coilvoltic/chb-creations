@@ -1,5 +1,5 @@
 import React from 'react'
-import { Document, Page, Text, View, Image, StyleSheet, Font, pdf } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer'
 
 // Types
 interface SelectedOption {
@@ -22,6 +22,7 @@ interface ReservationItem {
 
 interface ReservationData {
   id: number
+  order_number: number
   customer_name: string
   customer_email: string
   customer_phone: string
@@ -34,6 +35,7 @@ interface ReservationData {
 
 interface GenerateReservationPDFParams {
   reservationId: number
+  orderNumber: number
   customerInfo: {
     firstName: string
     lastName: string
@@ -182,7 +184,7 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
           <View>
             <Text style={styles.title}>Confirmation de réservation</Text>
             <Text style={{ fontSize: 10, textAlign: 'right', marginTop: 5 }}>
-              N° #{reservation.id}
+              N° #{reservation.order_number}
             </Text>
           </View>
         </View>
@@ -234,7 +236,7 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
                     {item.product_name}
                     {item.selectedOptions && item.selectedOptions.length > 0 && (
                       <Text style={{ fontSize: 9, color: '#666' }}>
-                        {item.selectedOptions.map((option, idx) => (
+                        {item.selectedOptions.map((option) => (
                           `\n${option.option_type_name}: ${option.name}`
                         )).join('')}
                       </Text>
@@ -300,6 +302,7 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
 export async function generateReservationPDF(params: GenerateReservationPDFParams): Promise<Buffer> {
   const reservationData: ReservationData = {
     id: params.reservationId,
+    order_number: params.orderNumber,
     customer_name: `${params.customerInfo.firstName} ${params.customerInfo.lastName}`,
     customer_email: params.customerInfo.email,
     customer_phone: params.customerInfo.phone,
