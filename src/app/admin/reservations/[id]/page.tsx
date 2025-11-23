@@ -192,11 +192,11 @@ export default function ReservationDetailPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-stone-600">Acompte</span>
-                  <span className="text-sm font-semibold text-blue-600">{reservation.deposit.toFixed(2)} €</span>
+                  <span className="text-sm font-semibold text-blue-600">{(reservation.deposit ?? 0).toFixed(2)} €</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-stone-600">Caution</span>
-                  <span className="text-sm font-semibold text-amber-600">{reservation.caution.toFixed(2)} €</span>
+                  <span className="text-sm font-semibold text-amber-600">{(reservation.caution ?? 0).toFixed(2)} €</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-stone-600">Frais de livraison</span>
