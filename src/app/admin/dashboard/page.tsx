@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
-import type { CustomerOrder, RentalReservation } from '@/lib/supabase'
+import type { CustomerOrder, RentalReservation, PurchaseReservation } from '@/lib/supabase'
 
 interface OrderWithReservations extends CustomerOrder {
   rental_reservations: RentalReservation[]
+  purchase_reservations: PurchaseReservation[]
 }
 
 export default function AdminDashboardPage() {
@@ -158,8 +159,10 @@ export default function AdminDashboardPage() {
                 </thead>
                 <tbody className="bg-white divide-y divide-stone-200">
                   {orders.map((order) => {
-                    // Get first rental reservation for display (assuming one rental reservation per order for now)
+                    // Get first reservation (rental or purchase) for display
                     const firstRental = order.rental_reservations[0]
+                    const firstPurchase = order.purchase_reservations[0]
+                    const firstReservation = firstRental || firstPurchase
 
                     return (
                       <tr
@@ -184,22 +187,31 @@ export default function AdminDashboardPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-600">
                           <div className="flex flex-col gap-1">
-                            <span className="text-xs text-stone-500">
-                              {order.rental_reservations.length} location(s)
-                            </span>
-                            {firstRental && (
+                            <div className="text-xs text-stone-500">
+                              {order.rental_reservations.length > 0 && (
+                                <span>Location</span>
+                              )}
+                              {order.rental_reservations.length > 0 && order.purchase_reservations.length > 0 && (
+                                <span> • </span>
+                              )}
+                              {order.purchase_reservations.length > 0 && (
+                                <span>Achat</span>
+                              )}
+                            </div>
+                            {firstReservation && firstReservation.delivery_address && (
                               <div className="text-xs">
-                                {firstRental.delivery_address ? (
-                                  <span className="text-green-700" title={firstRental.delivery_address}>📦 Livraison</span>
-                                ) : (
-                                  <span className="text-stone-500">🏪 Retrait</span>
-                                )}
+                                <span className="text-green-700" title={firstReservation.delivery_address}>📦 Livraison</span>
+                              </div>
+                            )}
+                            {firstReservation && !firstReservation.delivery_address && (
+                              <div className="text-xs">
+                                <span className="text-stone-500">🏪 Retrait</span>
                               </div>
                             )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {firstRental ? getStatusBadge(firstRental.reservation_status) : '-'}
+                          {firstReservation ? getStatusBadge(firstReservation.reservation_status) : '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <button

@@ -3,6 +3,49 @@
 -- =========================================
 
 -- ==========================================
+-- DROP ALL EXISTING POLICIES (dynamically)
+-- ==========================================
+
+-- This will drop ALL policies on the specified tables
+-- Use with caution - this removes every policy regardless of name
+
+DO $$
+DECLARE
+    r RECORD;
+BEGIN
+    -- Drop all policies on customer_orders
+    FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'customer_orders') LOOP
+        EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(r.policyname) || ' ON customer_orders';
+    END LOOP;
+
+    -- Drop all policies on rental_reservations
+    FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'rental_reservations') LOOP
+        EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(r.policyname) || ' ON rental_reservations';
+    END LOOP;
+
+    -- Drop all policies on rental_items
+    FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'rental_items') LOOP
+        EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(r.policyname) || ' ON rental_items';
+    END LOOP;
+
+    -- Drop all policies on purchase_reservations
+    FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'purchase_reservations') LOOP
+        EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(r.policyname) || ' ON purchase_reservations';
+    END LOOP;
+
+    -- Drop all policies on purchase_items
+    FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'purchase_items') LOOP
+        EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(r.policyname) || ' ON purchase_items';
+    END LOOP;
+
+    -- Drop all policies on products
+    FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'products') LOOP
+        EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(r.policyname) || ' ON products';
+    END LOOP;
+END $$;
+
+
+-- ==========================================
 -- 1. CUSTOMER_ORDERS TABLE
 -- ==========================================
 
@@ -121,7 +164,83 @@ USING (false);
 
 
 -- ==========================================
--- 4. PRODUCTS TABLE (if not already set)
+-- 4. PURCHASE_RESERVATIONS TABLE
+-- ==========================================
+
+-- Enable RLS on purchase_reservations
+ALTER TABLE purchase_reservations ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Service role has full access
+CREATE POLICY "Service role has full access to purchase_reservations"
+ON purchase_reservations
+FOR ALL
+TO service_role
+USING (true)
+WITH CHECK (true);
+
+-- Policy: Authenticated users (admins) can view all purchase_reservations
+CREATE POLICY "Authenticated users can view purchase_reservations"
+ON purchase_reservations
+FOR SELECT
+TO authenticated
+USING (true);
+
+-- Policy: Block direct access from anonymous clients
+CREATE POLICY "Prevent public direct access to purchase_reservations"
+ON purchase_reservations
+FOR ALL
+TO anon
+USING (false)
+WITH CHECK (false);
+
+
+-- ==========================================
+-- 5. PURCHASE_ITEMS TABLE
+-- ==========================================
+
+-- Enable RLS on purchase_items
+ALTER TABLE purchase_items ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Service role has full access
+CREATE POLICY "Service role has full access to purchase_items"
+ON purchase_items
+FOR ALL
+TO service_role
+USING (true)
+WITH CHECK (true);
+
+-- Policy: Authenticated users (admins) can view all purchase_items
+CREATE POLICY "Authenticated users can view purchase_items"
+ON purchase_items
+FOR SELECT
+TO authenticated
+USING (true);
+
+-- Policy: Block direct inserts from anonymous clients
+CREATE POLICY "Prevent public inserts to purchase_items"
+ON purchase_items
+FOR INSERT
+TO anon
+WITH CHECK (false);
+
+-- Policy: Block direct updates from anonymous clients
+CREATE POLICY "Prevent public updates to purchase_items"
+ON purchase_items
+FOR UPDATE
+TO anon
+USING (false)
+WITH CHECK (false);
+
+-- Policy: Block direct deletes from anonymous clients
+CREATE POLICY "Prevent public deletes from purchase_items"
+ON purchase_items
+FOR DELETE
+TO anon
+USING (false);
+
+
+-- ==========================================
+-- 6. PRODUCTS TABLE (if not already set)
 -- ==========================================
 
 -- Enable RLS on products (if not already enabled)

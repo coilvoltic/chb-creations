@@ -56,7 +56,7 @@ export async function GET(
     console.log('Rental reservations trouvées:', rentalReservations?.length || 0)
 
     // Pour chaque rental_reservation, récupérer ses items
-    const reservationsWithItems = await Promise.all(
+    const rentalReservationsWithItems = await Promise.all(
       (rentalReservations || []).map(async (reservation) => {
         const { data: items, error: itemsError } = await supabase
           .from('rental_items')
@@ -72,7 +72,47 @@ export async function GET(
           .order('id', { ascending: true })
 
         if (itemsError) {
-          console.error('Erreur récupération items:', itemsError)
+          console.error('Erreur récupération rental_items:', itemsError)
+        }
+
+        return {
+          ...reservation,
+          items: items || [],
+        }
+      })
+    )
+
+    // Récupérer les purchase_reservations de cette commande
+    const { data: purchaseReservations, error: purchaseError } = await supabase
+      .from('purchase_reservations')
+      .select('*')
+      .eq('customer_order_id', id)
+      .order('id', { ascending: true })
+
+    if (purchaseError) {
+      console.error('Erreur récupération purchase_reservations:', purchaseError)
+    }
+
+    console.log('Purchase reservations trouvées:', purchaseReservations?.length || 0)
+
+    // Pour chaque purchase_reservation, récupérer ses items
+    const purchaseReservationsWithItems = await Promise.all(
+      (purchaseReservations || []).map(async (reservation) => {
+        const { data: items, error: itemsError } = await supabase
+          .from('purchase_items')
+          .select(`
+            *,
+            products (
+              name,
+              slug,
+              images
+            )
+          `)
+          .eq('purchase_reservation_id', reservation.id)
+          .order('id', { ascending: true })
+
+        if (itemsError) {
+          console.error('Erreur récupération purchase_items:', itemsError)
         }
 
         return {
@@ -84,7 +124,8 @@ export async function GET(
 
     return NextResponse.json({
       order,
-      rental_reservations: reservationsWithItems
+      rental_reservations: rentalReservationsWithItems,
+      purchase_reservations: purchaseReservationsWithItems
     })
   } catch (error) {
     console.error('Erreur API admin/reservations/[id]:', error)

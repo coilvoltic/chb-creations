@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import type { CustomerOrder, RentalReservation } from '@/lib/supabase'
+import type { CustomerOrder, RentalReservation, PurchaseReservation } from '@/lib/supabase'
 
 interface RentalItem {
   id: number
@@ -29,13 +29,42 @@ interface RentalItem {
   }
 }
 
+interface PurchaseItem {
+  id: number
+  purchase_reservation_id: number
+  product_id: number
+  quantity: number
+  estimated_delivery_date?: string
+  options: {
+    selectedOptions?: Array<{
+      option_type_name: string
+      name: string
+      description?: string
+      additional_fee: number
+    }>
+    installationFees?: number
+  } | null
+  personalizations: { [key: string]: string } | null
+  needs_installation: boolean
+  products: {
+    name: string
+    slug: string
+    images: string[]
+  }
+}
+
 interface RentalReservationWithItems extends RentalReservation {
   items: RentalItem[]
+}
+
+interface PurchaseReservationWithItems extends PurchaseReservation {
+  items: PurchaseItem[]
 }
 
 interface OrderDetail {
   order: CustomerOrder
   rental_reservations: RentalReservationWithItems[]
+  purchase_reservations: PurchaseReservationWithItems[]
 }
 
 export default function ReservationDetailPage() {
@@ -137,10 +166,17 @@ export default function ReservationDetailPage() {
     )
   }
 
-  const { order, rental_reservations } = data
-  // Pour l'instant, on affiche la première rental_reservation (plus tard on gérera plusieurs)
+  const { order, rental_reservations, purchase_reservations } = data
+  // Get first reservation (rental or purchase) for display
   const firstRental = rental_reservations[0]
-  const allItems = rental_reservations.flatMap(r => r.items)
+  const firstPurchase = purchase_reservations[0]
+  const firstReservation = firstRental || firstPurchase
+
+  // Combine all items from both types
+  const rentalItems = rental_reservations.flatMap(r => r.items)
+  const purchaseItems = purchase_reservations.flatMap(p => p.items)
+  const hasRentals = rentalItems.length > 0
+  const hasPurchases = purchaseItems.length > 0
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -160,7 +196,7 @@ export default function ReservationDetailPage() {
                 <p className="text-sm text-stone-600">Créée le {formatDate(order.created_at)}</p>
               </div>
             </div>
-            {firstRental && getStatusBadge(firstRental.reservation_status)}
+            {firstReservation && getStatusBadge(firstReservation.reservation_status)}
           </div>
         </div>
       </header>
@@ -207,15 +243,17 @@ export default function ReservationDetailPage() {
                       <span className="text-sm text-stone-600">Caution</span>
                       <span className="text-sm font-semibold text-amber-600">{(firstRental.caution ?? 0).toFixed(2)} €</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-stone-600">Frais de livraison</span>
-                      <span className="text-sm font-semibold text-black">{firstRental.delivery_fees?.toFixed(2) || '0.00'} €</span>
-                    </div>
                   </>
+                )}
+                {firstReservation && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-stone-600">Frais de livraison</span>
+                    <span className="text-sm font-semibold text-black">{firstReservation.delivery_fees?.toFixed(2) || '0.00'} €</span>
+                  </div>
                 )}
               </div>
 
-              {firstRental && (
+              {firstReservation && (
                 <>
                   <hr className="my-6 border-stone-200" />
 
@@ -224,13 +262,13 @@ export default function ReservationDetailPage() {
                     <div>
                       <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Option</p>
                       <p className="text-sm text-black">
-                        {firstRental.delivery_address ? '🚚 Livraison' : '🏪 Retrait en boutique'}
+                        {firstReservation.delivery_address ? '🚚 Livraison' : '🏪 Retrait en boutique'}
                       </p>
                     </div>
-                    {firstRental.delivery_address && (
+                    {firstReservation.delivery_address && (
                       <div>
                         <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Adresse de livraison</p>
-                        <p className="text-sm text-black">{firstRental.delivery_address}</p>
+                        <p className="text-sm text-black">{firstReservation.delivery_address}</p>
                       </div>
                     )}
                   </div>
@@ -243,11 +281,17 @@ export default function ReservationDetailPage() {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6">
               <h2 className="text-lg font-semibold text-black mb-6">
-                Articles ({allItems.length})
+                Articles ({rentalItems.length + purchaseItems.length})
               </h2>
 
               <div className="space-y-6">
-                {allItems.map((item: RentalItem) => (
+                {/* Rental Items */}
+                {hasRentals && (
+                  <>
+                    <div className="flex items-center gap-2 mb-4">
+                      <h3 className="text-md font-semibold text-black">Locations ({rentalItems.length})</h3>
+                    </div>
+                    {rentalItems.map((item: RentalItem) => (
                   <div key={item.id} className="border border-stone-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                     <div className="flex gap-4">
                       {/* Image produit */}
@@ -284,7 +328,7 @@ export default function ReservationDetailPage() {
                             <p className="text-xs text-stone-500 uppercase tracking-wider mb-2">Options sélectionnées</p>
                             <div className="space-y-1">
                               {item.options.selectedOptions.map((option, idx) => (
-                                <div key={idx} className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded px-3 py-2">
+                                <div key={idx} className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-sm px-3 py-2">
                                   <div>
                                     <p className="text-sm font-medium text-blue-900">{option.option_type_name}</p>
                                     <p className="text-xs text-blue-700">{option.name}</p>
@@ -307,7 +351,7 @@ export default function ReservationDetailPage() {
                             <p className="text-xs text-stone-500 uppercase tracking-wider mb-2">✏️ Personnalisations</p>
                             <div className="space-y-1">
                               {Object.entries(item.personalizations).map(([key, value], idx) => (
-                                <div key={idx} className="bg-purple-50 border border-purple-200 rounded px-3 py-2">
+                                <div key={idx} className="bg-purple-50 border border-purple-200 rounded-sm px-3 py-2">
                                   <p className="text-xs text-purple-700 font-medium">{key}</p>
                                   <p className="text-sm text-purple-900">{value}</p>
                                 </div>
@@ -318,7 +362,7 @@ export default function ReservationDetailPage() {
 
                         {/* Installation */}
                         {item.needs_installation && (
-                          <div className="bg-green-50 border border-green-200 rounded px-3 py-2">
+                          <div className="bg-green-50 border border-green-200 rounded-sm px-3 py-2">
                             <p className="text-sm text-green-900">
                               ✓ Service d&apos;installation demandé
                               {item.options?.installationFees && (
@@ -330,7 +374,104 @@ export default function ReservationDetailPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                    ))}
+                  </>
+                )}
+
+                {/* Purchase Items */}
+                {hasPurchases && (
+                  <>
+                    <div className="flex items-center gap-2 mb-4 mt-8">
+                      <h3 className="text-md font-semibold text-black">Achats ({purchaseItems.length})</h3>
+                    </div>
+                    {purchaseItems.map((item: PurchaseItem) => (
+                  <div key={item.id} className="border border-stone-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div className="flex gap-4">
+                      {/* Image produit */}
+                      {item.products.images && item.products.images.length > 0 && (
+                        <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-stone-100">
+                          <img
+                            src={item.products.images[0]}
+                            alt={item.products.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+
+                      {/* Détails produit */}
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-black mb-2">{item.products.name}</h3>
+
+                        <div className="grid grid-cols-2 gap-4 text-sm mb-3">
+                          <div>
+                            <p className="text-stone-500">Quantité</p>
+                            <p className="text-black font-medium">×{item.quantity}</p>
+                          </div>
+                          {item.estimated_delivery_date && (
+                            <div>
+                              <p className="text-stone-500">Date de livraison estimée</p>
+                              <p className="text-black font-medium">
+                                {formatDateOnly(item.estimated_delivery_date)}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Options sélectionnées */}
+                        {item.options?.selectedOptions && item.options.selectedOptions.length > 0 && (
+                          <div className="mb-3">
+                            <p className="text-xs text-stone-500 uppercase tracking-wider mb-2">Options sélectionnées</p>
+                            <div className="space-y-1">
+                              {item.options.selectedOptions.map((option, idx) => (
+                                <div key={idx} className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-sm px-3 py-2">
+                                  <div>
+                                    <p className="text-sm font-medium text-blue-900">{option.option_type_name}</p>
+                                    <p className="text-xs text-blue-700">{option.name}</p>
+                                    {option.description && (
+                                      <p className="text-xs text-blue-600 mt-1">{option.description}</p>
+                                    )}
+                                  </div>
+                                  {option.additional_fee > 0 && (
+                                    <span className="text-sm font-semibold text-blue-900">+{option.additional_fee.toFixed(0)}€</span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Personnalisations */}
+                        {item.personalizations && Object.keys(item.personalizations).length > 0 && (
+                          <div className="mb-3">
+                            <p className="text-xs text-stone-500 uppercase tracking-wider mb-2">✏️ Personnalisations</p>
+                            <div className="space-y-1">
+                              {Object.entries(item.personalizations).map(([key, value], idx) => (
+                                <div key={idx} className="bg-purple-50 border border-purple-200 rounded-sm px-3 py-2">
+                                  <p className="text-xs text-purple-700 font-medium">{key}</p>
+                                  <p className="text-sm text-purple-900">{value}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Installation */}
+                        {item.needs_installation && (
+                          <div className="bg-green-50 border border-green-200 rounded-sm px-3 py-2">
+                            <p className="text-sm text-green-900">
+                              ✓ Service d&apos;installation demandé
+                              {item.options?.installationFees && (
+                                <span className="ml-2 font-semibold">({item.options.installationFees.toFixed(2)} €)</span>
+                              )}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                    ))}
+                  </>
+                )}
               </div>
             </div>
           </div>

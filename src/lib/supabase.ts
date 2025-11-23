@@ -109,6 +109,28 @@ export interface RentalItem {
   options?: RentalItemOption // JSONB with selected options and installation info
 }
 
+// Purchase Reservation (child of CustomerOrder for purchase orders)
+export interface PurchaseReservation {
+  id: number
+  created_at: string
+  customer_order_id: number
+  total_price: number
+  reservation_status: ReservationStatus
+  delivery_address?: string
+  delivery_fees?: number
+}
+
+// Purchase Item (items in a purchase reservation)
+export interface PurchaseItem {
+  id: number
+  purchase_reservation_id: number
+  product_id: number
+  estimated_delivery_date?: string
+  quantity: number
+  options?: RentalItemOption // Same structure as rental items
+  personalizations?: Record<string, string>
+}
+
 // Legacy aliases for backward compatibility (will be removed later)
 /** @deprecated Use RentalReservation instead */
 export type Reservation = RentalReservation & { customer_infos: CustomerInfo }

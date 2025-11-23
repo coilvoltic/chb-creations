@@ -13,10 +13,11 @@ interface SelectedOption {
 interface CartItemPayload {
   productId: number
   productName: string
+  category: string // 'locations' or 'accessoires-personnalises'
   quantity: number
   pricePerUnit: number
-  rentalStart: string // ISO timestamp
-  rentalEnd: string // ISO timestamp
+  rentalStart: string // ISO timestamp (dummy for purchase items)
+  rentalEnd: string // ISO timestamp (dummy for purchase items)
   selectedOptions?: SelectedOption[] // Array of selected options
   personalizations?: { [key: string]: string } // Map of personalization field name to value
   needsInstallation?: boolean
@@ -104,83 +105,156 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 2. Créer la rental_reservation (liée à customer_order)
-    const { data: rentalReservation, error: reservationError } = await supabase
-      .from('rental_reservations')
-      .insert({
-        customer_order_id: customerOrder.id,
-        deposit,
-        caution,
-        delivery_address: deliveryOption === 'delivery' ? (deliveryAddress || null) : null,
-        delivery_fees: deliveryFees || 0,
-        reservation_status: reservationStatus,
-        total_price: totalPrice,
-      })
-      .select()
-      .single()
+    // 2. Séparer les items par type (rental vs purchase)
+    const rentalItems = items.filter(item => item.category === 'locations')
+    const purchaseItems = items.filter(item => item.category === 'accessoires-personnalises')
 
-    if (reservationError || !rentalReservation) {
-      console.error('Erreur création rental_reservation:', reservationError)
-      // Rollback: supprimer la commande créée (la FK cascade supprimera aussi)
-      await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
-      return NextResponse.json(
-        { error: 'Erreur lors de la création de la réservation' },
-        { status: 500 }
-      )
+    let rentalReservationId: number | null = null
+    let purchaseReservationId: number | null = null
+
+    // 3a. Créer rental_reservation si nécessaire
+    if (rentalItems.length > 0) {
+      const { data: rentalReservation, error: reservationError } = await supabase
+        .from('rental_reservations')
+        .insert({
+          customer_order_id: customerOrder.id,
+          deposit,
+          caution,
+          delivery_address: deliveryOption === 'delivery' ? (deliveryAddress || null) : null,
+          delivery_fees: deliveryFees || 0,
+          reservation_status: reservationStatus,
+          total_price: rentalItems.reduce((sum, item) => sum + (item.pricePerUnit * item.quantity), 0),
+        })
+        .select()
+        .single()
+
+      if (reservationError || !rentalReservation) {
+        console.error('Erreur création rental_reservation:', reservationError)
+        // Rollback: supprimer la commande créée (la FK cascade supprimera aussi)
+        await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
+        return NextResponse.json(
+          { error: 'Erreur lors de la création de la réservation location' },
+          { status: 500 }
+        )
+      }
+
+      rentalReservationId = rentalReservation.id
+
+      // Créer les rental_items
+      const rentalItemsData = rentalItems.map((item) => {
+        let optionsData: ReservationItemOptions | null = null
+
+        if (item.selectedOptions && item.selectedOptions.length > 0) {
+          optionsData = {
+            selectedOptions: item.selectedOptions,
+            installationFees: item.installationFees
+          }
+        } else if (item.installationFees) {
+          optionsData = {
+            installationFees: item.installationFees
+          }
+        }
+
+        return {
+          rental_reservation_id: rentalReservation.id,
+          product_id: item.productId,
+          quantity: item.quantity,
+          rental_start: item.rentalStart,
+          rental_end: item.rentalEnd,
+          options: optionsData,
+          personalizations: item.personalizations || null,
+          needs_installation: item.needsInstallation || false,
+        }
+      })
+
+      const { error: itemsError } = await supabase
+        .from('rental_items')
+        .insert(rentalItemsData)
+
+      if (itemsError) {
+        console.error('Erreur création rental_items:', itemsError)
+        await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
+        return NextResponse.json(
+          { error: 'Erreur lors de la création des articles de location' },
+          { status: 500 }
+        )
+      }
     }
 
-    // 3. Créer les rental_items
-    const rentalItems = items.map((item) => {
-      // Build options object for selected options and installation fees only
-      let optionsData: ReservationItemOptions | null = null
+    // 3b. Créer purchase_reservation si nécessaire
+    if (purchaseItems.length > 0) {
+      const { data: purchaseReservation, error: purchaseError } = await supabase
+        .from('purchase_reservations')
+        .insert({
+          customer_order_id: customerOrder.id,
+          delivery_address: deliveryOption === 'delivery' ? (deliveryAddress || null) : null,
+          delivery_fees: deliveryFees || 0,
+          reservation_status: reservationStatus,
+          total_price: purchaseItems.reduce((sum, item) => sum + (item.pricePerUnit * item.quantity), 0),
+        })
+        .select()
+        .single()
 
-      if (item.selectedOptions && item.selectedOptions.length > 0) {
-        optionsData = {
-          selectedOptions: item.selectedOptions,
-          installationFees: item.installationFees
-        }
-      } else if (item.installationFees) {
-        optionsData = {
-          installationFees: item.installationFees
-        }
+      if (purchaseError || !purchaseReservation) {
+        console.error('Erreur création purchase_reservation:', purchaseError)
+        await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
+        return NextResponse.json(
+          { error: 'Erreur lors de la création de la réservation achat' },
+          { status: 500 }
+        )
       }
 
-      return {
-        rental_reservation_id: rentalReservation.id,
-        product_id: item.productId,
-        quantity: item.quantity,
-        rental_start: item.rentalStart,
-        rental_end: item.rentalEnd,
-        options: optionsData,
-        personalizations: item.personalizations || null,
-        needs_installation: item.needsInstallation || false,
+      purchaseReservationId = purchaseReservation.id
+
+      // Créer les purchase_items
+      const purchaseItemsData = purchaseItems.map((item) => {
+        let optionsData: ReservationItemOptions | null = null
+
+        if (item.selectedOptions && item.selectedOptions.length > 0) {
+          optionsData = {
+            selectedOptions: item.selectedOptions,
+            installationFees: item.installationFees
+          }
+        } else if (item.installationFees) {
+          optionsData = {
+            installationFees: item.installationFees
+          }
+        }
+
+        return {
+          purchase_reservation_id: purchaseReservation.id,
+          product_id: item.productId,
+          quantity: item.quantity,
+          estimated_delivery_date: null, // À définir plus tard
+          options: optionsData,
+          personalizations: item.personalizations || null,
+        }
+      })
+
+      const { error: purchaseItemsError } = await supabase
+        .from('purchase_items')
+        .insert(purchaseItemsData)
+
+      if (purchaseItemsError) {
+        console.error('Erreur création purchase_items:', purchaseItemsError)
+        await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
+        return NextResponse.json(
+          { error: 'Erreur lors de la création des articles d\'achat' },
+          { status: 500 }
+        )
       }
-    })
-
-    const { error: itemsError } = await supabase
-      .from('rental_items')
-      .insert(rentalItems)
-
-    if (itemsError) {
-      console.error('Erreur création rental_items:', itemsError)
-      // Rollback: supprimer la commande (cascade supprimera rental_reservation et rental_items)
-      await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
-      return NextResponse.json(
-        { error: 'Erreur lors de la création des articles de réservation' },
-        { status: 500 }
-      )
     }
 
     // 4. Envoyer l'email de confirmation avec le PDF
     try {
       const emailData = {
-        id: rentalReservation.id,
+        id: customerOrder.id, // Utiliser l'ID de la commande principale
         order_number: customerOrder.order_number,
         customer_name: `${customerInfo.firstName} ${customerInfo.lastName}`,
         customer_email: customerInfo.email,
         customer_phone: customerInfo.phone,
         total_amount: totalPrice,
-        created_at: rentalReservation.created_at,
+        created_at: customerOrder.created_at,
         delivery_address: deliveryOption === 'delivery' ? deliveryAddress : null,
         delivery_fees: deliveryFees,
         items: items.map((item) => ({
@@ -208,7 +282,8 @@ export async function POST(request: NextRequest) {
       success: true,
       orderId: customerOrder.id,
       orderNumber: customerOrder.order_number,
-      reservationId: rentalReservation.id,
+      rentalReservationId: rentalReservationId,
+      purchaseReservationId: purchaseReservationId,
       message: 'Réservation créée avec succès',
     })
   } catch (error) {
