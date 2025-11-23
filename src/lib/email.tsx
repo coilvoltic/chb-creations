@@ -31,6 +31,8 @@ interface ReservationData {
   total_amount: number
   created_at: string
   items: ReservationItem[]
+  delivery_address?: string | null
+  delivery_fees?: number
 }
 
 export async function sendReservationConfirmation(reservation: ReservationData) {

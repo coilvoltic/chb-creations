@@ -33,7 +33,8 @@ interface CreateReservationPayload {
   items: CartItemPayload[]
   deposit: number
   caution: number
-  deliveryOption?: 'pickup' | 'delivery'
+  deliveryOption?: 'pickup' | 'delivery' // Frontend sends 'pickup' or 'delivery'
+  deliveryAddress?: string // Address if delivery option is 'delivery'
   deliveryFees?: number
   totalPrice: number
   paymentMethod?: 'online' | 'cash' | null
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { customerInfo, items, deposit, caution, deliveryOption, deliveryFees, totalPrice, paymentMethod } = payload
+    const { customerInfo, items, deposit, caution, deliveryOption, deliveryAddress, deliveryFees, totalPrice, paymentMethod } = payload
 
     // Create Supabase client with service_role key (bypasses RLS)
     // This is safe because:
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
         customer_infos: customerInfo,
         deposit,
         caution,
-        delivery_option: deliveryOption || 'pickup',
+        delivery_address: deliveryOption === 'delivery' ? (deliveryAddress || null) : null,
         delivery_fees: deliveryFees || 0,
         reservation_status: reservationStatus,
         total_price: totalPrice,
@@ -158,6 +159,8 @@ export async function POST(request: NextRequest) {
         customer_phone: customerInfo.phone,
         total_amount: totalPrice,
         created_at: reservation.created_at,
+        delivery_address: deliveryOption === 'delivery' ? deliveryAddress : null,
+        delivery_fees: deliveryFees,
         items: items.map((item) => ({
           product_name: item.productName,
           quantity: item.quantity,

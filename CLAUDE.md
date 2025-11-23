@@ -65,7 +65,8 @@ The app uses three Google Fonts configured in [src/app/layout.tsx](src/app/layou
 2. **reservations**: Customer reservations with:
    - customer_infos (JSONB): firstName, lastName, email, phone
    - deposit, caution, total_price
-   - delivery_option ('pickup' | 'delivery'), delivery_fees
+   - delivery_address (string, nullable): address if delivery, null if pickup
+   - delivery_fees (number)
    - stripe_payment_id (for online payments)
    - reservation_status: 'DONE' | 'CANCELLED' | 'CONFIRMED' | 'CONFIRMED_NO_DEPOSIT'
 

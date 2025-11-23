@@ -145,6 +145,9 @@ export default function AdminDashboardPage() {
                       Acompte
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                      Livraison
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                       Statut
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
@@ -176,6 +179,13 @@ export default function AdminDashboardPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-600">
                         {(reservation.deposit ?? 0).toFixed(2)} €
+                      </td>
+                      <td className="px-6 py-4 text-sm text-stone-600 max-w-xs truncate">
+                        {reservation.delivery_address ? (
+                          <span className="text-green-700" title={reservation.delivery_address}>📦 {reservation.delivery_address}</span>
+                        ) : (
+                          <span className="text-stone-500">🏪 Retrait en boutique</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(reservation.reservation_status)}

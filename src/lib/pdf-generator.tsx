@@ -28,6 +28,8 @@ interface ReservationData {
   total_amount: number
   created_at: string
   items: ReservationItem[]
+  delivery_address?: string | null
+  delivery_fees?: number
 }
 
 interface GenerateReservationPDFParams {
@@ -50,6 +52,7 @@ interface GenerateReservationPDFParams {
   deposit: number
   caution: number
   deliveryOption?: 'pickup' | 'delivery'
+  deliveryAddress?: string
   deliveryFees?: number
 }
 
@@ -195,6 +198,22 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
           </Text>
         </View>
 
+        {/* Informations de livraison */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Livraison</Text>
+          {reservation.delivery_address ? (
+            <>
+              <Text style={styles.text}>Mode: 🚚 Livraison à domicile</Text>
+              <Text style={styles.text}>Adresse: {reservation.delivery_address}</Text>
+              {reservation.delivery_fees && reservation.delivery_fees > 0 && (
+                <Text style={styles.text}>Frais de livraison: {reservation.delivery_fees.toFixed(2)} €</Text>
+              )}
+            </>
+          ) : (
+            <Text style={styles.text}>Mode: 🏪 Retrait en boutique</Text>
+          )}
+        </View>
+
         {/* Articles réservés */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Articles réservés</Text>
@@ -286,6 +305,8 @@ export async function generateReservationPDF(params: GenerateReservationPDFParam
     customer_phone: params.customerInfo.phone,
     total_amount: params.totalPrice,
     created_at: new Date().toISOString(),
+    delivery_address: params.deliveryOption === 'delivery' ? params.deliveryAddress : null,
+    delivery_fees: params.deliveryFees,
     items: params.items.map((item) => ({
       product_name: item.productName,
       quantity: item.quantity,

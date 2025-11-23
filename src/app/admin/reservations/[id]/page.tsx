@@ -211,9 +211,15 @@ export default function ReservationDetailPage() {
                 <div>
                   <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Option</p>
                   <p className="text-sm text-black">
-                    {reservation.delivery_option === 'delivery' ? '🚚 Livraison' : '🏪 Retrait en boutique'}
+                    {reservation.delivery_address ? '🚚 Livraison' : '🏪 Retrait en boutique'}
                   </p>
                 </div>
+                {reservation.delivery_address && (
+                  <div>
+                    <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Adresse de livraison</p>
+                    <p className="text-sm text-black">{reservation.delivery_address}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

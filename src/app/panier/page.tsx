@@ -169,6 +169,7 @@ export default function CartPage() {
         deposit: depositAmount,
         caution: cautionAmount,
         deliveryOption: cart.deliveryOption,
+        deliveryAddress: cart.deliveryAddress || null,
         deliveryFees: cart.totalDeliveryFees || 0,
         totalPrice: totalWithDelivery,
         paymentMethod: 'cash', // Toujours en espèces pour le moment
@@ -188,7 +189,8 @@ export default function CartPage() {
       }
 
       // Succès
-      clearCart()
+      // NE PAS vider le panier ici, sinon le composant va afficher "panier vide" et la modal ne s'affichera pas
+      // Le panier sera vidé quand l'utilisateur fermera la modal
       setReservationId(data.reservationId)
       setShowSuccessModal(true)
       setShowConfirmation(false)
@@ -672,6 +674,7 @@ export default function CartPage() {
         isOpen={showSuccessModal}
         onClose={() => {
           setShowSuccessModal(false)
+          clearCart() // Vider le panier au moment de fermer la modal
           router.push('/')
         }}
         reservationId={reservationId || 0}

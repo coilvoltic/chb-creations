@@ -75,7 +75,7 @@ export interface Reservation {
   caution?: number
   reservation_status: ReservationStatus
   total_price: number
-  delivery_option: 'pickup' | 'delivery'
+  delivery_address?: string
   delivery_fees?: number
   stripe_payment_id?: string
 }

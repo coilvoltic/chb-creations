@@ -47,12 +47,12 @@ export default function SuccessModal({
     <>
       {/* Overlay */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-fade-in"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] animate-fade-in"
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none">
         <div
           className="bg-white rounded-2xl shadow-dark max-w-md w-full p-8 animate-scale-in pointer-events-auto relative"
           onClick={(e) => e.stopPropagation()}
@@ -74,7 +74,7 @@ export default function SuccessModal({
             </div>
 
             {/* Titre */}
-            <h2 className="text-2xl font-bold text-black mb-3 font-satisfy">
+            <h2 className="text-2xl font-bold text-black mb-3">
               {title}
             </h2>
 
