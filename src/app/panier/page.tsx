@@ -498,7 +498,7 @@ export default function CartPage() {
                 </div>
 
                 {/* Options de livraison pour les locations */}
-                <div className="mt-4 md:mt-6 p-3 md:p-4 bg-blue-50 border border-blue-300 rounded-lg">
+                <div className="mt-2 md:mt-4 p-3 md:p-4 bg-blue-50 border border-blue-300 rounded-lg">
                   <h3 className="font-semibold mb-2 md:mb-3 text-sm md:text-base text-blue-900">Mode de récupération</h3>
                   <div className="space-y-3">
                     <label className="flex items-center cursor-pointer">
@@ -585,7 +585,7 @@ export default function CartPage() {
                 </div>
 
                 {/* Options de livraison pour les achats */}
-                <div className="mt-4 md:mt-6 p-3 md:p-4 bg-green-50 border border-green-300 rounded-lg">
+                <div className="mt-2 md:mt-4 p-3 md:p-4 bg-green-50 border border-green-300 rounded-lg">
                   <h3 className="font-semibold mb-2 md:mb-3 text-sm md:text-base text-green-900">Mode de récupération</h3>
                   <div className="space-y-3">
                     <label className="flex items-center cursor-pointer">
