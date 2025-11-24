@@ -245,6 +245,19 @@ export default function CartPage() {
     }, 0)
   }
 
+  // Vérifier si toutes les adresses de livraison requises sont renseignées
+  const isDeliveryInfoComplete = () => {
+    // Si locations avec livraison, vérifier l'adresse
+    if (hasRentals && cart.rentalDelivery.option === 'delivery' && !cart.rentalDelivery.address) {
+      return false
+    }
+    // Si achats avec livraison, vérifier l'adresse
+    if (hasPurchases && cart.purchaseDelivery.option !== 'pickup' && !cart.purchaseDelivery.address) {
+      return false
+    }
+    return true
+  }
+
   const handleValidateOrder = async () => {
     setIsSubmitting(true)
     setError(null)
@@ -340,11 +353,11 @@ export default function CartPage() {
   const renderCartItem = (item: CartItem) => (
     <div
       key={item.id}
-      className="border border-stone-200 rounded-xl p-6 hover:shadow-md transition-shadow"
+      className="py-4 first:pt-0"
     >
-      <div className="flex gap-6">
+      <div className="flex gap-4 md:gap-6">
         {/* Product Image */}
-        <div className="w-24 h-24 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0">
+        <div className="w-20 h-20 md:w-24 md:h-24 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0">
           <img
             src={item.productImage}
             alt={item.productName}
@@ -353,22 +366,22 @@ export default function CartPage() {
         </div>
 
         {/* Product Details */}
-        <div className="flex-1">
-          <div className="flex justify-between items-start mb-2">
-            <div>
+        <div className="flex-1 min-w-0">
+          <div className="flex justify-between items-start mb-2 gap-2">
+            <div className="flex-1 min-w-0">
               <Link
                 href={`/services/${item.category}/${item.subcategory}/${item.productSlug}`}
-                className="font-semibold text-lg hover:underline"
+                className="font-semibold text-base md:text-lg hover:underline block truncate"
               >
                 {item.productName}
               </Link>
-              <p className="text-sm text-stone-600 capitalize">
+              <p className="text-xs md:text-sm text-stone-600 capitalize">
                 {item.category} › {item.subcategory.replace('-', ' ')}
               </p>
             </div>
             <button
               onClick={() => removeFromCart(item.id)}
-              className="text-red-600 hover:text-red-700 text-sm font-medium"
+              className="text-red-600 hover:text-red-700 text-xs md:text-sm font-medium flex-shrink-0"
             >
               Supprimer
             </button>
@@ -426,13 +439,15 @@ export default function CartPage() {
           </div>
 
           {/* Subtotal */}
-          <div className="mt-4 text-right">
-            <p className="text-lg font-bold">
+          <div className="mt-3 md:mt-4 text-right">
+            <p className="text-base md:text-lg font-bold">
               {(item.quantity * (item.pricePerUnit + getItemOptionsFees(item) + ((item.needsInstallation && item.installationFees) ? item.installationFees : 0))).toFixed(2)} €
             </p>
           </div>
         </div>
       </div>
+      {/* Separator line */}
+      <div className="border-b border-stone-200 mt-4"></div>
     </div>
   )
 
@@ -462,16 +477,16 @@ export default function CartPage() {
     <div className="min-h-screen bg-white">
       <Navbar />
 
-      <div className="container mx-auto px-6 py-12 md:py-16">
-        <h1 className="text-4xl md:text-5xl font-bold mb-8">Votre panier</h1>
+      <div className="container mx-auto px-4 md:px-6 py-8 md:py-12 lg:py-16">
+        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 md:mb-8">Votre panier</h1>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-6 md:gap-8">
           {/* Cart Items - 2 sections séparées */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-6 md:space-y-8">
             {/* Section LOCATIONS */}
             {hasRentals && (
-              <div className="border-1 border-blue-300 rounded-2xl p-6 bg-white">
-                <div className="flex items-center gap-3 mb-6">
+              <div className="border-1 border-blue-300 rounded-2xl p-4 md:p-6 bg-white">
+                <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
                   <h2 className="text-2xl font-bold text-blue-900">Locations</h2>
                   <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
                     {rentalItems.length} article{rentalItems.length > 1 ? 's' : ''}
@@ -482,8 +497,8 @@ export default function CartPage() {
                 </div>
 
                 {/* Options de livraison pour les locations */}
-                <div className="mt-6 p-4 bg-blue-50 border border-blue-300 rounded-lg">
-                  <h3 className="font-semibold mb-3 text-blue-900">Mode de récupération</h3>
+                <div className="mt-4 md:mt-6 p-3 md:p-4 bg-blue-50 border border-blue-300 rounded-lg">
+                  <h3 className="font-semibold mb-2 md:mb-3 text-sm md:text-base text-blue-900">Mode de récupération</h3>
                   <div className="space-y-3">
                     <label className="flex items-center cursor-pointer">
                       <input
@@ -557,8 +572,8 @@ export default function CartPage() {
 
             {/* Section ACHATS */}
             {hasPurchases && (
-              <div className="border-1 border-green-300 rounded-2xl p-6 bg-white">
-                <div className="flex items-center gap-3 mb-6">
+              <div className="border-1 border-green-300 rounded-2xl p-4 md:p-6 bg-white">
+                <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
                   <h2 className="text-2xl font-bold text-green-900">Achats</h2>
                   <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
                     {purchaseItems.length} article{purchaseItems.length > 1 ? 's' : ''}
@@ -569,8 +584,8 @@ export default function CartPage() {
                 </div>
 
                 {/* Options de livraison pour les achats */}
-                <div className="mt-6 p-4 bg-green-50 border border-green-300 rounded-lg">
-                  <h3 className="font-semibold mb-3 text-green-900">Mode de récupération</h3>
+                <div className="mt-4 md:mt-6 p-3 md:p-4 bg-green-50 border border-green-300 rounded-lg">
+                  <h3 className="font-semibold mb-2 md:mb-3 text-sm md:text-base text-green-900">Mode de récupération</h3>
                   <div className="space-y-3">
                     <label className="flex items-center cursor-pointer">
                       <input
@@ -675,10 +690,10 @@ export default function CartPage() {
 
           {/* Order Summary */}
           <div className="lg:col-span-1">
-            <div className="border border-stone-200 rounded-xl p-6 sticky top-24">
-              <h2 className="text-2xl font-bold mb-6">Récapitulatif</h2>
+            <div className="border border-stone-200 rounded-xl p-4 md:p-6 sticky top-24">
+              <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Récapitulatif</h2>
 
-              <div className="space-y-4 mb-6">
+              <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
                 {/* Sous-totaux par catégorie */}
                 {hasRentals && (
                   <div className="pb-3 border-b border-stone-200">
@@ -751,12 +766,20 @@ export default function CartPage() {
               </div>
 
               {!showCheckoutForm ? (
-                <button
-                  onClick={() => setShowCheckoutForm(true)}
-                  className="w-full bg-black text-white px-6 py-4 rounded-lg hover:bg-stone-800 transition-colors font-medium"
-                >
-                  Valider la commande
-                </button>
+                <>
+                  {!isDeliveryInfoComplete() && (
+                    <div className="p-3 bg-amber-50 border border-amber-300 rounded-lg text-amber-800 text-sm mb-3">
+                      ⚠️ Veuillez renseigner une adresse de livraison pour continuer
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setShowCheckoutForm(true)}
+                    disabled={!isDeliveryInfoComplete()}
+                    className="w-full bg-black text-white px-6 py-4 rounded-lg hover:bg-stone-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Valider la commande
+                  </button>
+                </>
               ) : (
                 <div className="space-y-4">
                   <h3 className="font-semibold text-lg">Vos informations</h3>
