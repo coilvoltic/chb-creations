@@ -371,7 +371,7 @@ export default function CartPage() {
             <div className="flex-1 min-w-0">
               <Link
                 href={`/services/${item.category}/${item.subcategory}/${item.productSlug}`}
-                className="font-semibold text-base md:text-lg hover:underline block truncate"
+                className="font-semibold text-base md:text-lg hover:underline block break-words"
               >
                 {item.productName}
               </Link>
@@ -475,10 +475,10 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden">
+    <div className="min-h-screen bg-white">
       <Navbar />
 
-      <div className="container mx-auto px-4 md:px-6 py-8 md:py-12 lg:py-16 max-w-full">
+      <div className="container mx-auto px-4 md:px-6 py-8 md:py-12 lg:py-16">
         <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 md:mb-8 break-words">Votre panier</h1>
 
         <div className="grid lg:grid-cols-3 gap-6 md:gap-8 w-full overflow-hidden">
