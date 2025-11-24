@@ -387,13 +387,14 @@ export default function CartPage() {
             </button>
           </div>
 
-          <div className="space-y-1 text-sm text-stone-700">
+          <div className="space-y-1 text-xs md:text-sm text-stone-700">
             {/* Show rental period only for rental products */}
             {item.category === 'locations' && (
-              <p>
+              <p className="break-words">
                 <span className="font-medium">Période :</span>{' '}
-                {item.rentalPeriod.from.toLocaleDateString('fr-FR')} {item.startTime} -{' '}
-                {item.rentalPeriod.to.toLocaleDateString('fr-FR')} {item.endTime}
+                <span className="inline-block">{item.rentalPeriod.from.toLocaleDateString('fr-FR')} {item.startTime}</span>
+                {' - '}
+                <span className="inline-block">{item.rentalPeriod.to.toLocaleDateString('fr-FR')} {item.endTime}</span>
               </p>
             )}
             <p>
@@ -402,7 +403,7 @@ export default function CartPage() {
             {item.selectedOptions && item.selectedOptions.length > 0 && (
               <div className="space-y-1">
                 {item.selectedOptions.map((option, idx) => (
-                  <p key={idx} className="text-blue-700">
+                  <p key={idx} className="text-blue-700 break-words">
                     <span className="font-medium">{option.option_type_name} :</span> {option.name}
                     {option.additional_fee > 0 && ` (+${option.additional_fee.toFixed(2)} €)`}
                   </p>
@@ -412,7 +413,7 @@ export default function CartPage() {
             {item.personalizations && Object.keys(item.personalizations).length > 0 && (
               <div className="space-y-1 mt-2">
                 {Object.entries(item.personalizations).map(([fieldName, value], idx) => (
-                  <p key={idx} className="text-stone-700">
+                  <p key={idx} className="text-stone-700 break-words">
                     <span className="font-medium">✏️ {fieldName} :</span> {value}
                   </p>
                 ))}
@@ -474,18 +475,18 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white overflow-x-hidden">
       <Navbar />
 
-      <div className="container mx-auto px-4 md:px-6 py-8 md:py-12 lg:py-16">
-        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 md:mb-8">Votre panier</h1>
+      <div className="container mx-auto px-4 md:px-6 py-8 md:py-12 lg:py-16 max-w-full">
+        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 md:mb-8 break-words">Votre panier</h1>
 
-        <div className="grid lg:grid-cols-3 gap-6 md:gap-8">
+        <div className="grid lg:grid-cols-3 gap-6 md:gap-8 w-full overflow-hidden">
           {/* Cart Items - 2 sections séparées */}
-          <div className="lg:col-span-2 space-y-6 md:space-y-8">
+          <div className="lg:col-span-2 space-y-6 md:space-y-8 min-w-0">
             {/* Section LOCATIONS */}
             {hasRentals && (
-              <div className="border-1 border-blue-300 rounded-2xl p-4 md:p-6 bg-white">
+              <div className="border-1 border-blue-300 rounded-2xl p-4 md:p-6 bg-white overflow-hidden">
                 <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
                   <h2 className="text-2xl font-bold text-blue-900">Locations</h2>
                   <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -572,7 +573,7 @@ export default function CartPage() {
 
             {/* Section ACHATS */}
             {hasPurchases && (
-              <div className="border-1 border-green-300 rounded-2xl p-4 md:p-6 bg-white">
+              <div className="border-1 border-green-300 rounded-2xl p-4 md:p-6 bg-white overflow-hidden">
                 <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
                   <h2 className="text-2xl font-bold text-green-900">Achats</h2>
                   <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -689,22 +690,22 @@ export default function CartPage() {
           </div>
 
           {/* Order Summary */}
-          <div className="lg:col-span-1">
-            <div className="border border-stone-200 rounded-xl p-4 md:p-6 sticky top-24">
+          <div className="lg:col-span-1 min-w-0">
+            <div className="border border-stone-200 rounded-xl p-4 md:p-6 sticky top-24 overflow-hidden">
               <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Récapitulatif</h2>
 
               <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
                 {/* Sous-totaux par catégorie */}
                 {hasRentals && (
                   <div className="pb-3 border-b border-stone-200">
-                    <div className="flex justify-between text-blue-700 font-medium">
-                      <span>Locations ({rentalItems.length} article{rentalItems.length > 1 ? 's' : ''})</span>
-                      <span>{calculateRentalSubtotal().toFixed(2)} €</span>
+                    <div className="flex justify-between text-blue-700 font-medium gap-2">
+                      <span className="text-sm md:text-base break-words">Locations ({rentalItems.length} article{rentalItems.length > 1 ? 's' : ''})</span>
+                      <span className="text-sm md:text-base flex-shrink-0">{calculateRentalSubtotal().toFixed(2)} €</span>
                     </div>
                     {cart.rentalDelivery.option === 'delivery' && cart.rentalDelivery.address && (
-                      <div className="flex justify-between text-sm text-stone-600 mt-1">
-                        <span>Frais de livraison</span>
-                        <span>{cart.rentalDelivery.fees.toFixed(2)} €</span>
+                      <div className="flex justify-between text-xs md:text-sm text-stone-600 mt-1 gap-2">
+                        <span className="break-words">Frais de livraison</span>
+                        <span className="flex-shrink-0">{cart.rentalDelivery.fees.toFixed(2)} €</span>
                       </div>
                     )}
                   </div>
@@ -712,23 +713,23 @@ export default function CartPage() {
 
                 {hasPurchases && (
                   <div className="pb-3 border-b border-stone-200">
-                    <div className="flex justify-between text-green-700 font-medium">
-                      <span>Achats ({purchaseItems.length} article{purchaseItems.length > 1 ? 's' : ''})</span>
-                      <span>{calculatePurchaseSubtotal().toFixed(2)} €</span>
+                    <div className="flex justify-between text-green-700 font-medium gap-2">
+                      <span className="text-sm md:text-base break-words">Achats ({purchaseItems.length} article{purchaseItems.length > 1 ? 's' : ''})</span>
+                      <span className="text-sm md:text-base flex-shrink-0">{calculatePurchaseSubtotal().toFixed(2)} €</span>
                     </div>
                     {cart.purchaseDelivery.option !== 'pickup' && cart.purchaseDelivery.address && (
-                      <div className="flex justify-between text-sm text-stone-600 mt-1">
-                        <span>Frais de livraison</span>
-                        <span>{cart.purchaseDelivery.fees.toFixed(2)} €</span>
+                      <div className="flex justify-between text-xs md:text-sm text-stone-600 mt-1 gap-2">
+                        <span className="break-words">Frais de livraison</span>
+                        <span className="flex-shrink-0">{cart.purchaseDelivery.fees.toFixed(2)} €</span>
                       </div>
                     )}
                   </div>
                 )}
 
                 {/* Total à payer */}
-                <div className="pt-3 flex justify-between font-bold text-xl">
-                  <span>Total à payer</span>
-                  <span>{(cart.totalPrice + cart.rentalDelivery.fees + cart.purchaseDelivery.fees).toFixed(2)} €</span>
+                <div className="pt-3 flex justify-between font-bold text-base md:text-xl gap-2">
+                  <span className="break-words">Total à payer</span>
+                  <span className="flex-shrink-0">{(cart.totalPrice + cart.rentalDelivery.fees + cart.purchaseDelivery.fees).toFixed(2)} €</span>
                 </div>
 
                 {/* Informations complémentaires */}
@@ -736,15 +737,15 @@ export default function CartPage() {
                   <div className="border-t border-stone-200 pt-3 space-y-2">
                     <p className="text-xs font-medium text-stone-600 uppercase tracking-wide">Informations complémentaires</p>
                     {depositAmount > 0 && (
-                      <div className="flex justify-between text-blue-700 text-sm font-medium">
-                        <span>Acompte à verser</span>
-                        <span>{depositAmount.toFixed(2)} €</span>
+                      <div className="flex justify-between text-blue-700 text-xs md:text-sm font-medium gap-2">
+                        <span className="break-words">Acompte à verser</span>
+                        <span className="flex-shrink-0">{depositAmount.toFixed(2)} €</span>
                       </div>
                     )}
                     {cautionAmount > 0 && (
-                      <div className="flex justify-between text-amber-700 text-sm font-medium">
-                        <span>Caution (non encaissée)</span>
-                        <span>{cautionAmount.toFixed(2)} €</span>
+                      <div className="flex justify-between text-amber-700 text-xs md:text-sm font-medium gap-2">
+                        <span className="break-words">Caution (non encaissée)</span>
+                        <span className="flex-shrink-0">{cautionAmount.toFixed(2)} €</span>
                       </div>
                     )}
                   </div>
@@ -752,13 +753,13 @@ export default function CartPage() {
 
                 {/* Explications */}
                 {depositAmount > 0 && (
-                  <div className="text-xs text-blue-700 bg-blue-50 p-3 rounded-lg">
+                  <div className="text-xs text-blue-700 bg-blue-50 p-3 rounded-lg break-words">
                     <p className="font-medium mb-1">💳 Acompte :</p>
                     <p>Un acompte de {depositAmount.toFixed(2)} € sera requis pour valider la réservation.</p>
                   </div>
                 )}
                 {cautionAmount > 0 && (
-                  <div className="text-xs text-amber-700 bg-amber-50 p-3 rounded-lg">
+                  <div className="text-xs text-amber-700 bg-amber-50 p-3 rounded-lg break-words">
                     <p className="font-medium mb-1">⚠️ Caution :</p>
                     <p>Une caution de {cautionAmount.toFixed(2)} € sera demandée lors de la récupération (non encaissée sauf dommage).</p>
                   </div>
