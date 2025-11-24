@@ -38,15 +38,25 @@ export default function CartPage() {
   const hasRentals = rentalItems.length > 0
   const hasPurchases = purchaseItems.length > 0
 
+  // Interface for delivery calculation response
+  interface DeliveryCalculationInfo {
+    distance: number
+    distanceText: string
+    duration: string
+    baseDeliveryFees: number
+    distanceFees: number
+    totalDeliveryFees: number
+  }
+
   // États pour la livraison des locations
   const [rentalAddressInput, setRentalAddressInput] = useState('')
   const [isCalculatingRentalFees, setIsCalculatingRentalFees] = useState(false)
-  const [rentalDeliveryInfo, setRentalDeliveryInfo] = useState<any>(null)
+  const [rentalDeliveryInfo, setRentalDeliveryInfo] = useState<DeliveryCalculationInfo | null>(null)
 
   // États pour la livraison des achats
   const [purchaseAddressInput, setPurchaseAddressInput] = useState('')
   const [isCalculatingPurchaseFees, setIsCalculatingPurchaseFees] = useState(false)
-  const [purchaseDeliveryInfo, setPurchaseDeliveryInfo] = useState<any>(null)
+  const [purchaseDeliveryInfo, setPurchaseDeliveryInfo] = useState<DeliveryCalculationInfo | null>(null)
   const [useSameAddress, setUseSameAddress] = useState(false)
 
   // Customer info form state

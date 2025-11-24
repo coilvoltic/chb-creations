@@ -5,19 +5,24 @@ import { Resend } from 'resend'
 import { generateReservationPDF } from '@/lib/pdf-generator'
 
 interface SelectedOption {
+  option_type_name: string
   name: string
-  description: string
+  description?: string
   additional_fee: number
 }
 
-interface ReservationItem {
+interface CartItemPayload {
   productId: number
   productName: string
+  category: string // 'locations' or 'accessoires-personnalises'
   quantity: number
   pricePerUnit: number
   rentalStart: string
   rentalEnd: string
-  selectedOption?: SelectedOption
+  selectedOptions?: SelectedOption[]
+  personalizations?: { [key: string]: string }
+  needsInstallation?: boolean
+  installationFees?: number
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -79,8 +84,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Séparer les items par type
-    const rentalItems = reservationData.items.filter((item: any) => item.category === 'locations')
-    const purchaseItems = reservationData.items.filter((item: any) => item.category === 'accessoires-personnalises')
+    const rentalItems = (reservationData.items as CartItemPayload[]).filter((item: CartItemPayload) => item.category === 'locations')
+    const purchaseItems = (reservationData.items as CartItemPayload[]).filter((item: CartItemPayload) => item.category === 'accessoires-personnalises')
 
     let rentalReservationId = null
     let purchaseReservationId = null
@@ -95,7 +100,7 @@ export async function POST(request: NextRequest) {
           caution: reservationData.caution,
           delivery_address: reservationData.rentalDelivery?.option === 'delivery' ? reservationData.rentalDelivery.address : null,
           delivery_fees: reservationData.rentalDelivery?.fees || 0,
-          total_price: rentalItems.reduce((sum: number, item: any) => sum + (item.pricePerUnit * item.quantity), 0),
+          total_price: rentalItems.reduce((sum: number, item: CartItemPayload) => sum + (item.pricePerUnit * item.quantity), 0),
           reservation_status: 'CONFIRMED', // Statut CONFIRMED car l'acompte a été payé
         })
         .select()
@@ -110,7 +115,7 @@ export async function POST(request: NextRequest) {
       rentalReservationId = rentalReservation.id
 
       // Créer les rental_items
-      const rentalItemsToInsert = rentalItems.map((item: any) => ({
+      const rentalItemsToInsert = rentalItems.map((item: CartItemPayload) => ({
         rental_reservation_id: rentalReservation.id,
         product_id: item.productId,
         quantity: item.quantity,
@@ -140,7 +145,7 @@ export async function POST(request: NextRequest) {
           customer_order_id: customerOrder.id,
           delivery_address: reservationData.purchaseDelivery?.option !== 'pickup' ? reservationData.purchaseDelivery?.address : null,
           delivery_fees: reservationData.purchaseDelivery?.fees || 0,
-          total_price: purchaseItems.reduce((sum: number, item: any) => sum + (item.pricePerUnit * item.quantity), 0),
+          total_price: purchaseItems.reduce((sum: number, item: CartItemPayload) => sum + (item.pricePerUnit * item.quantity), 0),
           reservation_status: 'CONFIRMED',
         })
         .select()
@@ -155,7 +160,7 @@ export async function POST(request: NextRequest) {
       purchaseReservationId = purchaseReservation.id
 
       // Créer les purchase_items
-      const purchaseItemsToInsert = purchaseItems.map((item: any) => ({
+      const purchaseItemsToInsert = purchaseItems.map((item: CartItemPayload) => ({
         purchase_reservation_id: purchaseReservation.id,
         product_id: item.productId,
         quantity: item.quantity,

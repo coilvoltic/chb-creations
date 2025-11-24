@@ -41,11 +41,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const savedCart = localStorage.getItem('chb-cart')
     if (savedCart) {
       try {
-        const parsedCart = JSON.parse(savedCart) as any
+        interface StoredCart {
+          items?: Array<Omit<CartItem, 'rentalPeriod'> & { rentalPeriod: { from: string; to: string } }>
+          totalItems?: number
+          totalPrice?: number
+          rentalDelivery?: DeliveryInfo
+          purchaseDelivery?: DeliveryInfo
+        }
+
+        const parsedCart = JSON.parse(savedCart) as StoredCart
 
         // Migration: handle old cart format
         const migratedCart: Cart = {
-          items: parsedCart.items?.map((item: any) => ({
+          items: parsedCart.items?.map((item) => ({
             ...item,
             rentalPeriod: {
               from: new Date(item.rentalPeriod.from),
