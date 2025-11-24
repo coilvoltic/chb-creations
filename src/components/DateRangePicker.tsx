@@ -133,7 +133,7 @@ export default function DateRangePicker({
   }
 
   return (
-    <div className={`border border-stone-200 rounded-xl p-4 ${disabled ? 'bg-stone-50 opacity-60' : 'bg-white'}`}>
+    <div className={`border border-stone-200 rounded-xl p-4 overflow-hidden ${disabled ? 'bg-stone-50 opacity-60' : 'bg-white'}`}>
       <DayPicker
         mode="range"
         selected={selectedRange}
@@ -166,10 +166,10 @@ export default function DateRangePicker({
 
       {/* Time selection */}
       {selectedRange?.from && selectedRange?.to && (
-        <div className="mt-6 pt-6 border-t border-stone-200">
+        <div className="mt-6 pt-6 border-t border-stone-200 overflow-hidden">
           <h3 className={`text-sm font-semibold mb-4 ${disabled ? 'text-stone-400' : ''}`}>Horaires de location</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
-            <div className="min-w-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 min-w-0 overflow-hidden">
+            <div className="min-w-0 overflow-hidden">
               <label htmlFor="start-time" className={`block text-xs mb-2 ${disabled ? 'text-stone-400' : 'text-stone-600'}`}>
                 Heure de retrait
               </label>
@@ -179,10 +179,10 @@ export default function DateRangePicker({
                 value={localStartTime}
                 disabled={disabled}
                 onChange={(e) => handleTimeChange('start', e.target.value)}
-                className="w-full px-2 md:px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed"
+                className="w-full max-w-full px-2 md:px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed"
               />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 overflow-hidden">
               <label htmlFor="end-time" className={`block text-xs mb-2 ${disabled ? 'text-stone-400' : 'text-stone-600'}`}>
                 Heure de dépôt
               </label>
@@ -192,7 +192,7 @@ export default function DateRangePicker({
                 value={localEndTime}
                 disabled={disabled}
                 onChange={(e) => handleTimeChange('end', e.target.value)}
-                className="w-full px-2 md:px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed"
+                className="w-full max-w-full px-2 md:px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed"
               />
             </div>
           </div>
