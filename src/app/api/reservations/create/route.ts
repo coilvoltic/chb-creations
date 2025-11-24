@@ -29,14 +29,20 @@ interface ReservationItemOptions {
   installationFees?: number
 }
 
+interface DeliveryInfo {
+  option: 'pickup' | 'delivery' | 'relay_point'
+  address?: string
+  fees: number
+  distance?: number
+}
+
 interface CreateReservationPayload {
   customerInfo: CustomerInfo
   items: CartItemPayload[]
   deposit: number
   caution: number
-  deliveryOption?: 'pickup' | 'delivery' // Frontend sends 'pickup' or 'delivery'
-  deliveryAddress?: string // Address if delivery option is 'delivery'
-  deliveryFees?: number
+  rentalDelivery?: DeliveryInfo // Delivery info for rental items
+  purchaseDelivery?: DeliveryInfo // Delivery info for purchase items
   totalPrice: number
   paymentMethod?: 'online' | 'cash' | null
 }
@@ -53,7 +59,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { customerInfo, items, deposit, caution, deliveryOption, deliveryAddress, deliveryFees, totalPrice, paymentMethod } = payload
+    const { customerInfo, items, deposit, caution, rentalDelivery, purchaseDelivery, totalPrice, paymentMethod } = payload
 
     // Create Supabase client with service_role key (bypasses RLS)
     // This is safe because:
@@ -120,8 +126,8 @@ export async function POST(request: NextRequest) {
           customer_order_id: customerOrder.id,
           deposit,
           caution,
-          delivery_address: deliveryOption === 'delivery' ? (deliveryAddress || null) : null,
-          delivery_fees: deliveryFees || 0,
+          delivery_address: rentalDelivery?.option === 'delivery' ? (rentalDelivery.address || null) : null,
+          delivery_fees: rentalDelivery?.fees || 0,
           reservation_status: reservationStatus,
           total_price: rentalItems.reduce((sum, item) => sum + (item.pricePerUnit * item.quantity), 0),
         })
@@ -187,8 +193,8 @@ export async function POST(request: NextRequest) {
         .from('purchase_reservations')
         .insert({
           customer_order_id: customerOrder.id,
-          delivery_address: deliveryOption === 'delivery' ? (deliveryAddress || null) : null,
-          delivery_fees: deliveryFees || 0,
+          delivery_address: purchaseDelivery?.option !== 'pickup' ? (purchaseDelivery?.address || null) : null,
+          delivery_fees: purchaseDelivery?.fees || 0,
           reservation_status: reservationStatus,
           total_price: purchaseItems.reduce((sum, item) => sum + (item.pricePerUnit * item.quantity), 0),
         })
@@ -247,6 +253,19 @@ export async function POST(request: NextRequest) {
 
     // 4. Envoyer l'email de confirmation avec le PDF
     try {
+      // Construire les adresses de livraison pour l'email
+      let deliveryAddressText = null
+      if (rentalDelivery?.option === 'delivery' && rentalDelivery.address) {
+        deliveryAddressText = `Locations: ${rentalDelivery.address}`
+        if (purchaseDelivery?.option !== 'pickup' && purchaseDelivery?.address) {
+          deliveryAddressText += `\nAchats: ${purchaseDelivery.address}`
+        }
+      } else if (purchaseDelivery?.option !== 'pickup' && purchaseDelivery?.address) {
+        deliveryAddressText = `Achats: ${purchaseDelivery.address}`
+      }
+
+      const totalDeliveryFees = (rentalDelivery?.fees || 0) + (purchaseDelivery?.fees || 0)
+
       const emailData = {
         id: customerOrder.id, // Utiliser l'ID de la commande principale
         order_number: customerOrder.order_number,
@@ -255,8 +274,8 @@ export async function POST(request: NextRequest) {
         customer_phone: customerInfo.phone,
         total_amount: totalPrice,
         created_at: customerOrder.created_at,
-        delivery_address: deliveryOption === 'delivery' ? deliveryAddress : null,
-        delivery_fees: deliveryFees,
+        delivery_address: deliveryAddressText,
+        delivery_fees: totalDeliveryFees,
         items: items.map((item) => ({
           product_name: item.productName,
           quantity: item.quantity,

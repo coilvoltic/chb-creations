@@ -78,64 +78,124 @@ export async function POST(request: NextRequest) {
       throw new Error('Erreur lors de la création de la commande')
     }
 
-    // 2. Créer la rental_reservation (liée à customer_order)
-    const { data: rentalReservation, error: reservationError } = await supabase
-      .from('rental_reservations')
-      .insert({
-        customer_order_id: customerOrder.id,
-        deposit: reservationData.deposit,
-        caution: reservationData.caution,
-        delivery_address: reservationData.deliveryOption === 'delivery' ? reservationData.deliveryAddress : null,
-        delivery_fees: reservationData.deliveryFees,
-        total_price: reservationData.totalPrice,
-        reservation_status: 'CONFIRMED', // Statut CONFIRMED car l'acompte a été payé
-      })
-      .select()
-      .single()
+    // 2. Séparer les items par type
+    const rentalItems = reservationData.items.filter((item: any) => item.category === 'locations')
+    const purchaseItems = reservationData.items.filter((item: any) => item.category === 'accessoires-personnalises')
 
-    if (reservationError || !rentalReservation) {
-      console.error('Erreur création rental_reservation:', reservationError)
-      // Rollback: supprimer la commande créée (cascade supprimera aussi)
-      await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
-      throw new Error('Erreur lors de la création de la réservation')
+    let rentalReservationId = null
+    let purchaseReservationId = null
+
+    // 2a. Créer rental_reservation si nécessaire
+    if (rentalItems.length > 0) {
+      const { data: rentalReservation, error: reservationError } = await supabase
+        .from('rental_reservations')
+        .insert({
+          customer_order_id: customerOrder.id,
+          deposit: reservationData.deposit,
+          caution: reservationData.caution,
+          delivery_address: reservationData.rentalDelivery?.option === 'delivery' ? reservationData.rentalDelivery.address : null,
+          delivery_fees: reservationData.rentalDelivery?.fees || 0,
+          total_price: rentalItems.reduce((sum: number, item: any) => sum + (item.pricePerUnit * item.quantity), 0),
+          reservation_status: 'CONFIRMED', // Statut CONFIRMED car l'acompte a été payé
+        })
+        .select()
+        .single()
+
+      if (reservationError || !rentalReservation) {
+        console.error('Erreur création rental_reservation:', reservationError)
+        await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
+        throw new Error('Erreur lors de la création de la réservation location')
+      }
+
+      rentalReservationId = rentalReservation.id
+
+      // Créer les rental_items
+      const rentalItemsToInsert = rentalItems.map((item: any) => ({
+        rental_reservation_id: rentalReservation.id,
+        product_id: item.productId,
+        quantity: item.quantity,
+        rental_start: item.rentalStart,
+        rental_end: item.rentalEnd,
+        options: item.selectedOptions ? { selectedOptions: item.selectedOptions, installationFees: item.installationFees } : null,
+        personalizations: item.personalizations || null,
+        needs_installation: item.needsInstallation || false,
+      }))
+
+      const { error: rentalItemsError } = await supabase
+        .from('rental_items')
+        .insert(rentalItemsToInsert)
+
+      if (rentalItemsError) {
+        console.error('Erreur création rental_items:', rentalItemsError)
+        await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
+        throw new Error('Erreur lors de la création des items de location')
+      }
     }
 
-    // 3. Créer les rental_items
-    const itemsToInsert = reservationData.items.map((item: ReservationItem) => ({
-      rental_reservation_id: rentalReservation.id,
-      product_id: item.productId,
-      quantity: item.quantity,
-      rental_start: item.rentalStart,
-      rental_end: item.rentalEnd,
-      options: item.selectedOption || null,
-    }))
+    // 2b. Créer purchase_reservation si nécessaire
+    if (purchaseItems.length > 0) {
+      const { data: purchaseReservation, error: purchaseError } = await supabase
+        .from('purchase_reservations')
+        .insert({
+          customer_order_id: customerOrder.id,
+          delivery_address: reservationData.purchaseDelivery?.option !== 'pickup' ? reservationData.purchaseDelivery?.address : null,
+          delivery_fees: reservationData.purchaseDelivery?.fees || 0,
+          total_price: purchaseItems.reduce((sum: number, item: any) => sum + (item.pricePerUnit * item.quantity), 0),
+          reservation_status: 'CONFIRMED',
+        })
+        .select()
+        .single()
 
-    const { error: itemsError } = await supabase
-      .from('rental_items')
-      .insert(itemsToInsert)
+      if (purchaseError || !purchaseReservation) {
+        console.error('Erreur création purchase_reservation:', purchaseError)
+        await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
+        throw new Error('Erreur lors de la création de la réservation achat')
+      }
 
-    if (itemsError) {
-      console.error('Erreur création rental_items:', itemsError)
-      // Rollback: supprimer la commande (cascade supprimera rental_reservation et rental_items)
-      await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
-      throw new Error('Erreur lors de la création des items de réservation')
+      purchaseReservationId = purchaseReservation.id
+
+      // Créer les purchase_items
+      const purchaseItemsToInsert = purchaseItems.map((item: any) => ({
+        purchase_reservation_id: purchaseReservation.id,
+        product_id: item.productId,
+        quantity: item.quantity,
+        estimated_delivery_date: null,
+        options: item.selectedOptions ? { selectedOptions: item.selectedOptions, installationFees: item.installationFees } : null,
+        personalizations: item.personalizations || null,
+      }))
+
+      const { error: purchaseItemsError } = await supabase
+        .from('purchase_items')
+        .insert(purchaseItemsToInsert)
+
+      if (purchaseItemsError) {
+        console.error('Erreur création purchase_items:', purchaseItemsError)
+        await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
+        throw new Error('Erreur lors de la création des items d\'achat')
+      }
     }
 
-    // 4. Générer le PDF de confirmation
+    // 3. Générer le PDF de confirmation
     const pdfBuffer = await generateReservationPDF({
-      reservationId: rentalReservation.id,
+      reservationId: customerOrder.id, // Utiliser l'ID de la commande principale
       orderNumber: customerOrder.order_number,
       customerInfo: reservationData.customerInfo,
       items: reservationData.items,
       totalPrice: reservationData.totalPrice,
       deposit: reservationData.deposit,
       caution: reservationData.caution,
-      deliveryOption: reservationData.deliveryOption,
-      deliveryFees: reservationData.deliveryFees,
+      deliveryOption: reservationData.rentalDelivery?.option || reservationData.purchaseDelivery?.option || 'pickup',
+      deliveryFees: (reservationData.rentalDelivery?.fees || 0) + (reservationData.purchaseDelivery?.fees || 0),
     })
 
-    // 5. Envoyer l'email de confirmation
+    // 4. Envoyer l'email de confirmation
     try {
+      // Construire le texte de livraison
+      let deliveryText = 'récupération en boutique'
+      if (reservationData.rentalDelivery?.option === 'delivery' || reservationData.purchaseDelivery?.option !== 'pickup') {
+        deliveryText = 'livraison'
+      }
+
       await resend.emails.send({
         from: 'CHB Créations <noreply@chb-creations.fr>',
         to: reservationData.customerInfo.email,
@@ -146,7 +206,7 @@ export async function POST(request: NextRequest) {
           <p>Votre commande #${customerOrder.order_number} a été confirmée et votre paiement a été reçu avec succès.</p>
           <p><strong>Montant de l'acompte payé :</strong> ${reservationData.deposit.toFixed(2)} €</p>
           <p><strong>Solde restant :</strong> ${(reservationData.totalPrice - reservationData.deposit).toFixed(2)} €</p>
-          <p>Le solde sera à régler lors de la ${reservationData.deliveryOption === 'delivery' ? 'livraison' : 'récupération en boutique'}.</p>
+          <p>Le solde sera à régler lors de la ${deliveryText}.</p>
           <p>Vous trouverez tous les détails de votre réservation en pièce jointe.</p>
           <p>À très bientôt !</p>
           <p>L'équipe CHB Créations</p>
@@ -167,7 +227,8 @@ export async function POST(request: NextRequest) {
       success: true,
       orderId: customerOrder.id,
       orderNumber: customerOrder.order_number,
-      reservationId: rentalReservation.id,
+      rentalReservationId: rentalReservationId,
+      purchaseReservationId: purchaseReservationId,
     })
   } catch (error) {
     console.error('Erreur traitement paiement:', error)

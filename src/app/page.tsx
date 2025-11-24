@@ -160,32 +160,6 @@ export default function Home() {
                   </div>
                 </div>
               </Link>
-
-              {/* Décoration */}
-              <Link href="/services/decoration" className="group cursor-pointer">
-                <div className="bg-white rounded-2xl overflow-hidden transition-all duration-300 ease-in-out hover:scale-[1.02] hover:-translate-y-2 animate-fade-in-up delay-400">
-                  <div className="relative aspect-[3/4] md:aspect-[4/5] overflow-hidden">
-                    <img
-                      src="/imgs/livraison/mainLivraison.png"
-                      alt="Décoration"
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 lg:p-10 text-white">
-                      <h2 className="text-4xl md:text-5xl font-bold mb-3 font-satisfy">Décoration</h2>
-                      <p className="text-base md:text-lg text-white/80 mb-4 md:mb-5">
-                        Livraison et installation
-                      </p>
-                      <span className="inline-flex items-center gap-2 text-base md:text-lg font-medium text-white/90">
-                        Découvrir
-                        <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
             </div>
           </div>
         </div>

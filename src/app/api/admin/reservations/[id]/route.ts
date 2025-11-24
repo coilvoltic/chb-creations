@@ -8,7 +8,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const supabase = createRouteHandlerClient({ cookies })
+    const cookieStore = await cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
 
     // Vérifier l'authentification
     const {
@@ -65,7 +66,9 @@ export async function GET(
             products (
               name,
               slug,
-              images
+              images,
+              price,
+              new_price
             )
           `)
           .eq('rental_reservation_id', reservation.id)
@@ -105,7 +108,9 @@ export async function GET(
             products (
               name,
               slug,
-              images
+              images,
+              price,
+              new_price
             )
           `)
           .eq('purchase_reservation_id', reservation.id)

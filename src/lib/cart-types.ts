@@ -30,12 +30,20 @@ export interface CartItem {
   subcategory: string
 }
 
+export type DeliveryOption = 'pickup' | 'delivery' | 'relay_point'
+
+export interface DeliveryInfo {
+  option: DeliveryOption
+  address?: string
+  fees: number
+  distance?: number
+}
+
 export interface Cart {
   items: CartItem[]
   totalItems: number
   totalPrice: number
-  deliveryOption?: 'pickup' | 'delivery' // pickup = retrait en boutique, delivery = livraison
-  deliveryAddress?: string // Adresse de livraison
-  totalDeliveryFees?: number
-  deliveryDistance?: number // Distance en km
+  // Séparation des options de livraison par catégorie
+  rentalDelivery: DeliveryInfo // Pour les locations
+  purchaseDelivery: DeliveryInfo // Pour les achats d'accessoires personnalisés
 }

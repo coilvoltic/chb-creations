@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CHB Créations is a Next.js 15 e-commerce website for event decoration services, personalized accessories, henna services, and event rentals based in Marseille. The site is in French and uses the App Router architecture with Supabase as the backend database.
+CHB Créations is a Next.js 15 e-commerce website for event rentals, personalized accessories, and henna services based in Marseille. The site is in French and uses the App Router architecture with Supabase as the backend database.
 
 ## Development Commands
 
@@ -134,7 +134,7 @@ Required in `.env.local`:
 
 ### Page Hierarchy & Routing
 
-**Main sections** (4 services):
+**Main sections** (3 services):
 1. **Locations** (`/services/locations`)
    - Art de table (`/services/locations/art-de-table`)
    - Trônes (`/services/locations/trones`)
@@ -144,8 +144,6 @@ Required in `.env.local`:
 2. **Accessoires** (`/services/accessoires`)
 
 3. **Henné** (`/services/henne`)
-
-4. **Décoration** (`/services/decoration`)
 
 **Individual products** follow pattern: `/services/locations/[category]/[product-slug]`
 

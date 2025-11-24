@@ -6,29 +6,48 @@ import { useCart } from '@/contexts/CartContext'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { CustomerInfo } from '@/lib/supabase'
+import type { CartItem } from '@/lib/cart-types'
 import SuccessModal from '@/components/SuccessModal'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
 
 export default function CartPage() {
-  const { cart, removeFromCart, clearCart, setDeliveryOption, setDeliveryAddress, updateDeliveryFees } = useCart()
+  const {
+    cart,
+    removeFromCart,
+    clearCart,
+    setRentalDeliveryOption,
+    setPurchaseDeliveryOption,
+    setRentalDeliveryAddress,
+    setPurchaseDeliveryAddress,
+    updateRentalDeliveryFees,
+    updatePurchaseDeliveryFees,
+    getRentalItems,
+    getPurchaseItems,
+  } = useCart()
+
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCheckoutForm, setShowCheckoutForm] = useState(false)
-  const [showConfirmation, setShowConfirmation] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [reservationId, setReservationId] = useState<number | null>(null)
-  const [deliveryAddressInput, setDeliveryAddressInput] = useState('')
-  const [_isAddressSelected, setIsAddressSelected] = useState(false) // Track if user selected from autocomplete
-  const [isCalculatingFees, setIsCalculatingFees] = useState(false)
-  const [deliveryInfo, setDeliveryInfo] = useState<{
-    distance: number
-    distanceText: string
-    duration: string
-    baseDeliveryFees: number
-    distanceFees: number
-    totalDeliveryFees: number
-  } | null>(null)
+
+  // Séparer les items par catégorie
+  const rentalItems = getRentalItems()
+  const purchaseItems = getPurchaseItems()
+  const hasRentals = rentalItems.length > 0
+  const hasPurchases = purchaseItems.length > 0
+
+  // États pour la livraison des locations
+  const [rentalAddressInput, setRentalAddressInput] = useState('')
+  const [isCalculatingRentalFees, setIsCalculatingRentalFees] = useState(false)
+  const [rentalDeliveryInfo, setRentalDeliveryInfo] = useState<any>(null)
+
+  // États pour la livraison des achats
+  const [purchaseAddressInput, setPurchaseAddressInput] = useState('')
+  const [isCalculatingPurchaseFees, setIsCalculatingPurchaseFees] = useState(false)
+  const [purchaseDeliveryInfo, setPurchaseDeliveryInfo] = useState<any>(null)
+  const [useSameAddress, setUseSameAddress] = useState(false)
 
   // Customer info form state
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
@@ -38,34 +57,25 @@ export default function CartPage() {
     phone: '',
   })
 
-  // Calculer les frais de livraison en fonction de l'adresse
-  const handleCalculateDeliveryFees = async (address?: string) => {
-    const addressToUse = address || deliveryAddressInput
-
-    console.log('handleCalculateDeliveryFees called')
-    console.log('addressToUse:', addressToUse)
-    console.log('cart.items:', cart.items)
+  // Calculer les frais de livraison pour les locations
+  const handleCalculateRentalDeliveryFees = async (address?: string) => {
+    const addressToUse = address || rentalAddressInput
 
     if (!addressToUse.trim()) {
-      setError('Veuillez saisir une adresse de livraison')
+      setError('Veuillez saisir une adresse de livraison pour les locations')
       return
     }
 
-    setIsCalculatingFees(true)
+    setIsCalculatingRentalFees(true)
     setError(null)
 
     try {
-      // Calculer les frais de base totaux
-      const totalBaseDeliveryFees = cart.items.reduce((sum, item) => {
-        console.log(`Item ${item.productName}: baseDeliveryFees=${item.baseDeliveryFees}, quantity=${item.quantity}`)
+      const totalBaseDeliveryFees = rentalItems.reduce((sum, item) => {
         return sum + (item.baseDeliveryFees || 0) * item.quantity
       }, 0)
 
-      console.log('totalBaseDeliveryFees:', totalBaseDeliveryFees)
-
-      // Si les frais de base sont à 0, on enregistre quand même l'adresse avec des frais à 0
       if (totalBaseDeliveryFees === 0) {
-        setDeliveryInfo({
+        setRentalDeliveryInfo({
           distance: 0,
           distanceText: '0 km',
           duration: 'N/A',
@@ -73,9 +83,9 @@ export default function CartPage() {
           distanceFees: 0,
           totalDeliveryFees: 0,
         })
-        setDeliveryAddress(addressToUse)
-        updateDeliveryFees(0, 0)
-        setIsCalculatingFees(false)
+        setRentalDeliveryAddress(addressToUse)
+        updateRentalDeliveryFees(0, 0)
+        setIsCalculatingRentalFees(false)
         return
       }
 
@@ -94,20 +104,86 @@ export default function CartPage() {
         throw new Error(data.error || 'Erreur lors du calcul des frais')
       }
 
-      // Mettre à jour les informations de livraison
-      setDeliveryInfo(data)
-      setDeliveryAddress(addressToUse)
-      updateDeliveryFees(data.totalDeliveryFees, data.distance)
+      setRentalDeliveryInfo(data)
+      setRentalDeliveryAddress(addressToUse)
+      updateRentalDeliveryFees(data.totalDeliveryFees, data.distance)
     } catch (err) {
-      console.error('Erreur calcul frais:', err)
+      console.error('Erreur calcul frais locations:', err)
       setError(err instanceof Error ? err.message : 'Erreur lors du calcul des frais de livraison')
     } finally {
-      setIsCalculatingFees(false)
+      setIsCalculatingRentalFees(false)
+    }
+  }
+
+  // Calculer les frais de livraison pour les achats
+  const handleCalculatePurchaseDeliveryFees = async (address?: string) => {
+    const addressToUse = address || purchaseAddressInput
+
+    if (!addressToUse.trim()) {
+      setError('Veuillez saisir une adresse de livraison pour les achats')
+      return
+    }
+
+    setIsCalculatingPurchaseFees(true)
+    setError(null)
+
+    try {
+      const totalBaseDeliveryFees = purchaseItems.reduce((sum, item) => {
+        return sum + (item.baseDeliveryFees || 0) * item.quantity
+      }, 0)
+
+      if (totalBaseDeliveryFees === 0) {
+        setPurchaseDeliveryInfo({
+          distance: 0,
+          distanceText: '0 km',
+          duration: 'N/A',
+          baseDeliveryFees: 0,
+          distanceFees: 0,
+          totalDeliveryFees: 0,
+        })
+        setPurchaseDeliveryAddress(addressToUse)
+        updatePurchaseDeliveryFees(0, 0)
+        setIsCalculatingPurchaseFees(false)
+        return
+      }
+
+      const response = await fetch('/api/calculate-delivery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deliveryAddress: addressToUse,
+          baseDeliveryFees: totalBaseDeliveryFees,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors du calcul des frais')
+      }
+
+      setPurchaseDeliveryInfo(data)
+      setPurchaseDeliveryAddress(addressToUse)
+      updatePurchaseDeliveryFees(data.totalDeliveryFees, data.distance)
+    } catch (err) {
+      console.error('Erreur calcul frais achats:', err)
+      setError(err instanceof Error ? err.message : 'Erreur lors du calcul des frais de livraison')
+    } finally {
+      setIsCalculatingPurchaseFees(false)
+    }
+  }
+
+  // Utiliser la même adresse que les locations
+  const handleUseSameAddress = () => {
+    if (rentalAddressInput && cart.rentalDelivery.option === 'delivery') {
+      setPurchaseAddressInput(rentalAddressInput)
+      handleCalculatePurchaseDeliveryFees(rentalAddressInput)
+      setUseSameAddress(true)
     }
   }
 
   // Calculate total options fees for an item
-  const getItemOptionsFees = (item: typeof cart.items[0]) => {
+  const getItemOptionsFees = (item: CartItem) => {
     if (!item.selectedOptions || item.selectedOptions.length === 0) return 0
     return item.selectedOptions.reduce((sum, option) => sum + option.additional_fee, 0)
   }
@@ -115,7 +191,7 @@ export default function CartPage() {
   // Calculate deposit based on products with deposit requirements
   const calculateDeposit = () => {
     let totalDeposit = 0
-    cart.items.forEach((item) => {
+    rentalItems.forEach((item) => {
       if (item.depositPercentage && item.depositPercentage > 0) {
         const itemPrice = item.pricePerUnit + getItemOptionsFees(item)
         const itemTotal = itemPrice * item.quantity
@@ -130,7 +206,7 @@ export default function CartPage() {
   // Calculate total caution based on items with caution
   const calculateCaution = () => {
     let totalCaution = 0
-    cart.items.forEach((item) => {
+    rentalItems.forEach((item) => {
       if (item.cautionPerUnit && item.cautionPerUnit > 0) {
         totalCaution += item.cautionPerUnit * item.quantity
       }
@@ -140,24 +216,55 @@ export default function CartPage() {
 
   const cautionAmount = calculateCaution()
 
+  // Calculer les sous-totaux
+  const calculateRentalSubtotal = () => {
+    return rentalItems.reduce((sum, item) => {
+      const basePrice = item.pricePerUnit
+      const optionsFees = getItemOptionsFees(item)
+      const installationFee = (item.needsInstallation && item.installationFees) ? item.installationFees : 0
+      return sum + item.quantity * (basePrice + optionsFees + installationFee)
+    }, 0)
+  }
+
+  const calculatePurchaseSubtotal = () => {
+    return purchaseItems.reduce((sum, item) => {
+      const basePrice = item.pricePerUnit
+      const optionsFees = getItemOptionsFees(item)
+      const installationFee = (item.needsInstallation && item.installationFees) ? item.installationFees : 0
+      return sum + item.quantity * (basePrice + optionsFees + installationFee)
+    }, 0)
+  }
+
   const handleValidateOrder = async () => {
     setIsSubmitting(true)
     setError(null)
 
     try {
-      // Préparer les données pour l'API
-      const totalWithDelivery = cart.totalPrice + (cart.totalDeliveryFees || 0)
-      const payload = {
-        customerInfo,
-        items: cart.items.map((item) => {
+      // Validation des données selon le type de commande
+      if (hasRentals && cart.rentalDelivery.option === 'delivery' && !cart.rentalDelivery.address) {
+        throw new Error('Veuillez saisir une adresse de livraison pour les locations')
+      }
+
+      if (hasPurchases && cart.purchaseDelivery.option === 'delivery' && !cart.purchaseDelivery.address) {
+        throw new Error('Veuillez saisir une adresse de livraison pour les achats')
+      }
+
+      const totalWithDelivery = cart.totalPrice + cart.rentalDelivery.fees + cart.purchaseDelivery.fees
+
+      // Construire le tableau d'items unifié avec les informations de catégorie
+      const allItems = [
+        ...rentalItems.map((item) => {
           const unitPrice = item.pricePerUnit + getItemOptionsFees(item)
           return {
             productId: item.productId,
             productName: item.productName,
+            category: item.category,
             quantity: item.quantity,
             pricePerUnit: unitPrice,
             selectedOptions: item.selectedOptions,
             personalizations: item.personalizations,
+            needsInstallation: item.needsInstallation,
+            installationFees: item.installationFees,
             rentalStart: new Date(
               item.rentalPeriod.from.toISOString().split('T')[0] + 'T' + item.startTime
             ).toISOString(),
@@ -166,16 +273,38 @@ export default function CartPage() {
             ).toISOString(),
           }
         }),
+        ...purchaseItems.map((item) => {
+          const unitPrice = item.pricePerUnit + getItemOptionsFees(item)
+          // Utiliser des dates dummy pour les achats (requis par l'API)
+          const now = new Date()
+          return {
+            productId: item.productId,
+            productName: item.productName,
+            category: item.category,
+            quantity: item.quantity,
+            pricePerUnit: unitPrice,
+            selectedOptions: item.selectedOptions,
+            personalizations: item.personalizations,
+            needsInstallation: item.needsInstallation,
+            installationFees: item.installationFees,
+            rentalStart: now.toISOString(),
+            rentalEnd: now.toISOString(),
+          }
+        }),
+      ]
+
+      const payload = {
+        customerInfo,
+        items: allItems,
         deposit: depositAmount,
         caution: cautionAmount,
-        deliveryOption: cart.deliveryOption,
-        deliveryAddress: cart.deliveryAddress || null,
-        deliveryFees: cart.totalDeliveryFees || 0,
+        rentalDelivery: cart.rentalDelivery,
+        purchaseDelivery: cart.purchaseDelivery,
         totalPrice: totalWithDelivery,
-        paymentMethod: 'cash', // Toujours en espèces pour le moment
+        paymentMethod: 'cash',
       }
 
-      // Créer la réservation directement (paiement en espèces)
+      // Créer la réservation
       const response = await fetch('/api/reservations/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -188,12 +317,8 @@ export default function CartPage() {
         throw new Error(data.error || 'Erreur lors de la création de la réservation')
       }
 
-      // Succès
-      // NE PAS vider le panier ici, sinon le composant va afficher "panier vide" et la modal ne s'affichera pas
-      // Le panier sera vidé quand l'utilisateur fermera la modal
-      setReservationId(data.reservationId)
+      setReservationId(data.orderNumber || data.orderId)
       setShowSuccessModal(true)
-      setShowConfirmation(false)
     } catch (err) {
       console.error('Erreur validation commande:', err)
       setError(err instanceof Error ? err.message : 'Erreur lors de la validation')
@@ -201,6 +326,105 @@ export default function CartPage() {
       setIsSubmitting(false)
     }
   }
+
+  const renderCartItem = (item: CartItem) => (
+    <div
+      key={item.id}
+      className="border border-stone-200 rounded-xl p-6 hover:shadow-md transition-shadow"
+    >
+      <div className="flex gap-6">
+        {/* Product Image */}
+        <div className="w-24 h-24 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0">
+          <img
+            src={item.productImage}
+            alt={item.productName}
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* Product Details */}
+        <div className="flex-1">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <Link
+                href={`/services/${item.category}/${item.subcategory}/${item.productSlug}`}
+                className="font-semibold text-lg hover:underline"
+              >
+                {item.productName}
+              </Link>
+              <p className="text-sm text-stone-600 capitalize">
+                {item.category} › {item.subcategory.replace('-', ' ')}
+              </p>
+            </div>
+            <button
+              onClick={() => removeFromCart(item.id)}
+              className="text-red-600 hover:text-red-700 text-sm font-medium"
+            >
+              Supprimer
+            </button>
+          </div>
+
+          <div className="space-y-1 text-sm text-stone-700">
+            {/* Show rental period only for rental products */}
+            {item.category === 'locations' && (
+              <p>
+                <span className="font-medium">Période :</span>{' '}
+                {item.rentalPeriod.from.toLocaleDateString('fr-FR')} {item.startTime} -{' '}
+                {item.rentalPeriod.to.toLocaleDateString('fr-FR')} {item.endTime}
+              </p>
+            )}
+            <p>
+              <span className="font-medium">Prix unitaire :</span> {item.pricePerUnit.toFixed(2)} €
+            </p>
+            {item.selectedOptions && item.selectedOptions.length > 0 && (
+              <div className="space-y-1">
+                {item.selectedOptions.map((option, idx) => (
+                  <p key={idx} className="text-blue-700">
+                    <span className="font-medium">{option.option_type_name} :</span> {option.name}
+                    {option.additional_fee > 0 && ` (+${option.additional_fee.toFixed(2)} €)`}
+                  </p>
+                ))}
+              </div>
+            )}
+            {item.personalizations && Object.keys(item.personalizations).length > 0 && (
+              <div className="space-y-1 mt-2">
+                {Object.entries(item.personalizations).map(([fieldName, value], idx) => (
+                  <p key={idx} className="text-stone-700">
+                    <span className="font-medium">✏️ {fieldName} :</span> {value}
+                  </p>
+                ))}
+              </div>
+            )}
+            {item.needsInstallation && item.installationFees && (
+              <p className="text-blue-700">
+                <span className="font-medium">Installation :</span> +{item.installationFees}€ / unité
+              </p>
+            )}
+            {item.depositPercentage && item.depositPercentage > 0 && (
+              <p className="text-blue-700">
+                <span className="font-medium">Acompte requis :</span> {item.depositPercentage}%
+              </p>
+            )}
+            {item.cautionPerUnit && item.cautionPerUnit > 0 && (
+              <p className="text-amber-700">
+                <span className="font-medium">Caution :</span> {item.cautionPerUnit.toFixed(2)}€ / unité
+              </p>
+            )}
+            <p>
+              <span className="font-medium">Quantité :</span> {item.quantity}
+            </p>
+          </div>
+
+          {/* Subtotal */}
+          <div className="mt-4 text-right">
+            <p className="text-lg font-bold">
+              {(item.quantity * (item.pricePerUnit + getItemOptionsFees(item) + ((item.needsInstallation && item.installationFees) ? item.installationFees : 0))).toFixed(2)} €
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 
   if (cart.items.length === 0) {
     return (
@@ -210,7 +434,7 @@ export default function CartPage() {
           <div className="text-center max-w-md mx-auto">
             <h1 className="text-4xl font-bold mb-4">Votre panier est vide</h1>
             <p className="text-stone-600 mb-8">
-              Ajoutez des articles pour commencer votre location
+              Ajoutez des articles pour commencer votre commande
             </p>
             <Link
               href="/services/locations"
@@ -232,227 +456,257 @@ export default function CartPage() {
         <h1 className="text-4xl md:text-5xl font-bold mb-8">Votre panier</h1>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Cart Items */}
-          <div className="lg:col-span-2 space-y-4">
-            {cart.items.map((item) => (
-              <div
-                key={item.id}
-                className="border border-stone-200 rounded-xl p-6 hover:shadow-md transition-shadow"
-              >
-                <div className="flex gap-6">
-                  {/* Product Image */}
-                  <div className="w-24 h-24 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0">
-                    <img
-                      src={item.productImage}
-                      alt={item.productName}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+          {/* Cart Items - 2 sections séparées */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Section LOCATIONS */}
+            {hasRentals && (
+              <div className="border-1 border-blue-300 rounded-2xl p-6 bg-white">
+                <div className="flex items-center gap-3 mb-6">
+                  <h2 className="text-2xl font-bold text-blue-900">Locations</h2>
+                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                    {rentalItems.length} article{rentalItems.length > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="space-y-4">
+                  {rentalItems.map(renderCartItem)}
+                </div>
 
-                  {/* Product Details */}
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <Link
-                          href={`/services/${item.category}/${item.subcategory}/${item.productSlug}`}
-                          className="font-semibold text-lg hover:underline"
-                        >
-                          {item.productName}
-                        </Link>
-                        <p className="text-sm text-stone-600 capitalize">
-                          {item.category} › {item.subcategory.replace('-', ' ')}
-                        </p>
+                {/* Options de livraison pour les locations */}
+                <div className="mt-6 p-4 bg-blue-50 border border-blue-300 rounded-lg">
+                  <h3 className="font-semibold mb-3 text-blue-900">Mode de récupération</h3>
+                  <div className="space-y-3">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="rentalDeliveryOption"
+                        value="pickup"
+                        checked={cart.rentalDelivery.option === 'pickup'}
+                        onChange={() => {
+                          setRentalDeliveryOption('pickup')
+                          setRentalAddressInput('')
+                          setRentalDeliveryInfo(null)
+                        }}
+                        className="mr-3 w-5 h-5 cursor-pointer"
+                      />
+                      <div className="flex-1">
+                        <span className="font-medium">Retrait en boutique</span>
+                        <p className="text-xs text-stone-600">100 Boulevard de Saint-Loup, 13010 Marseille</p>
                       </div>
-                      <button
-                        onClick={() => removeFromCart(item.id)}
-                        className="text-red-600 hover:text-red-700 text-sm font-medium"
-                      >
-                        Supprimer
-                      </button>
-                    </div>
+                    </label>
+                    <label className="flex items-start cursor-pointer">
+                      <input
+                        type="radio"
+                        name="rentalDeliveryOption"
+                        value="delivery"
+                        checked={cart.rentalDelivery.option === 'delivery'}
+                        onChange={() => setRentalDeliveryOption('delivery')}
+                        className="mr-3 w-5 h-5 cursor-pointer mt-1"
+                      />
+                      <div className="flex-1">
+                        <span className="font-medium">Livraison à domicile</span>
+                        <p className="text-xs text-stone-600 mb-2">Frais calculés selon la distance</p>
 
-                    <div className="space-y-1 text-sm text-stone-700">
-                      {/* Show rental period only for rental products */}
-                      {item.category === 'locations' && (
-                        <p>
-                          <span className="font-medium">Période :</span>{' '}
-                          {item.rentalPeriod.from.toLocaleDateString('fr-FR')} {item.startTime} -{' '}
-                          {item.rentalPeriod.to.toLocaleDateString('fr-FR')} {item.endTime}
-                        </p>
-                      )}
-                      <p>
-                        <span className="font-medium">Prix unitaire :</span> {item.pricePerUnit.toFixed(2)} €
-                      </p>
-                      {item.selectedOptions && item.selectedOptions.length > 0 && (
-                        <div className="space-y-1">
-                          {item.selectedOptions.map((option, idx) => (
-                            <p key={idx} className="text-blue-700">
-                              <span className="font-medium">{option.option_type_name} :</span> {option.name}
-                              {option.additional_fee > 0 && ` (+${option.additional_fee.toFixed(2)} €)`}
-                            </p>
-                          ))}
-                        </div>
-                      )}
-                      {item.personalizations && Object.keys(item.personalizations).length > 0 && (
-                        <div className="space-y-1 mt-2">
-                          {Object.entries(item.personalizations).map(([fieldName, value], idx) => (
-                            <p key={idx} className="text-stone-700">
-                              <span className="font-medium">✏️ {fieldName} :</span> {value}
-                            </p>
-                          ))}
-                        </div>
-                      )}
-                      {item.needsInstallation && item.installationFees && (
-                        <p className="text-blue-700">
-                          <span className="font-medium">Installation :</span> +{item.installationFees}€ / unité
-                        </p>
-                      )}
-                      {item.depositPercentage && item.depositPercentage > 0 && (
-                        <p className="text-blue-700">
-                          <span className="font-medium">Acompte requis :</span> {item.depositPercentage}%
-                        </p>
-                      )}
-                      {item.cautionPerUnit && item.cautionPerUnit > 0 && (
-                        <p className="text-amber-700">
-                          <span className="font-medium">Caution :</span> {item.cautionPerUnit.toFixed(2)}€ / unité (soit {(item.cautionPerUnit * item.quantity).toFixed(2)}€ total, non encaissée)
-                        </p>
-                      )}
-                      <p>
-                        <span className="font-medium">Quantité :</span> {item.quantity}
-                      </p>
-                    </div>
+                        {cart.rentalDelivery.option === 'delivery' && (
+                          <div className="mt-2 space-y-2">
+                            <AddressAutocomplete
+                              value={rentalAddressInput}
+                              onChange={(value) => {
+                                setRentalAddressInput(value)
+                                setRentalDeliveryInfo(null)
+                              }}
+                              onSelect={(address) => {
+                                setRentalAddressInput(address)
+                                handleCalculateRentalDeliveryFees(address)
+                              }}
+                              placeholder="Adresse de livraison pour les locations"
+                              className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            />
 
-                    {/* Subtotal */}
-                    <div className="mt-4 text-right">
-                      <p className="text-lg font-bold">
-                        {(item.quantity * (item.pricePerUnit + getItemOptionsFees(item) + ((item.needsInstallation && item.installationFees) ? item.installationFees : 0))).toFixed(2)} €
-                      </p>
-                    </div>
+                            {isCalculatingRentalFees && (
+                              <div className="flex items-center gap-2 text-sm text-stone-600">
+                                <div className="w-4 h-4 border-2 border-stone-200 border-t-blue-600 rounded-full animate-spin"></div>
+                                <span>Calcul des frais en cours...</span>
+                              </div>
+                            )}
+
+                            {rentalDeliveryInfo && (
+                              <div className="bg-white border-slate-300 border p-3 rounded-lg text-xs space-y-1">
+                                <p className="font-medium text-slate-800">Frais de livraison calculés</p>
+                                <p className="text-stone-700">Distance : {rentalDeliveryInfo.distanceText}</p>
+                                <p className="font-semibold text-slate-800">Total livraison : {rentalDeliveryInfo.totalDeliveryFees.toFixed(2)} €</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </label>
                   </div>
                 </div>
               </div>
-            ))}
+            )}
+
+            {/* Section ACHATS */}
+            {hasPurchases && (
+              <div className="border-1 border-green-300 rounded-2xl p-6 bg-white">
+                <div className="flex items-center gap-3 mb-6">
+                  <h2 className="text-2xl font-bold text-green-900">Achats</h2>
+                  <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                    {purchaseItems.length} article{purchaseItems.length > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="space-y-4">
+                  {purchaseItems.map(renderCartItem)}
+                </div>
+
+                {/* Options de livraison pour les achats */}
+                <div className="mt-6 p-4 bg-green-50 border border-green-300 rounded-lg">
+                  <h3 className="font-semibold mb-3 text-green-900">Mode de récupération</h3>
+                  <div className="space-y-3">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="purchaseDeliveryOption"
+                        value="pickup"
+                        checked={cart.purchaseDelivery.option === 'pickup'}
+                        onChange={() => {
+                          setPurchaseDeliveryOption('pickup')
+                          setPurchaseAddressInput('')
+                          setPurchaseDeliveryInfo(null)
+                          setUseSameAddress(false)
+                        }}
+                        className="mr-3 w-5 h-5 cursor-pointer"
+                      />
+                      <div className="flex-1">
+                        <span className="font-medium">Retrait en boutique</span>
+                        <p className="text-xs text-stone-600">100 Boulevard de Saint-Loup, 13010 Marseille</p>
+                      </div>
+                    </label>
+                    <label className="flex items-start cursor-pointer">
+                      <input
+                        type="radio"
+                        name="purchaseDeliveryOption"
+                        value="delivery"
+                        checked={cart.purchaseDelivery.option === 'delivery'}
+                        onChange={() => setPurchaseDeliveryOption('delivery')}
+                        className="mr-3 w-5 h-5 cursor-pointer mt-1"
+                      />
+                      <div className="flex-1">
+                        <span className="font-medium">Livraison à domicile</span>
+                        <p className="text-xs text-stone-600 mb-2">Frais calculés selon la distance</p>
+
+                        {cart.purchaseDelivery.option === 'delivery' && (
+                          <div className="mt-2 space-y-2">
+                            {hasRentals && cart.rentalDelivery.option === 'delivery' && cart.rentalDelivery.address && !useSameAddress && (
+                              <button
+                                onClick={handleUseSameAddress}
+                                className="text-xs text-blue-600 hover:text-blue-700 font-medium underline mb-2"
+                              >
+                                Utiliser la même adresse que pour les locations
+                              </button>
+                            )}
+
+                            <AddressAutocomplete
+                              value={purchaseAddressInput}
+                              onChange={(value) => {
+                                setPurchaseAddressInput(value)
+                                setPurchaseDeliveryInfo(null)
+                                setUseSameAddress(false)
+                              }}
+                              onSelect={(address) => {
+                                setPurchaseAddressInput(address)
+                                handleCalculatePurchaseDeliveryFees(address)
+                              }}
+                              placeholder="Adresse de livraison pour les achats"
+                              className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                            />
+
+                            {isCalculatingPurchaseFees && (
+                              <div className="flex items-center gap-2 text-sm text-stone-600">
+                                <div className="w-4 h-4 border-2 border-stone-200 border-t-green-600 rounded-full animate-spin"></div>
+                                <span>Calcul des frais en cours...</span>
+                              </div>
+                            )}
+
+                            {purchaseDeliveryInfo && (
+                              <div className="bg-white border-slate-300 border p-3 rounded-lg text-xs space-y-1">
+                                <p className="font-medium text-slate-800">Frais de livraison calculés</p>
+                                <p className="text-stone-700">Distance : {purchaseDeliveryInfo.distanceText}</p>
+                                <p className="font-semibold text-slate-800">Total livraison : {purchaseDeliveryInfo.totalDeliveryFees.toFixed(2)} €</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="purchaseDeliveryOption"
+                        value="relay_point"
+                        checked={cart.purchaseDelivery.option === 'relay_point'}
+                        onChange={() => {
+                          setPurchaseDeliveryOption('relay_point')
+                          setPurchaseAddressInput('')
+                          setPurchaseDeliveryInfo(null)
+                          setUseSameAddress(false)
+                        }}
+                        className="mr-3 w-5 h-5 cursor-pointer"
+                      />
+                      <div className="flex-1">
+                        <span className="font-medium">Point relais</span>
+                        <p className="text-xs text-stone-600">À venir - Service non disponible pour le moment</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Order Summary & Checkout Form */}
+          {/* Order Summary */}
           <div className="lg:col-span-1">
             <div className="border border-stone-200 rounded-xl p-6 sticky top-24">
               <h2 className="text-2xl font-bold mb-6">Récapitulatif</h2>
 
-              {/* Delivery Option Selection */}
-              <div className="mb-6 p-4 bg-stone-50 rounded-lg">
-                <h3 className="font-semibold mb-3">Mode de récupération</h3>
-                <div className="space-y-3">
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="deliveryOption"
-                      value="pickup"
-                      checked={cart.deliveryOption === 'pickup'}
-                      onChange={() => {
-                        setDeliveryOption('pickup')
-                        setDeliveryAddressInput('')
-                        setIsAddressSelected(false)
-                        setDeliveryInfo(null)
-                        setError(null)
-                      }}
-                      className="mr-3 w-5 h-5 cursor-pointer"
-                    />
-                    <div className="flex-1">
-                      <span className="font-medium">Retrait en boutique</span>
-                      <p className="text-xs text-stone-600">100 Boulevard de Saint-Loup, 13010 Marseille</p>
+              <div className="space-y-4 mb-6">
+                {/* Sous-totaux par catégorie */}
+                {hasRentals && (
+                  <div className="pb-3 border-b border-stone-200">
+                    <div className="flex justify-between text-blue-700 font-medium">
+                      <span>Locations ({rentalItems.length} article{rentalItems.length > 1 ? 's' : ''})</span>
+                      <span>{calculateRentalSubtotal().toFixed(2)} €</span>
                     </div>
-                  </label>
-                  <label className="flex items-start cursor-pointer">
-                    <input
-                      type="radio"
-                      name="deliveryOption"
-                      value="delivery"
-                      checked={cart.deliveryOption === 'delivery'}
-                      onChange={() => setDeliveryOption('delivery')}
-                      className="mr-3 w-5 h-5 cursor-pointer mt-1"
-                    />
-                    <div className="flex-1">
-                      <span className="font-medium">Livraison à domicile</span>
-                      <p className="text-xs text-stone-600 mb-2">Frais calculés selon la distance</p>
-
-                      {cart.deliveryOption === 'delivery' && (
-                        <div className="mt-2 space-y-2">
-                          <AddressAutocomplete
-                            value={deliveryAddressInput}
-                            onChange={(value) => {
-                              setDeliveryAddressInput(value)
-                              // Réinitialiser le flag si l'utilisateur modifie l'adresse manuellement
-                              setIsAddressSelected(false)
-                              // Réinitialiser les infos de livraison si l'adresse change
-                              setDeliveryInfo(null)
-                            }}
-                            onSelect={(address) => {
-                              console.log('Address selected:', address)
-                              setDeliveryAddressInput(address)
-                              setIsAddressSelected(true)
-                              // Calculer automatiquement les frais après sélection
-                              handleCalculateDeliveryFees(address)
-                            }}
-                            placeholder="Saisissez votre adresse de livraison"
-                            className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black cursor-pointer bg-white hover:border-black transition-colors"
-                          />
-
-                          {isCalculatingFees && (
-                            <div className="flex items-center gap-2 text-sm text-stone-600">
-                              <div className="w-4 h-4 border-2 border-stone-200 border-t-black rounded-full animate-spin"></div>
-                              <span>Calcul des frais en cours...</span>
-                            </div>
-                          )}
-
-                          {deliveryInfo && (
-                            <div className={`${deliveryInfo.totalDeliveryFees === 0 ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'} border p-3 rounded-lg text-xs space-y-1`}>
-                              {deliveryInfo.totalDeliveryFees === 0 ? (
-                                <>
-                                  <p className="font-medium text-blue-800">Livraison gratuite !</p>
-                                  <p className="text-stone-700">Adresse enregistrée : {deliveryAddressInput}</p>
-                                </>
-                              ) : (
-                                <>
-                                  <p className="font-medium text-green-800">Frais calculés :</p>
-                                  <p className="text-stone-700">Distance : {deliveryInfo.distanceText} ({deliveryInfo.distance.toFixed(1)} km)</p>
-                                  <p className="text-stone-700">Durée estimée : {deliveryInfo.duration}</p>
-                                  <p className="text-stone-700">Frais de base : {deliveryInfo.baseDeliveryFees.toFixed(2)} €</p>
-                                  <p className="text-stone-700">Frais de distance (1€/km) : {deliveryInfo.distanceFees.toFixed(2)} €</p>
-                                  <p className="font-semibold text-green-800">Total livraison : {deliveryInfo.totalDeliveryFees.toFixed(2)} €</p>
-                                </>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              <div className="space-y-3 mb-6">
-                {/* Montants contribuant au total */}
-                <div className="space-y-3">
-                  <div className="flex justify-between text-stone-700">
-                    <span>Articles ({cart.totalItems})</span>
-                    <span>{cart.totalPrice.toFixed(2)} €</span>
+                    {cart.rentalDelivery.option === 'delivery' && cart.rentalDelivery.address && (
+                      <div className="flex justify-between text-sm text-stone-600 mt-1">
+                        <span>Frais de livraison</span>
+                        <span>{cart.rentalDelivery.fees.toFixed(2)} €</span>
+                      </div>
+                    )}
                   </div>
-                  {cart.deliveryOption === 'delivery' && cart.totalDeliveryFees !== undefined && (
-                    <div className="flex justify-between text-stone-700">
-                      <span>Frais de livraison</span>
-                      <span>{cart.totalDeliveryFees.toFixed(2)} €</span>
+                )}
+
+                {hasPurchases && (
+                  <div className="pb-3 border-b border-stone-200">
+                    <div className="flex justify-between text-green-700 font-medium">
+                      <span>Achats ({purchaseItems.length} article{purchaseItems.length > 1 ? 's' : ''})</span>
+                      <span>{calculatePurchaseSubtotal().toFixed(2)} €</span>
                     </div>
-                  )}
-                </div>
+                    {cart.purchaseDelivery.option !== 'pickup' && cart.purchaseDelivery.address && (
+                      <div className="flex justify-between text-sm text-stone-600 mt-1">
+                        <span>Frais de livraison</span>
+                        <span>{cart.purchaseDelivery.fees.toFixed(2)} €</span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Total à payer */}
-                <div className="border-t border-stone-300 pt-3 flex justify-between font-bold text-lg">
+                <div className="pt-3 flex justify-between font-bold text-xl">
                   <span>Total à payer</span>
-                  <span>{(cart.totalPrice + (cart.totalDeliveryFees || 0)).toFixed(2)} €</span>
+                  <span>{(cart.totalPrice + cart.rentalDelivery.fees + cart.purchaseDelivery.fees).toFixed(2)} €</span>
                 </div>
 
-                {/* Informations complémentaires (non incluses dans le total) */}
+                {/* Informations complémentaires */}
                 {(depositAmount > 0 || cautionAmount > 0) && (
                   <div className="border-t border-stone-200 pt-3 space-y-2">
                     <p className="text-xs font-medium text-stone-600 uppercase tracking-wide">Informations complémentaires</p>
@@ -471,200 +725,88 @@ export default function CartPage() {
                   </div>
                 )}
 
-                {/* Explications détaillées */}
+                {/* Explications */}
                 {depositAmount > 0 && (
                   <div className="text-xs text-blue-700 bg-blue-50 p-3 rounded-lg">
                     <p className="font-medium mb-1">💳 Acompte :</p>
-                    <p>Un acompte de {depositAmount.toFixed(2)} € sera requis pour valider la réservation. Vous pouvez payer cet acompte en ligne ou en boutique. Le solde restant de {(cart.totalPrice + (cart.totalDeliveryFees || 0) - depositAmount).toFixed(2)} € sera à régler lors de la {cart.deliveryOption === 'delivery' ? 'livraison' : 'récupération'} de la commande.</p>
+                    <p>Un acompte de {depositAmount.toFixed(2)} € sera requis pour valider la réservation.</p>
                   </div>
                 )}
                 {cautionAmount > 0 && (
                   <div className="text-xs text-amber-700 bg-amber-50 p-3 rounded-lg">
                     <p className="font-medium mb-1">⚠️ Caution :</p>
-                    <p>Une caution de {cautionAmount.toFixed(2)} € sera demandée lors de la {cart.deliveryOption === 'delivery' ? 'livraison' : 'récupération'} (espèces, chèque ou CB). Elle ne sera encaissée qu&apos;en cas de dégradation ou perte du matériel loué.</p>
+                    <p>Une caution de {cautionAmount.toFixed(2)} € sera demandée lors de la récupération (non encaissée sauf dommage).</p>
                   </div>
                 )}
               </div>
 
               {!showCheckoutForm ? (
-                <>
-                  <button
-                    onClick={() => setShowCheckoutForm(true)}
-                    className="w-full bg-black text-white px-6 py-4 rounded-lg hover:bg-stone-800 transition-colors font-medium"
-                  >
-                    Valider la commande
-                  </button>
-
-                  <Link
-                    href="/services/locations"
-                    className="block text-center mt-4 text-stone-600 hover:text-black transition-colors"
-                  >
-                    Continuer mes achats
-                  </Link>
-                </>
+                <button
+                  onClick={() => setShowCheckoutForm(true)}
+                  className="w-full bg-black text-white px-6 py-4 rounded-lg hover:bg-stone-800 transition-colors font-medium"
+                >
+                  Valider la commande
+                </button>
               ) : (
-                <>
-                  <div className="space-y-4 mb-6">
-                    <h3 className="font-semibold text-lg">Vos informations</h3>
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg">Vos informations</h3>
 
-                    {error && (
-                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-                        {error}
-                      </div>
-                    )}
+                  <input
+                    type="text"
+                    placeholder="Prénom"
+                    value={customerInfo.firstName}
+                    onChange={(e) => setCustomerInfo({ ...customerInfo, firstName: e.target.value })}
+                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                    required
+                  />
 
-                    <div>
-                      <label htmlFor="firstName" className="block text-sm font-medium text-stone-700 mb-1">
-                        Prénom *
-                      </label>
-                      <input
-                        id="firstName"
-                        type="text"
-                        value={customerInfo.firstName}
-                        onChange={(e) => setCustomerInfo({ ...customerInfo, firstName: e.target.value })}
-                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                        required
-                      />
+                  <input
+                    type="text"
+                    placeholder="Nom"
+                    value={customerInfo.lastName}
+                    onChange={(e) => setCustomerInfo({ ...customerInfo, lastName: e.target.value })}
+                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                    required
+                  />
+
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    value={customerInfo.email}
+                    onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
+                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                    required
+                  />
+
+                  <input
+                    type="tel"
+                    placeholder="Téléphone"
+                    value={customerInfo.phone}
+                    onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
+                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                    required
+                  />
+
+                  {error && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                      {error}
                     </div>
-
-                    <div>
-                      <label htmlFor="lastName" className="block text-sm font-medium text-stone-700 mb-1">
-                        Nom *
-                      </label>
-                      <input
-                        id="lastName"
-                        type="text"
-                        value={customerInfo.lastName}
-                        onChange={(e) => setCustomerInfo({ ...customerInfo, lastName: e.target.value })}
-                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-stone-700 mb-1">
-                        Email *
-                      </label>
-                      <input
-                        id="email"
-                        type="email"
-                        value={customerInfo.email}
-                        onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
-                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="phone" className="block text-sm font-medium text-stone-700 mb-1">
-                        Téléphone *
-                      </label>
-                      <input
-                        id="phone"
-                        type="tel"
-                        value={customerInfo.phone}
-                        onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
-                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                        required
-                      />
-                    </div>
-                  </div>
+                  )}
 
                   <button
-                    onClick={() => {
-                      // Validation des champs
-                      if (!customerInfo.firstName || !customerInfo.lastName || !customerInfo.email || !customerInfo.phone) {
-                        setError('Veuillez remplir tous les champs')
-                        return
-                      }
-
-                      // Validation email
-                      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-                      if (!emailRegex.test(customerInfo.email)) {
-                        setError('Email invalide')
-                        return
-                      }
-
-                      // Validation de l'adresse de livraison si option livraison choisie
-                      if (cart.deliveryOption === 'delivery' && !cart.deliveryAddress) {
-                        setError('Veuillez calculer les frais de livraison en saisissant votre adresse')
-                        return
-                      }
-
-                      setError(null)
-                      setShowConfirmation(true)
-                    }}
-                    className="w-full bg-black text-white px-6 py-4 rounded-lg hover:bg-stone-800 transition-colors font-medium"
+                    onClick={handleValidateOrder}
+                    disabled={isSubmitting}
+                    className="w-full bg-black text-white px-6 py-4 rounded-lg hover:bg-stone-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Continuer vers le paiement
+                    {isSubmitting ? 'Validation en cours...' : 'Confirmer la commande'}
                   </button>
 
                   <button
-                    onClick={() => {
-                      setShowCheckoutForm(false)
-                      setShowConfirmation(false)
-                      setError(null)
-                    }}
-                    className="w-full mt-2 text-stone-600 hover:text-black transition-colors text-sm"
+                    onClick={() => setShowCheckoutForm(false)}
+                    className="w-full border border-stone-300 px-6 py-2 rounded-lg hover:bg-stone-50 transition-colors text-sm"
                   >
                     Retour
                   </button>
-                </>
-              )}
-
-              {/* Confirmation Modal */}
-              {showConfirmation && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                  <div className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
-                    <h2 className="text-2xl font-bold mb-4">Confirmer la réservation</h2>
-
-                    {depositAmount > 0 ? (
-                      <>
-                        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                          <p className="text-sm text-amber-800 mb-2">
-                            <span className="font-semibold">Acompte requis :</span> {depositAmount.toFixed(2)} €
-                          </p>
-                          <p className="text-xs text-amber-700">
-                            L&apos;acompte sera à payer en espèces lors de la {cart.deliveryOption === 'delivery' ? 'livraison' : 'récupération en boutique'}.
-                          </p>
-                          <p className="text-xs text-amber-700 mt-2">
-                            Le solde restant de {(cart.totalPrice + (cart.totalDeliveryFees || 0) - depositAmount).toFixed(2)} € sera également à régler à ce moment.
-                          </p>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="mb-6 p-4 bg-stone-50 border border-stone-200 rounded-lg">
-                        <p className="text-sm text-stone-700">
-                          Aucun acompte requis pour cette réservation.
-                        </p>
-                      </div>
-                    )}
-
-                    {error && (
-                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 mb-4">
-                        {error}
-                      </div>
-                    )}
-
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => {
-                          setShowConfirmation(false)
-                          setError(null)
-                        }}
-                        className="flex-1 px-6 py-3 border border-stone-300 rounded-lg hover:bg-stone-50 transition-colors font-medium"
-                      >
-                        Retour
-                      </button>
-                      <button
-                        onClick={handleValidateOrder}
-                        disabled={isSubmitting}
-                        className="flex-1 bg-black text-white px-6 py-3 rounded-lg hover:bg-stone-800 transition-colors font-medium disabled:bg-stone-400 disabled:cursor-not-allowed"
-                      >
-                        {isSubmitting ? 'En cours...' : 'Confirmer la réservation'}
-                      </button>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
@@ -672,16 +814,18 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* Modale de succès */}
-      <SuccessModal
-        isOpen={showSuccessModal}
-        onClose={() => {
-          setShowSuccessModal(false)
-          clearCart() // Vider le panier au moment de fermer la modal
-          router.push('/')
-        }}
-        reservationId={reservationId || 0}
-      />
+      {/* Success Modal */}
+      {showSuccessModal && reservationId && (
+        <SuccessModal
+          isOpen={showSuccessModal}
+          reservationId={reservationId}
+          onClose={() => {
+            setShowSuccessModal(false)
+            clearCart()
+            router.push('/')
+          }}
+        />
+      )}
     </div>
   )
 }

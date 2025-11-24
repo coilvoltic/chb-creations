@@ -26,6 +26,8 @@ interface RentalItem {
     name: string
     slug: string
     images: string[]
+    price: number
+    new_price?: number
   }
 }
 
@@ -50,6 +52,8 @@ interface PurchaseItem {
     name: string
     slug: string
     images: string[]
+    price: number
+    new_price?: number
   }
 }
 
@@ -120,6 +124,21 @@ export default function ReservationDetailPage() {
       month: '2-digit',
       year: 'numeric',
     })
+  }
+
+  const calculateItemPrice = (item: RentalItem | PurchaseItem) => {
+    const basePrice = item.products.new_price ?? item.products.price
+    const optionsFees = item.options?.selectedOptions?.reduce((sum, opt) => sum + opt.additional_fee, 0) ?? 0
+    const installationFees = item.options?.installationFees ?? 0
+    return (basePrice + optionsFees + installationFees) * item.quantity
+  }
+
+  const calculateRentalTotal = () => {
+    return rentalItems.reduce((sum, item) => sum + calculateItemPrice(item), 0)
+  }
+
+  const calculatePurchaseTotal = () => {
+    return purchaseItems.reduce((sum, item) => sum + calculateItemPrice(item), 0)
   }
 
   const getStatusBadge = (status: string) => {
@@ -228,29 +247,50 @@ export default function ReservationDetailPage() {
               <hr className="my-6 border-stone-200" />
 
               <h3 className="text-lg font-semibold text-black mb-4">Détails financiers</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-stone-600">Montant total</span>
-                  <span className="text-sm font-semibold text-black">{order.total_price.toFixed(2)} €</span>
-                </div>
-                {firstRental && (
-                  <>
+              <div className="space-y-4">
+                {/* Section LOCATIONS */}
+                {hasRentals && (
+                  <div className="border-l-4 border-blue-500 pl-3 space-y-2">
+                    <p className="text-xs font-semibold text-blue-900 uppercase tracking-wide mb-2">Locations</p>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-stone-600">Sous-total</span>
+                      <span className="text-sm font-semibold text-blue-700">{calculateRentalTotal().toFixed(2)} €</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-stone-600">Frais de livraison</span>
+                      <span className="text-sm font-semibold text-blue-700">{(firstRental?.delivery_fees ?? 0).toFixed(2)} €</span>
+                    </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-stone-600">Acompte</span>
-                      <span className="text-sm font-semibold text-blue-600">{(firstRental.deposit ?? 0).toFixed(2)} €</span>
+                      <span className="text-sm font-semibold text-blue-600">{(firstRental?.deposit ?? 0).toFixed(2)} €</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-stone-600">Caution</span>
-                      <span className="text-sm font-semibold text-amber-600">{(firstRental.caution ?? 0).toFixed(2)} €</span>
+                      <span className="text-sm font-semibold text-amber-600">{(firstRental?.caution ?? 0).toFixed(2)} €</span>
                     </div>
-                  </>
-                )}
-                {firstReservation && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-stone-600">Frais de livraison</span>
-                    <span className="text-sm font-semibold text-black">{firstReservation.delivery_fees?.toFixed(2) || '0.00'} €</span>
                   </div>
                 )}
+
+                {/* Section ACHATS */}
+                {hasPurchases && (
+                  <div className="border-l-4 border-green-500 pl-3 space-y-2">
+                    <p className="text-xs font-semibold text-green-900 uppercase tracking-wide mb-2">Achats</p>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-stone-600">Sous-total</span>
+                      <span className="text-sm font-semibold text-green-700">{calculatePurchaseTotal().toFixed(2)} €</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-stone-600">Frais de livraison</span>
+                      <span className="text-sm font-semibold text-green-700">{(firstPurchase?.delivery_fees ?? 0).toFixed(2)} €</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Total général */}
+                <div className="flex justify-between pt-3 border-t-2 border-stone-300">
+                  <span className="text-sm font-bold text-stone-900">MONTANT TOTAL</span>
+                  <span className="text-sm font-bold text-black">{order.total_price.toFixed(2)} €</span>
+                </div>
               </div>
 
               {firstReservation && (
@@ -315,6 +355,12 @@ export default function ReservationDetailPage() {
                             <p className="text-black font-medium">×{item.quantity}</p>
                           </div>
                           <div>
+                            <p className="text-stone-500">Prix unitaire</p>
+                            <p className="text-black font-medium">
+                              {(item.products.new_price ?? item.products.price).toFixed(2)} €
+                            </p>
+                          </div>
+                          <div className="col-span-2">
                             <p className="text-stone-500">Période de location</p>
                             <p className="text-black font-medium">
                               {formatDateOnly(item.rental_start)} → {formatDateOnly(item.rental_end)}
@@ -407,8 +453,14 @@ export default function ReservationDetailPage() {
                             <p className="text-stone-500">Quantité</p>
                             <p className="text-black font-medium">×{item.quantity}</p>
                           </div>
+                          <div>
+                            <p className="text-stone-500">Prix unitaire</p>
+                            <p className="text-black font-medium">
+                              {(item.products.new_price ?? item.products.price).toFixed(2)} €
+                            </p>
+                          </div>
                           {item.estimated_delivery_date && (
-                            <div>
+                            <div className="col-span-2">
                               <p className="text-stone-500">Date de livraison estimée</p>
                               <p className="text-black font-medium">
                                 {formatDateOnly(item.estimated_delivery_date)}

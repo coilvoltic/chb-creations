@@ -183,7 +183,7 @@ export default function Navbar() {
         onMouseLeave={() => setActiveDropdown(null)}
       >
           <div className="container mx-auto px-6 md:px-12 lg:px-16 py-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Locations */}
               <Link
                 href="/services/locations"
@@ -240,26 +240,6 @@ export default function Navbar() {
                   <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
                     <h3 className="text-sm font-bold mb-1">Henné</h3>
                     <p className="text-xs text-white/90">Prestations traditionnelles</p>
-                  </div>
-                </div>
-              </Link>
-
-              {/* Décoration */}
-              <Link
-                href="/services/decoration"
-                className="group relative overflow-hidden rounded-xl bg-white hover:shadow-lg transition-all duration-300"
-                onClick={() => setActiveDropdown(null)}
-              >
-                <div className="relative h-32 overflow-hidden">
-                  <img
-                    src="/imgs/livraison/mainLivraison.png"
-                    alt="Décoration"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                    <h3 className="text-sm font-bold mb-1">Décoration</h3>
-                    <p className="text-xs text-white/90">Livraison & installation</p>
                   </div>
                 </div>
               </Link>
