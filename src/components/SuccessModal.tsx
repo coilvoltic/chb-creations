@@ -6,7 +6,7 @@ import { X, CheckCircle } from 'lucide-react'
 interface SuccessModalProps {
   isOpen: boolean
   onClose: () => void
-  reservationId: number
+  reservationCode: string
   title?: string
   message?: string
 }
@@ -14,7 +14,7 @@ interface SuccessModalProps {
 export default function SuccessModal({
   isOpen,
   onClose,
-  reservationId,
+  reservationCode,
   title = 'Réservation confirmée !',
   message = 'Nous vous contacterons bientôt pour finaliser les détails.',
 }: SuccessModalProps) {
@@ -81,7 +81,7 @@ export default function SuccessModal({
             {/* Numéro de réservation */}
             <div className="bg-stone-50 rounded-lg p-4 mb-4">
               <p className="text-sm text-stone-600 mb-1">Numéro de réservation</p>
-              <p className="text-3xl font-bold text-black">#{reservationId}</p>
+              <p className="text-3xl font-bold text-black tracking-wider">{reservationCode}</p>
             </div>
 
             {/* Message */}

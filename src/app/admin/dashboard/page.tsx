@@ -170,8 +170,8 @@ export default function AdminDashboardPage() {
                         className="hover:bg-stone-50 cursor-pointer transition-colors"
                         onClick={() => router.push(`/admin/reservations/${order.id}`)}
                       >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-black">
-                          #{order.order_number}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-black tracking-wide">
+                          {order.order_number}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-black">

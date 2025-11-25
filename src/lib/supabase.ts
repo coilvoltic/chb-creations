@@ -71,7 +71,7 @@ export interface CustomerInfo {
 export interface CustomerOrder {
   id: number
   created_at: string
-  order_number: number
+  order_number: string
   customer_infos: CustomerInfo
   total_price: number
 }

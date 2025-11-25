@@ -30,7 +30,7 @@ export default function CartPage() {
   const [showCheckoutForm, setShowCheckoutForm] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [reservationId, setReservationId] = useState<number | null>(null)
+  const [reservationCode, setReservationCode] = useState<string | null>(null)
 
   // Séparer les items par catégorie
   const rentalItems = getRentalItems()
@@ -340,7 +340,7 @@ export default function CartPage() {
         throw new Error(data.error || 'Erreur lors de la création de la réservation')
       }
 
-      setReservationId(data.orderNumber || data.orderId)
+      setReservationCode(data.reservationCode)
       setShowSuccessModal(true)
     } catch (err) {
       console.error('Erreur validation commande:', err)
@@ -486,7 +486,7 @@ export default function CartPage() {
           <div className="lg:col-span-2 space-y-6 md:space-y-8 min-w-0">
             {/* Section LOCATIONS */}
             {hasRentals && (
-              <div className="border-1 border-blue-300 rounded-2xl p-4 md:p-6 bg-white overflow-hidden">
+              <div className="border-1 border-blue-300 rounded-2xl p-4 md:p-6 bg-white">
                 <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
                   <h2 className="text-2xl font-bold text-blue-900">Locations</h2>
                   <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -573,7 +573,7 @@ export default function CartPage() {
 
             {/* Section ACHATS */}
             {hasPurchases && (
-              <div className="border-1 border-green-300 rounded-2xl p-4 md:p-6 bg-white overflow-hidden">
+              <div className="border-1 border-green-300 rounded-2xl p-4 md:p-6 bg-white">
                 <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
                   <h2 className="text-2xl font-bold text-green-900">Achats</h2>
                   <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -691,7 +691,7 @@ export default function CartPage() {
 
           {/* Order Summary */}
           <div className="lg:col-span-1 min-w-0">
-            <div className="border border-stone-200 rounded-xl p-4 md:p-6 sticky top-24 overflow-hidden">
+            <div className="border border-stone-200 rounded-xl p-4 md:p-6 sticky top-30">
               <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Récapitulatif</h2>
 
               <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
@@ -849,10 +849,10 @@ export default function CartPage() {
       </div>
 
       {/* Success Modal */}
-      {showSuccessModal && reservationId && (
+      {showSuccessModal && reservationCode && (
         <SuccessModal
           isOpen={showSuccessModal}
-          reservationId={reservationId}
+          reservationCode={reservationCode}
           onClose={() => {
             setShowSuccessModal(false)
             clearCart()

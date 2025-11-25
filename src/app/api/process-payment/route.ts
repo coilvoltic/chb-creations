@@ -3,6 +3,7 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { generateReservationPDF } from '@/lib/pdf-generator'
+import { generateReservationCode } from '@/lib/reservation-code'
 
 interface SelectedOption {
   option_type_name: string
@@ -68,12 +69,14 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Créer la commande client (customer_order)
+    const reservationCode = generateReservationCode()
+
     const { data: customerOrder, error: orderError } = await supabase
       .from('customer_orders')
       .insert({
         customer_infos: reservationData.customerInfo,
         total_price: reservationData.totalPrice,
-        order_number: Date.now(), // Génération simple d'un numéro de commande
+        order_number: reservationCode,
       })
       .select()
       .single()
@@ -181,16 +184,45 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Générer le PDF de confirmation
+    // Séparer les items en locations et achats
+    const rentalItems = reservationData.items
+      .filter((item) => item.category === 'locations')
+      .map((item) => ({
+        productName: item.productName,
+        quantity: item.quantity,
+        rentalStart: item.rentalStart,
+        rentalEnd: item.rentalEnd,
+        pricePerUnit: item.pricePerUnit,
+        selectedOptions: item.selectedOptions,
+        personalizations: item.personalizations,
+      }))
+
+    const purchaseItems = reservationData.items
+      .filter((item) => item.category === 'accessoires-personnalises')
+      .map((item) => ({
+        productName: item.productName,
+        quantity: item.quantity,
+        estimatedDeliveryDate: item.rentalStart, // Utiliser rentalStart comme date estimée pour les achats
+        pricePerUnit: item.pricePerUnit,
+        selectedOptions: item.selectedOptions,
+        personalizations: item.personalizations,
+      }))
+
     const pdfBuffer = await generateReservationPDF({
       reservationId: customerOrder.id, // Utiliser l'ID de la commande principale
-      orderNumber: customerOrder.order_number,
+      reservationCode: reservationCode,
       customerInfo: reservationData.customerInfo,
-      items: reservationData.items,
+      rentalItems: rentalItems.length > 0 ? rentalItems : undefined,
+      purchaseItems: purchaseItems.length > 0 ? purchaseItems : undefined,
       totalPrice: reservationData.totalPrice,
       deposit: reservationData.deposit,
       caution: reservationData.caution,
-      deliveryOption: reservationData.rentalDelivery?.option || reservationData.purchaseDelivery?.option || 'pickup',
-      deliveryFees: (reservationData.rentalDelivery?.fees || 0) + (reservationData.purchaseDelivery?.fees || 0),
+      rentalDeliveryOption: reservationData.rentalDelivery?.option || 'pickup',
+      rentalDeliveryAddress: reservationData.rentalDelivery?.address,
+      rentalDeliveryFees: reservationData.rentalDelivery?.fees || 0,
+      purchaseDeliveryOption: reservationData.purchaseDelivery?.option || 'pickup',
+      purchaseDeliveryAddress: reservationData.purchaseDelivery?.address,
+      purchaseDeliveryFees: reservationData.purchaseDelivery?.fees || 0,
     })
 
     // 4. Envoyer l'email de confirmation
@@ -204,11 +236,11 @@ export async function POST(request: NextRequest) {
       await resend.emails.send({
         from: 'CHB Créations <noreply@chb-creations.fr>',
         to: reservationData.customerInfo.email,
-        subject: `Confirmation de commande #${customerOrder.order_number} - Paiement confirmé`,
+        subject: `Confirmation de réservation ${reservationCode} - Paiement confirmé`,
         html: `
           <h1>Réservation confirmée !</h1>
           <p>Bonjour ${reservationData.customerInfo.firstName} ${reservationData.customerInfo.lastName},</p>
-          <p>Votre commande #${customerOrder.order_number} a été confirmée et votre paiement a été reçu avec succès.</p>
+          <p>Votre réservation ${reservationCode} a été confirmée et votre paiement a été reçu avec succès.</p>
           <p><strong>Montant de l'acompte payé :</strong> ${reservationData.deposit.toFixed(2)} €</p>
           <p><strong>Solde restant :</strong> ${(reservationData.totalPrice - reservationData.deposit).toFixed(2)} €</p>
           <p>Le solde sera à régler lors de la ${deliveryText}.</p>
@@ -218,7 +250,7 @@ export async function POST(request: NextRequest) {
         `,
         attachments: [
           {
-            filename: `commande-${customerOrder.order_number}.pdf`,
+            filename: `reservation-${reservationCode}.pdf`,
             content: pdfBuffer,
           },
         ],
@@ -231,7 +263,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       orderId: customerOrder.id,
-      orderNumber: customerOrder.order_number,
+      reservationCode: reservationCode,
       rentalReservationId: rentalReservationId,
       purchaseReservationId: purchaseReservationId,
     })

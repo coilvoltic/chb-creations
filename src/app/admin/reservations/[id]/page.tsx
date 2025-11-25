@@ -211,7 +211,7 @@ export default function ReservationDetailPage() {
                 ← Retour
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-black">Commande #{order.order_number}</h1>
+                <h1 className="text-2xl font-bold text-black tracking-wide">Réservation n° {order.order_number}</h1>
                 <p className="text-sm text-stone-600">Créée le {formatDate(order.created_at)}</p>
               </div>
             </div>
@@ -293,22 +293,51 @@ export default function ReservationDetailPage() {
                 </div>
               </div>
 
-              {firstReservation && (
+              {(hasRentals || hasPurchases) && (
                 <>
                   <hr className="my-6 border-stone-200" />
 
                   <h3 className="text-lg font-semibold text-black mb-4">Livraison</h3>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Option</p>
-                      <p className="text-sm text-black">
-                        {firstReservation.delivery_address ? '🚚 Livraison' : '🏪 Retrait en boutique'}
-                      </p>
-                    </div>
-                    {firstReservation.delivery_address && (
-                      <div>
-                        <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Adresse de livraison</p>
-                        <p className="text-sm text-black">{firstReservation.delivery_address}</p>
+                  <div className="space-y-4">
+                    {/* Livraison Locations */}
+                    {hasRentals && firstRental && (
+                      <div className="border-l-4 border-blue-500 pl-3">
+                        <p className="text-xs font-semibold text-blue-900 uppercase tracking-wide mb-2">Locations</p>
+                        <div className="space-y-2">
+                          <div>
+                            <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Option</p>
+                            <p className="text-sm text-black">
+                              {firstRental.delivery_address ? '🚚 Livraison' : '🏪 Retrait en boutique'}
+                            </p>
+                          </div>
+                          {firstRental.delivery_address && (
+                            <div>
+                              <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Adresse</p>
+                              <p className="text-sm text-black">{firstRental.delivery_address}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Livraison Achats */}
+                    {hasPurchases && firstPurchase && (
+                      <div className="border-l-4 border-green-500 pl-3">
+                        <p className="text-xs font-semibold text-green-900 uppercase tracking-wide mb-2">Achats</p>
+                        <div className="space-y-2">
+                          <div>
+                            <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Option</p>
+                            <p className="text-sm text-black">
+                              {firstPurchase.delivery_address ? '🚚 Livraison' : '🏪 Retrait en boutique'}
+                            </p>
+                          </div>
+                          {firstPurchase.delivery_address && (
+                            <div>
+                              <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Adresse</p>
+                              <p className="text-sm text-black">{firstPurchase.delivery_address}</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -318,214 +347,193 @@ export default function ReservationDetailPage() {
           </div>
 
           {/* Articles de la réservation */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6">
-              <h2 className="text-lg font-semibold text-black mb-6">
-                Articles ({rentalItems.length + purchaseItems.length})
-              </h2>
-
-              <div className="space-y-6">
-                {/* Rental Items */}
-                {hasRentals && (
-                  <>
-                    <div className="flex items-center gap-2 mb-4">
-                      <h3 className="text-md font-semibold text-black">Locations ({rentalItems.length})</h3>
-                    </div>
-                    {rentalItems.map((item: RentalItem) => (
-                  <div key={item.id} className="border border-stone-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex gap-4">
-                      {/* Image produit */}
-                      {item.products.images && item.products.images.length > 0 && (
-                        <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-stone-100">
-                          <img
-                            src={item.products.images[0]}
-                            alt={item.products.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-
-                      {/* Détails produit */}
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-black mb-2">{item.products.name}</h3>
-
-                        <div className="grid grid-cols-2 gap-4 text-sm mb-3">
-                          <div>
-                            <p className="text-stone-500">Quantité</p>
-                            <p className="text-black font-medium">×{item.quantity}</p>
-                          </div>
-                          <div>
-                            <p className="text-stone-500">Prix unitaire</p>
-                            <p className="text-black font-medium">
-                              {(item.products.new_price ?? item.products.price).toFixed(2)} €
-                            </p>
-                          </div>
-                          <div className="col-span-2">
-                            <p className="text-stone-500">Période de location</p>
-                            <p className="text-black font-medium">
-                              {formatDateOnly(item.rental_start)} → {formatDateOnly(item.rental_end)}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Options sélectionnées */}
-                        {item.options?.selectedOptions && item.options.selectedOptions.length > 0 && (
-                          <div className="mb-3">
-                            <p className="text-xs text-stone-500 uppercase tracking-wider mb-2">Options sélectionnées</p>
-                            <div className="space-y-1">
-                              {item.options.selectedOptions.map((option, idx) => (
-                                <div key={idx} className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-sm px-3 py-2">
-                                  <div>
-                                    <p className="text-sm font-medium text-blue-900">{option.option_type_name}</p>
-                                    <p className="text-xs text-blue-700">{option.name}</p>
-                                    {option.description && (
-                                      <p className="text-xs text-blue-600 mt-1">{option.description}</p>
-                                    )}
-                                  </div>
-                                  {option.additional_fee > 0 && (
-                                    <span className="text-sm font-semibold text-blue-900">+{option.additional_fee.toFixed(0)}€</span>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Personnalisations */}
-                        {item.personalizations && Object.keys(item.personalizations).length > 0 && (
-                          <div className="mb-3">
-                            <p className="text-xs text-stone-500 uppercase tracking-wider mb-2">✏️ Personnalisations</p>
-                            <div className="space-y-1">
-                              {Object.entries(item.personalizations).map(([key, value], idx) => (
-                                <div key={idx} className="bg-purple-50 border border-purple-200 rounded-sm px-3 py-2">
-                                  <p className="text-xs text-purple-700 font-medium">{key}</p>
-                                  <p className="text-sm text-purple-900">{value}</p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Installation */}
-                        {item.needs_installation && (
-                          <div className="bg-green-50 border border-green-200 rounded-sm px-3 py-2">
-                            <p className="text-sm text-green-900">
-                              ✓ Service d&apos;installation demandé
-                              {item.options?.installationFees && (
-                                <span className="ml-2 font-semibold">({item.options.installationFees.toFixed(2)} €)</span>
-                              )}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                    ))}
-                  </>
-                )}
-
-                {/* Purchase Items */}
-                {hasPurchases && (
-                  <>
-                    <div className="flex items-center gap-2 mb-4 mt-8">
-                      <h3 className="text-md font-semibold text-black">Achats ({purchaseItems.length})</h3>
-                    </div>
-                    {purchaseItems.map((item: PurchaseItem) => (
-                  <div key={item.id} className="border border-stone-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex gap-4">
-                      {/* Image produit */}
-                      {item.products.images && item.products.images.length > 0 && (
-                        <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-stone-100">
-                          <img
-                            src={item.products.images[0]}
-                            alt={item.products.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-
-                      {/* Détails produit */}
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-black mb-2">{item.products.name}</h3>
-
-                        <div className="grid grid-cols-2 gap-4 text-sm mb-3">
-                          <div>
-                            <p className="text-stone-500">Quantité</p>
-                            <p className="text-black font-medium">×{item.quantity}</p>
-                          </div>
-                          <div>
-                            <p className="text-stone-500">Prix unitaire</p>
-                            <p className="text-black font-medium">
-                              {(item.products.new_price ?? item.products.price).toFixed(2)} €
-                            </p>
-                          </div>
-                          {item.estimated_delivery_date && (
-                            <div className="col-span-2">
-                              <p className="text-stone-500">Date de livraison estimée</p>
-                              <p className="text-black font-medium">
-                                {formatDateOnly(item.estimated_delivery_date)}
-                              </p>
+          <div className="lg:col-span-2 space-y-6">
+            {/* Section LOCATIONS */}
+            {hasRentals && (
+              <div className="border-1 border-blue-300 rounded-2xl p-4 md:p-6 bg-white">
+                <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
+                  <h2 className="text-2xl font-bold text-blue-900">Locations</h2>
+                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                    {rentalItems.length} article{rentalItems.length > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="space-y-4">
+                  {rentalItems.map((item: RentalItem, index: number) => (
+                    <div key={item.id}>
+                      <div className="py-4 first:pt-0">
+                        <div className="flex gap-4">
+                          {/* Image produit */}
+                          {item.products.images && item.products.images.length > 0 && (
+                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-lg overflow-hidden flex-shrink-0 bg-stone-100">
+                              <img
+                                src={item.products.images[0]}
+                                alt={item.products.name}
+                                className="w-full h-full object-cover"
+                              />
                             </div>
                           )}
-                        </div>
 
-                        {/* Options sélectionnées */}
-                        {item.options?.selectedOptions && item.options.selectedOptions.length > 0 && (
-                          <div className="mb-3">
-                            <p className="text-xs text-stone-500 uppercase tracking-wider mb-2">Options sélectionnées</p>
-                            <div className="space-y-1">
-                              {item.options.selectedOptions.map((option, idx) => (
-                                <div key={idx} className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-sm px-3 py-2">
-                                  <div>
-                                    <p className="text-sm font-medium text-blue-900">{option.option_type_name}</p>
-                                    <p className="text-xs text-blue-700">{option.name}</p>
-                                    {option.description && (
-                                      <p className="text-xs text-blue-600 mt-1">{option.description}</p>
-                                    )}
-                                  </div>
-                                  {option.additional_fee > 0 && (
-                                    <span className="text-sm font-semibold text-blue-900">+{option.additional_fee.toFixed(0)}€</span>
-                                  )}
+                          {/* Détails produit */}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-base md:text-lg text-black mb-2 break-words">{item.products.name}</h3>
+
+                            <div className="space-y-1 text-sm text-stone-700">
+                              <p>
+                                <span className="font-medium">Période :</span>{' '}
+                                <span className="inline-block">{formatDateOnly(item.rental_start)}</span>
+                                {' → '}
+                                <span className="inline-block">{formatDateOnly(item.rental_end)}</span>
+                              </p>
+                              <p>
+                                <span className="font-medium">Prix unitaire :</span> {(item.products.new_price ?? item.products.price).toFixed(2)} €
+                              </p>
+
+                              {/* Options sélectionnées */}
+                              {item.options?.selectedOptions && item.options.selectedOptions.length > 0 && (
+                                <div className="space-y-1">
+                                  {item.options.selectedOptions.map((option, idx) => (
+                                    <p key={idx} className="text-blue-700 break-words">
+                                      <span className="font-medium">{option.option_type_name} :</span> {option.name}
+                                      {option.additional_fee > 0 && ` (+${option.additional_fee.toFixed(2)} €)`}
+                                    </p>
+                                  ))}
                                 </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Personnalisations */}
-                        {item.personalizations && Object.keys(item.personalizations).length > 0 && (
-                          <div className="mb-3">
-                            <p className="text-xs text-stone-500 uppercase tracking-wider mb-2">✏️ Personnalisations</p>
-                            <div className="space-y-1">
-                              {Object.entries(item.personalizations).map(([key, value], idx) => (
-                                <div key={idx} className="bg-purple-50 border border-purple-200 rounded-sm px-3 py-2">
-                                  <p className="text-xs text-purple-700 font-medium">{key}</p>
-                                  <p className="text-sm text-purple-900">{value}</p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Installation */}
-                        {item.needs_installation && (
-                          <div className="bg-green-50 border border-green-200 rounded-sm px-3 py-2">
-                            <p className="text-sm text-green-900">
-                              ✓ Service d&apos;installation demandé
-                              {item.options?.installationFees && (
-                                <span className="ml-2 font-semibold">({item.options.installationFees.toFixed(2)} €)</span>
                               )}
-                            </p>
+
+                              {/* Personnalisations */}
+                              {item.personalizations && Object.keys(item.personalizations).length > 0 && (
+                                <div className="space-y-1 mt-2">
+                                  {Object.entries(item.personalizations).map(([fieldName, value], idx) => (
+                                    <p key={idx} className="text-stone-700 break-words">
+                                      <span className="font-medium">✏️ {fieldName} :</span> {value}
+                                    </p>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Installation */}
+                              {item.needs_installation && (
+                                <p className="text-green-700">
+                                  <span className="font-medium">Installation :</span> +{(item.options?.installationFees ?? 0).toFixed(2)}€
+                                </p>
+                              )}
+
+                              <p>
+                                <span className="font-medium">Quantité :</span> {item.quantity}
+                              </p>
+                            </div>
+
+                            {/* Subtotal */}
+                            <div className="mt-3 text-right">
+                              <p className="text-base md:text-lg font-bold">
+                                {calculateItemPrice(item).toFixed(2)} €
+                              </p>
+                            </div>
                           </div>
-                        )}
+                        </div>
                       </div>
+                      {/* Separator line */}
+                      {index < rentalItems.length - 1 && (
+                        <div className="border-b border-stone-200 mt-4"></div>
+                      )}
                     </div>
-                  </div>
-                    ))}
-                  </>
-                )}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Section ACHATS */}
+            {hasPurchases && (
+              <div className="border-1 border-green-300 rounded-2xl p-4 md:p-6 bg-white">
+                <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
+                  <h2 className="text-2xl font-bold text-green-900">Achats</h2>
+                  <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                    {purchaseItems.length} article{purchaseItems.length > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="space-y-4">
+                  {purchaseItems.map((item: PurchaseItem, index: number) => (
+                    <div key={item.id}>
+                      <div className="py-4 first:pt-0">
+                        <div className="flex gap-4">
+                          {/* Image produit */}
+                          {item.products.images && item.products.images.length > 0 && (
+                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-lg overflow-hidden flex-shrink-0 bg-stone-100">
+                              <img
+                                src={item.products.images[0]}
+                                alt={item.products.name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+
+                          {/* Détails produit */}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-base md:text-lg text-black mb-2 break-words">{item.products.name}</h3>
+
+                            <div className="space-y-1 text-sm text-stone-700">
+                              {item.estimated_delivery_date && (
+                                <p>
+                                  <span className="font-medium">Date de livraison estimée :</span> {formatDateOnly(item.estimated_delivery_date)}
+                                </p>
+                              )}
+                              <p>
+                                <span className="font-medium">Prix unitaire :</span> {(item.products.new_price ?? item.products.price).toFixed(2)} €
+                              </p>
+
+                              {/* Options sélectionnées */}
+                              {item.options?.selectedOptions && item.options.selectedOptions.length > 0 && (
+                                <div className="space-y-1">
+                                  {item.options.selectedOptions.map((option, idx) => (
+                                    <p key={idx} className="text-green-700 break-words">
+                                      <span className="font-medium">{option.option_type_name} :</span> {option.name}
+                                      {option.additional_fee > 0 && ` (+${option.additional_fee.toFixed(2)} €)`}
+                                    </p>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Personnalisations */}
+                              {item.personalizations && Object.keys(item.personalizations).length > 0 && (
+                                <div className="space-y-1 mt-2">
+                                  {Object.entries(item.personalizations).map(([fieldName, value], idx) => (
+                                    <p key={idx} className="text-stone-700 break-words">
+                                      <span className="font-medium">✏️ {fieldName} :</span> {value}
+                                    </p>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Installation */}
+                              {item.needs_installation && (
+                                <p className="text-green-700">
+                                  <span className="font-medium">Installation :</span> +{(item.options?.installationFees ?? 0).toFixed(2)}€
+                                </p>
+                              )}
+
+                              <p>
+                                <span className="font-medium">Quantité :</span> {item.quantity}
+                              </p>
+                            </div>
+
+                            {/* Subtotal */}
+                            <div className="mt-3 text-right">
+                              <p className="text-base md:text-lg font-bold">
+                                {calculateItemPrice(item).toFixed(2)} €
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Separator line */}
+                      {index < purchaseItems.length - 1 && (
+                        <div className="border-b border-stone-200 mt-4"></div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>

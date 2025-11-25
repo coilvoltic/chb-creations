@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import type { CustomerInfo, ReservationStatus } from '@/lib/supabase'
 import { sendReservationConfirmation } from '@/lib/email'
+import { generateReservationCode } from '@/lib/reservation-code'
 
 interface SelectedOption {
   option_type_name: string
@@ -93,12 +94,14 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Créer la commande client (customer_order)
+    const reservationCode = generateReservationCode()
+
     const { data: customerOrder, error: orderError } = await supabase
       .from('customer_orders')
       .insert({
         customer_infos: customerInfo,
         total_price: totalPrice,
-        order_number: Date.now(), // Génération simple d'un numéro de commande (à améliorer plus tard)
+        order_number: reservationCode,
       })
       .select()
       .single()
@@ -254,29 +257,10 @@ export async function POST(request: NextRequest) {
     // 4. Envoyer l'email de confirmation avec le PDF
     try {
       // Construire les adresses de livraison pour l'email
-      let deliveryAddressText = null
-      if (rentalDelivery?.option === 'delivery' && rentalDelivery.address) {
-        deliveryAddressText = `Locations: ${rentalDelivery.address}`
-        if (purchaseDelivery?.option !== 'pickup' && purchaseDelivery?.address) {
-          deliveryAddressText += `\nAchats: ${purchaseDelivery.address}`
-        }
-      } else if (purchaseDelivery?.option !== 'pickup' && purchaseDelivery?.address) {
-        deliveryAddressText = `Achats: ${purchaseDelivery.address}`
-      }
-
-      const totalDeliveryFees = (rentalDelivery?.fees || 0) + (purchaseDelivery?.fees || 0)
-
-      const emailData = {
-        id: customerOrder.id, // Utiliser l'ID de la commande principale
-        order_number: customerOrder.order_number,
-        customer_name: `${customerInfo.firstName} ${customerInfo.lastName}`,
-        customer_email: customerInfo.email,
-        customer_phone: customerInfo.phone,
-        total_amount: totalPrice,
-        created_at: customerOrder.created_at,
-        delivery_address: deliveryAddressText,
-        delivery_fees: totalDeliveryFees,
-        items: items.map((item) => ({
+      // Séparer les items en locations et achats pour l'email
+      const rentalItems = items
+        .filter((item) => item.category === 'locations')
+        .map((item) => ({
           product_name: item.productName,
           quantity: item.quantity,
           rental_start: item.rentalStart,
@@ -285,7 +269,34 @@ export async function POST(request: NextRequest) {
           total_price: item.quantity * item.pricePerUnit,
           selectedOptions: item.selectedOptions,
           personalizations: item.personalizations,
-        })),
+        }))
+
+      const purchaseItems = items
+        .filter((item) => item.category === 'accessoires-personnalises')
+        .map((item) => ({
+          product_name: item.productName,
+          quantity: item.quantity,
+          estimated_delivery_date: item.rentalStart, // Utiliser rentalStart comme date estimée pour les achats
+          unit_price: item.pricePerUnit,
+          total_price: item.quantity * item.pricePerUnit,
+          selectedOptions: item.selectedOptions,
+          personalizations: item.personalizations,
+        }))
+
+      const emailData = {
+        id: customerOrder.id, // Utiliser l'ID de la commande principale
+        reservation_code: reservationCode,
+        customer_name: `${customerInfo.firstName} ${customerInfo.lastName}`,
+        customer_email: customerInfo.email,
+        customer_phone: customerInfo.phone,
+        total_amount: totalPrice,
+        created_at: customerOrder.created_at,
+        rentalItems: rentalItems.length > 0 ? rentalItems : undefined,
+        purchaseItems: purchaseItems.length > 0 ? purchaseItems : undefined,
+        rentalDeliveryAddress: rentalDelivery?.option === 'delivery' ? rentalDelivery.address : null,
+        rentalDeliveryFees: rentalDelivery?.fees || 0,
+        purchaseDeliveryAddress: purchaseDelivery?.option === 'delivery' ? purchaseDelivery.address : null,
+        purchaseDeliveryFees: purchaseDelivery?.fees || 0,
       }
 
       await sendReservationConfirmation(emailData)
@@ -300,7 +311,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       orderId: customerOrder.id,
-      orderNumber: customerOrder.order_number,
+      reservationCode: reservationCode,
       rentalReservationId: rentalReservationId,
       purchaseReservationId: purchaseReservationId,
       message: 'Réservation créée avec succès',

@@ -12,7 +12,7 @@ interface SelectedOption {
   additional_fee: number
 }
 
-interface ReservationItem {
+interface RentalItem {
   product_name: string
   quantity: number
   rental_start: string
@@ -23,17 +23,30 @@ interface ReservationItem {
   personalizations?: { [key: string]: string }
 }
 
+interface PurchaseItem {
+  product_name: string
+  quantity: number
+  estimated_delivery_date?: string
+  unit_price: number
+  total_price: number
+  selectedOptions?: SelectedOption[]
+  personalizations?: { [key: string]: string }
+}
+
 interface ReservationData {
   id: number
-  order_number: number
+  reservation_code: string
   customer_name: string
   customer_email: string
   customer_phone: string
   total_amount: number
   created_at: string
-  items: ReservationItem[]
-  delivery_address?: string | null
-  delivery_fees?: number
+  rentalItems?: RentalItem[]
+  purchaseItems?: PurchaseItem[]
+  rentalDeliveryAddress?: string | null
+  purchaseDeliveryAddress?: string | null
+  rentalDeliveryFees?: number
+  purchaseDeliveryFees?: number
 }
 
 export async function sendReservationConfirmation(reservation: ReservationData) {
@@ -50,7 +63,7 @@ export async function sendReservationConfirmation(reservation: ReservationData) 
     const { data, error } = await resend.emails.send({
       from: 'CHB Créations <onboarding@resend.dev>',
       to: ['volticthedev@gmail.com'], // Mode test - À remplacer par reservation.customer_email après config domaine
-      subject: `[TEST] Confirmation de votre réservation #${reservation.order_number}`,
+      subject: `[TEST] Confirmation de votre réservation n° ${reservation.reservation_code}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -126,12 +139,12 @@ export async function sendReservationConfirmation(reservation: ReservationData) 
               <p>Nous vous confirmons votre réservation pour vos articles de location.</p>
 
               <div class="reservation-number">
-                Numéro de commande: #${reservation.order_number}
+                Numéro de réservation: ${reservation.reservation_code}
               </div>
 
               <div class="info-section">
                 <h2>Récapitulatif</h2>
-                <p><strong>Nombre d'articles:</strong> ${reservation.items.length}</p>
+                <p><strong>Nombre d'articles:</strong> ${(reservation.rentalItems?.length || 0) + (reservation.purchaseItems?.length || 0)}</p>
                 <p><strong>Montant total:</strong> ${reservation.total_amount.toFixed(2)} €</p>
               </div>
 
@@ -166,7 +179,7 @@ export async function sendReservationConfirmation(reservation: ReservationData) 
       `,
       attachments: [
         {
-          filename: `commande-${reservation.order_number}.pdf`,
+          filename: `reservation-${reservation.reservation_code}.pdf`,
           content: pdfBase64,
         },
       ],

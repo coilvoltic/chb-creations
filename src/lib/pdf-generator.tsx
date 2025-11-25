@@ -9,7 +9,7 @@ interface SelectedOption {
   additional_fee: number
 }
 
-interface ReservationItem {
+interface RentalItem {
   product_name: string
   quantity: number
   rental_start: string
@@ -20,42 +20,67 @@ interface ReservationItem {
   personalizations?: { [key: string]: string }
 }
 
+interface PurchaseItem {
+  product_name: string
+  quantity: number
+  estimated_delivery_date?: string
+  unit_price: number
+  total_price: number
+  selectedOptions?: SelectedOption[]
+  personalizations?: { [key: string]: string }
+}
+
 interface ReservationData {
   id: number
-  order_number: number
+  reservation_code: string
   customer_name: string
   customer_email: string
   customer_phone: string
   total_amount: number
   created_at: string
-  items: ReservationItem[]
-  delivery_address?: string | null
-  delivery_fees?: number
+  rentalItems?: RentalItem[]
+  purchaseItems?: PurchaseItem[]
+  rentalDeliveryAddress?: string | null
+  purchaseDeliveryAddress?: string | null
+  rentalDeliveryFees?: number
+  purchaseDeliveryFees?: number
 }
 
 interface GenerateReservationPDFParams {
   reservationId: number
-  orderNumber: number
+  reservationCode: string
   customerInfo: {
     firstName: string
     lastName: string
     email: string
     phone: string
   }
-  items: Array<{
+  rentalItems?: Array<{
     productName: string
     quantity: number
     pricePerUnit: number
     rentalStart: string
     rentalEnd: string
     selectedOptions?: SelectedOption[]
+    personalizations?: { [key: string]: string }
+  }>
+  purchaseItems?: Array<{
+    productName: string
+    quantity: number
+    pricePerUnit: number
+    estimatedDeliveryDate?: string
+    selectedOptions?: SelectedOption[]
+    personalizations?: { [key: string]: string }
   }>
   totalPrice: number
   deposit: number
   caution: number
-  deliveryOption?: 'pickup' | 'delivery'
-  deliveryAddress?: string
-  deliveryFees?: number
+  rentalDeliveryOption?: 'pickup' | 'delivery'
+  rentalDeliveryAddress?: string
+  rentalDeliveryFees?: number
+  purchaseDeliveryOption?: 'pickup' | 'delivery'
+  purchaseDeliveryAddress?: string
+  purchaseDeliveryFees?: number
 }
 
 // Styles pour le PDF
@@ -184,7 +209,7 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
           <View>
             <Text style={styles.title}>Confirmation de réservation</Text>
             <Text style={{ fontSize: 10, textAlign: 'right', marginTop: 5 }}>
-              N° #{reservation.order_number}
+              N° {reservation.reservation_code}
             </Text>
           </View>
         </View>
@@ -200,65 +225,137 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
           </Text>
         </View>
 
-        {/* Informations de livraison */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Livraison</Text>
-          {reservation.delivery_address ? (
-            <>
-              <Text style={styles.text}>Mode: 🚚 Livraison à domicile</Text>
-              <Text style={styles.text}>Adresse: {reservation.delivery_address}</Text>
-              {reservation.delivery_fees && reservation.delivery_fees > 0 && (
-                <Text style={styles.text}>Frais de livraison: {reservation.delivery_fees.toFixed(2)} €</Text>
-              )}
-            </>
-          ) : (
-            <Text style={styles.text}>Mode: 🏪 Retrait en boutique</Text>
-          )}
-        </View>
+        {/* Section LOCATIONS */}
+        {reservation.rentalItems && reservation.rentalItems.length > 0 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: '#1e40af' }]}>
+              Locations ({reservation.rentalItems.length} article{reservation.rentalItems.length > 1 ? 's' : ''})
+            </Text>
 
-        {/* Articles réservés */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Articles réservés</Text>
-          <View style={styles.table}>
-            {/* En-tête du tableau */}
-            <View style={styles.tableHeader}>
-              <Text style={styles.col1}>Article</Text>
-              <Text style={styles.col2}>Quantité</Text>
-              <Text style={styles.col3}>Période</Text>
-              <Text style={styles.col4}>Prix</Text>
+            {/* Livraison Locations */}
+            <View style={{ marginBottom: 15, paddingLeft: 10, borderLeft: '3 solid #3b82f6' }}>
+              <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1e40af', marginBottom: 5 }}>
+                LIVRAISON
+              </Text>
+              {reservation.rentalDeliveryAddress ? (
+                <>
+                  <Text style={styles.text}>Mode: 🚚 Livraison à domicile</Text>
+                  <Text style={styles.text}>Adresse: {reservation.rentalDeliveryAddress}</Text>
+                  {reservation.rentalDeliveryFees && reservation.rentalDeliveryFees > 0 && (
+                    <Text style={styles.text}>Frais de livraison: {reservation.rentalDeliveryFees.toFixed(2)} €</Text>
+                  )}
+                </>
+              ) : (
+                <Text style={styles.text}>Mode: 🏪 Retrait en boutique</Text>
+              )}
             </View>
 
-            {/* Lignes du tableau */}
-            {reservation.items.map((item, index) => (
-              <View key={index}>
-                <View style={styles.tableRow}>
-                  <Text style={styles.col1}>
-                    {item.product_name}
-                    {item.selectedOptions && item.selectedOptions.length > 0 && (
-                      <Text style={{ fontSize: 9, color: '#666' }}>
-                        {item.selectedOptions.map((option) => (
-                          `\n${option.option_type_name}: ${option.name}`
-                        )).join('')}
-                      </Text>
-                    )}
-                    {item.personalizations && Object.keys(item.personalizations).length > 0 && (
-                      <Text style={{ fontSize: 9, color: '#444', fontStyle: 'italic' }}>
-                        {Object.entries(item.personalizations).map(([key, value]) => (
-                          `\n✏️ ${key}: ${value}`
-                        )).join('')}
-                      </Text>
-                    )}
-                  </Text>
-                  <Text style={styles.col2}>{item.quantity}</Text>
-                  <Text style={styles.col3}>
-                    {formatDate(item.rental_start)} - {formatDate(item.rental_end)}
-                  </Text>
-                  <Text style={styles.col4}>{item.total_price.toFixed(2)} €</Text>
-                </View>
+            {/* Table Locations */}
+            <View style={styles.table}>
+              <View style={styles.tableHeader}>
+                <Text style={styles.col1}>Article</Text>
+                <Text style={styles.col2}>Quantité</Text>
+                <Text style={styles.col3}>Période</Text>
+                <Text style={styles.col4}>Prix</Text>
               </View>
-            ))}
+
+              {reservation.rentalItems.map((item: RentalItem, index: number) => (
+                <View key={index}>
+                  <View style={styles.tableRow}>
+                    <Text style={styles.col1}>
+                      {item.product_name}
+                      {item.selectedOptions && item.selectedOptions.length > 0 && (
+                        <Text style={{ fontSize: 9, color: '#666' }}>
+                          {item.selectedOptions.map((option: SelectedOption) => (
+                            `\n${option.option_type_name}: ${option.name}`
+                          )).join('')}
+                        </Text>
+                      )}
+                      {item.personalizations && Object.keys(item.personalizations).length > 0 && (
+                        <Text style={{ fontSize: 9, color: '#444', fontStyle: 'italic' }}>
+                          {Object.entries(item.personalizations).map(([key, value]) => (
+                            `\n✏️ ${key}: ${value}`
+                          )).join('')}
+                        </Text>
+                      )}
+                    </Text>
+                    <Text style={styles.col2}>{item.quantity}</Text>
+                    <Text style={styles.col3}>
+                      {formatDate(item.rental_start)} - {formatDate(item.rental_end)}
+                    </Text>
+                    <Text style={styles.col4}>{item.total_price.toFixed(2)} €</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
           </View>
-        </View>
+        )}
+
+        {/* Section ACHATS */}
+        {reservation.purchaseItems && reservation.purchaseItems.length > 0 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: '#15803d' }]}>
+              Achats ({reservation.purchaseItems.length} article{reservation.purchaseItems.length > 1 ? 's' : ''})
+            </Text>
+
+            {/* Livraison Achats */}
+            <View style={{ marginBottom: 15, paddingLeft: 10, borderLeft: '3 solid #22c55e' }}>
+              <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#15803d', marginBottom: 5 }}>
+                LIVRAISON
+              </Text>
+              {reservation.purchaseDeliveryAddress ? (
+                <>
+                  <Text style={styles.text}>Mode: 🚚 Livraison à domicile</Text>
+                  <Text style={styles.text}>Adresse: {reservation.purchaseDeliveryAddress}</Text>
+                  {reservation.purchaseDeliveryFees && reservation.purchaseDeliveryFees > 0 && (
+                    <Text style={styles.text}>Frais de livraison: {reservation.purchaseDeliveryFees.toFixed(2)} €</Text>
+                  )}
+                </>
+              ) : (
+                <Text style={styles.text}>Mode: 🏪 Retrait en boutique</Text>
+              )}
+            </View>
+
+            {/* Table Achats */}
+            <View style={styles.table}>
+              <View style={styles.tableHeader}>
+                <Text style={styles.col1}>Article</Text>
+                <Text style={styles.col2}>Quantité</Text>
+                <Text style={styles.col3}>Livraison estimée</Text>
+                <Text style={styles.col4}>Prix</Text>
+              </View>
+
+              {reservation.purchaseItems.map((item: PurchaseItem, index: number) => (
+                <View key={index}>
+                  <View style={styles.tableRow}>
+                    <Text style={styles.col1}>
+                      {item.product_name}
+                      {item.selectedOptions && item.selectedOptions.length > 0 && (
+                        <Text style={{ fontSize: 9, color: '#666' }}>
+                          {item.selectedOptions.map((option: SelectedOption) => (
+                            `\n${option.option_type_name}: ${option.name}`
+                          )).join('')}
+                        </Text>
+                      )}
+                      {item.personalizations && Object.keys(item.personalizations).length > 0 && (
+                        <Text style={{ fontSize: 9, color: '#444', fontStyle: 'italic' }}>
+                          {Object.entries(item.personalizations).map(([key, value]) => (
+                            `\n✏️ ${key}: ${value}`
+                          )).join('')}
+                        </Text>
+                      )}
+                    </Text>
+                    <Text style={styles.col2}>{item.quantity}</Text>
+                    <Text style={styles.col3}>
+                      {item.estimated_delivery_date ? formatDate(item.estimated_delivery_date) : 'À définir'}
+                    </Text>
+                    <Text style={styles.col4}>{item.total_price.toFixed(2)} €</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Total */}
         <View style={styles.totalSection}>
@@ -302,15 +399,17 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
 export async function generateReservationPDF(params: GenerateReservationPDFParams): Promise<Buffer> {
   const reservationData: ReservationData = {
     id: params.reservationId,
-    order_number: params.orderNumber,
+    reservation_code: params.reservationCode,
     customer_name: `${params.customerInfo.firstName} ${params.customerInfo.lastName}`,
     customer_email: params.customerInfo.email,
     customer_phone: params.customerInfo.phone,
     total_amount: params.totalPrice,
     created_at: new Date().toISOString(),
-    delivery_address: params.deliveryOption === 'delivery' ? params.deliveryAddress : null,
-    delivery_fees: params.deliveryFees,
-    items: params.items.map((item) => ({
+    rentalDeliveryAddress: params.rentalDeliveryOption === 'delivery' ? params.rentalDeliveryAddress : null,
+    rentalDeliveryFees: params.rentalDeliveryFees,
+    purchaseDeliveryAddress: params.purchaseDeliveryOption === 'delivery' ? params.purchaseDeliveryAddress : null,
+    purchaseDeliveryFees: params.purchaseDeliveryFees,
+    rentalItems: params.rentalItems?.map((item) => ({
       product_name: item.productName,
       quantity: item.quantity,
       rental_start: item.rentalStart,
@@ -318,6 +417,16 @@ export async function generateReservationPDF(params: GenerateReservationPDFParam
       unit_price: item.pricePerUnit,
       total_price: item.quantity * item.pricePerUnit,
       selectedOptions: item.selectedOptions,
+      personalizations: item.personalizations,
+    })),
+    purchaseItems: params.purchaseItems?.map((item) => ({
+      product_name: item.productName,
+      quantity: item.quantity,
+      estimated_delivery_date: item.estimatedDeliveryDate,
+      unit_price: item.pricePerUnit,
+      total_price: item.quantity * item.pricePerUnit,
+      selectedOptions: item.selectedOptions,
+      personalizations: item.personalizations,
     })),
   }
 
