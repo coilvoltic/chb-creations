@@ -130,7 +130,7 @@ export default function AdminDashboardPage() {
               <p className="text-stone-500">Aucune commande pour le moment</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full">
                 <thead className="bg-stone-50">
                   <tr>
@@ -233,6 +233,34 @@ export default function AdminDashboardPage() {
           )}
         </div>
       </main>
+
+      {/* Styles pour scrollbar réduite */}
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          height: 6px;
+          width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f5f5f4;
+          border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #d6d3d1;
+          border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #a8a29e;
+        }
+
+        /* Firefox */
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: #d6d3d1 #f5f5f4;
+        }
+      `}</style>
     </div>
   )
 }

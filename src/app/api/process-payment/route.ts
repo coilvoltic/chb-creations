@@ -184,10 +184,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Générer le PDF de confirmation
-    // Séparer les items en locations et achats
-    const rentalItems = reservationData.items
-      .filter((item) => item.category === 'locations')
-      .map((item) => ({
+    // Séparer les items en locations et achats pour le PDF
+    const rentalItemsForPdf = reservationData.items
+      .filter((item: CartItemPayload) => item.category === 'locations')
+      .map((item: CartItemPayload) => ({
         productName: item.productName,
         quantity: item.quantity,
         rentalStart: item.rentalStart,
@@ -197,9 +197,9 @@ export async function POST(request: NextRequest) {
         personalizations: item.personalizations,
       }))
 
-    const purchaseItems = reservationData.items
-      .filter((item) => item.category === 'accessoires-personnalises')
-      .map((item) => ({
+    const purchaseItemsForPdf = reservationData.items
+      .filter((item: CartItemPayload) => item.category === 'accessoires-personnalises')
+      .map((item: CartItemPayload) => ({
         productName: item.productName,
         quantity: item.quantity,
         estimatedDeliveryDate: item.rentalStart, // Utiliser rentalStart comme date estimée pour les achats
@@ -212,8 +212,8 @@ export async function POST(request: NextRequest) {
       reservationId: customerOrder.id, // Utiliser l'ID de la commande principale
       reservationCode: reservationCode,
       customerInfo: reservationData.customerInfo,
-      rentalItems: rentalItems.length > 0 ? rentalItems : undefined,
-      purchaseItems: purchaseItems.length > 0 ? purchaseItems : undefined,
+      rentalItems: rentalItemsForPdf.length > 0 ? rentalItemsForPdf : undefined,
+      purchaseItems: purchaseItemsForPdf.length > 0 ? purchaseItemsForPdf : undefined,
       totalPrice: reservationData.totalPrice,
       deposit: reservationData.deposit,
       caution: reservationData.caution,
