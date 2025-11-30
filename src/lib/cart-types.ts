@@ -26,6 +26,8 @@ export interface CartItem {
   }
   startTime: string
   endTime: string
+  prestationDate?: Date // For prestation items (henne, etc.)
+  prestationTime?: string // Time for prestation (e.g., "14:00")
   category: string
   subcategory: string
 }
@@ -46,4 +48,5 @@ export interface Cart {
   // Séparation des options de livraison par catégorie
   rentalDelivery: DeliveryInfo // Pour les locations
   purchaseDelivery: DeliveryInfo // Pour les achats d'accessoires personnalisés
+  prestationDelivery: DeliveryInfo // Pour les prestations (henné, etc.)
 }

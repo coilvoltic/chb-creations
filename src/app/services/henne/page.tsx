@@ -2,58 +2,88 @@ import Navbar from '@/components/Navbar'
 import Link from 'next/link'
 
 export default function HennePage() {
+  const categories = [
+    {
+      title: 'Henné seul',
+      href: '/services/henne/henne-seul',
+      image: '/imgs/henne/henneSeulMain.jpeg',
+      description: 'Prestations de henné traditionnel pour vos événements'
+    },
+    {
+      title: 'Pack henné',
+      href: '/services/henne/pack-henne',
+      image: '/imgs/henne/packHenneMain.png',
+      description: 'Packs complets incluant henné et prestations associées'
+    }
+  ]
+
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative bg-stone-100 py-24 md:py-32">
-        <div className="container mx-auto px-4 md:px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto text-center space-y-6">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black tracking-tight">
-              Prestations Henné
-            </h1>
-            <p className="text-xl text-stone-600 leading-relaxed">
-              Art du henné traditionnel et contemporain pour mariages, événements et occasions spéciales.
-              Des motifs délicats et raffinés pour sublimer vos mains et vos pieds.
-            </p>
+      <section className="relative w-full h-[60vh] overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src="/imgs/henne/henneMain.jpeg"
+            alt="Henné"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/50 to-black/70" />
+        </div>
+        <div className="relative h-full flex items-center justify-center">
+          <div className="container mx-auto px-6 md:px-12 lg:px-16">
+            <div className="max-w-3xl mx-auto text-center">
+              <h1
+                className="text-5xl md:text-6xl font-semibold text-white animate-fade-in-up font-satisfy"
+              >
+                Henné.
+              </h1>
+              <div className="text-center max-w-3xl mx-auto">
+                <p className="text-s md:text-xl text-white/90 font-semibold tracking-wide mt-4 md:mt-6 animate-fade-in-up delay-200">
+                  Art traditionnel du henné pour sublimer vos événements.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Content Section */}
-      <section className="py-20">
-        <div className="container mx-auto px-4 md:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
-            <div className="grid md:grid-cols-2 gap-12">
-              <div className="space-y-4">
-                <h2 className="text-2xl font-bold text-black">Nos prestations</h2>
-                <ul className="space-y-3 text-stone-700">
-                  <li>• Henné pour mariages</li>
-                  <li>• Événements privés et familiaux</li>
-                  <li>• Motifs traditionnels</li>
-                  <li>• Créations contemporaines</li>
-                  <li>• Sur-mesure selon vos envies</li>
-                </ul>
-              </div>
-
-              <div className="space-y-4">
-                <h2 className="text-2xl font-bold text-black">Notre expertise</h2>
-                <p className="text-stone-700 leading-relaxed">
-                  Avec une technique maîtrisée et un sens artistique développé, nous créons des motifs de henné
-                  qui allient tradition et modernité. Chaque création est unique et réalisée avec des produits naturels
-                  de qualité.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-16 text-center">
-              <Link
-                href="/contact"
-                className="inline-block bg-black text-white px-8 py-4 hover:bg-stone-800 transition-colors text-lg font-medium"
-              >
-                Réserver une séance
-              </Link>
+      {/* Categories Grid */}
+      <section className="py-20 md:py-28 bg-gray-50">
+        <div className="container mx-auto px-6 md:px-12 lg:px-16">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-8 md:gap-12">
+              {categories.map((category, index) => (
+                <Link
+                  key={category.href}
+                  href={category.href}
+                  className={`group block overflow-hidden rounded-xl shadow-soft hover:shadow-dark transition-all duration-300 animate-scale-in delay-${(index + 1) * 100} cursor-pointer`}
+                >
+                  <div className="relative h-96 md:h-[500px] overflow-hidden">
+                    <img
+                      src={category.image}
+                      alt={category.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                      <h2 className="text-3xl md:text-4xl font-bold mb-3 font-satisfy">
+                        {category.title}
+                      </h2>
+                      <p className="text-sm md:text-base text-white/90 font-light">
+                        {category.description}
+                      </p>
+                      <div className="mt-4 inline-flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">
+                        Découvrir
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
             </div>
           </div>
         </div>

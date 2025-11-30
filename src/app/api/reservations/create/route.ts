@@ -14,11 +14,13 @@ interface SelectedOption {
 interface CartItemPayload {
   productId: number
   productName: string
-  category: string // 'locations' or 'accessoires-personnalises'
+  category: string // 'locations', 'accessoires-personnalises', or 'henne'
   quantity: number
   pricePerUnit: number
-  rentalStart: string // ISO timestamp (dummy for purchase items)
-  rentalEnd: string // ISO timestamp (dummy for purchase items)
+  rentalStart: string // ISO timestamp (dummy for purchase/prestation items)
+  rentalEnd: string // ISO timestamp (dummy for purchase/prestation items)
+  prestationDate?: string // ISO timestamp for prestation date
+  prestationTime?: string // Time for prestation (e.g., "14:00")
   selectedOptions?: SelectedOption[] // Array of selected options
   personalizations?: { [key: string]: string } // Map of personalization field name to value
   needsInstallation?: boolean
@@ -44,6 +46,7 @@ interface CreateReservationPayload {
   caution: number
   rentalDelivery?: DeliveryInfo // Delivery info for rental items
   purchaseDelivery?: DeliveryInfo // Delivery info for purchase items
+  prestationDelivery?: DeliveryInfo // Delivery info for prestation items
   totalPrice: number
   paymentMethod?: 'online' | 'cash' | null
 }
@@ -60,7 +63,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { customerInfo, items, deposit, caution, rentalDelivery, purchaseDelivery, totalPrice, paymentMethod } = payload
+    const { customerInfo, items, deposit, caution, rentalDelivery, purchaseDelivery, prestationDelivery, totalPrice, paymentMethod } = payload
 
     // Create Supabase client with service_role key (bypasses RLS)
     // This is safe because:
@@ -114,12 +117,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 2. Séparer les items par type (rental vs purchase)
+    // 2. Séparer les items par type (rental vs purchase vs prestation)
     const rentalItems = items.filter(item => item.category === 'locations')
     const purchaseItems = items.filter(item => item.category === 'accessoires-personnalises')
+    const prestationItems = items.filter(item => item.category === 'henne')
 
     let rentalReservationId: number | null = null
     let purchaseReservationId: number | null = null
+    let prestationReservationId: number | null = null
 
     // 3a. Créer rental_reservation si nécessaire
     if (rentalItems.length > 0) {
@@ -254,6 +259,75 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 3c. Créer prestation_reservation si nécessaire
+    if (prestationItems.length > 0) {
+      const { data: prestationReservation, error: prestationError } = await supabase
+        .from('prestation_reservations')
+        .insert({
+          customer_order_id: customerOrder.id,
+          delivery_address: prestationDelivery?.option === 'delivery' ? (prestationDelivery.address || null) : null,
+          delivery_fees: prestationDelivery?.fees || 0,
+          reservation_status: reservationStatus,
+          total_price: prestationItems.reduce((sum, item) => sum + (item.pricePerUnit * item.quantity), 0),
+        })
+        .select()
+        .single()
+
+      if (prestationError || !prestationReservation) {
+        console.error('Erreur création prestation_reservation:', prestationError)
+        // Rollback : supprimer la commande client
+        await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
+        return NextResponse.json(
+          { error: 'Erreur lors de la création de la réservation de prestation' },
+          { status: 500 }
+        )
+      }
+
+      prestationReservationId = prestationReservation.id
+
+      // Créer les prestation_items
+      const prestationItemsData = prestationItems.map((item) => {
+        let optionsData: ReservationItemOptions | null = null
+
+        if (item.selectedOptions && item.selectedOptions.length > 0) {
+          optionsData = {
+            selectedOptions: item.selectedOptions,
+          }
+        }
+
+        // Combiner date et heure de la prestation pour créer un timestamp
+        let prestationDateTime: string | null = null
+        if (item.prestationDate && item.prestationTime) {
+          const date = new Date(item.prestationDate)
+          const [hours, minutes] = item.prestationTime.split(':')
+          date.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+          prestationDateTime = date.toISOString()
+        }
+
+        return {
+          prestation_reservation_id: prestationReservationId,
+          product_id: item.productId,
+          quantity: item.quantity,
+          date: prestationDateTime,
+          options: optionsData,
+          personalizations: item.personalizations || null,
+        }
+      })
+
+      const { error: prestationItemsError } = await supabase
+        .from('prestation_items')
+        .insert(prestationItemsData)
+
+      if (prestationItemsError) {
+        console.error('Erreur création prestation_items:', prestationItemsError)
+        await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
+        return NextResponse.json(
+          { error: 'Erreur lors de la création des articles de prestation' },
+          { status: 500 }
+        )
+      }
+    }
+
     // 4. Envoyer l'email de confirmation avec le PDF
     try {
       // Construire les adresses de livraison pour l'email
@@ -283,6 +357,19 @@ export async function POST(request: NextRequest) {
           personalizations: item.personalizations,
         }))
 
+      const prestationItemsEmail = items
+        .filter((item) => item.category === 'henne')
+        .map((item) => ({
+          product_name: item.productName,
+          quantity: item.quantity,
+          prestation_date: item.prestationDate,
+          prestation_time: item.prestationTime,
+          unit_price: item.pricePerUnit,
+          total_price: item.quantity * item.pricePerUnit,
+          selectedOptions: item.selectedOptions,
+          personalizations: item.personalizations,
+        }))
+
       const emailData = {
         id: customerOrder.id, // Utiliser l'ID de la commande principale
         reservation_code: reservationCode,
@@ -293,10 +380,13 @@ export async function POST(request: NextRequest) {
         created_at: customerOrder.created_at,
         rentalItems: rentalItems.length > 0 ? rentalItems : undefined,
         purchaseItems: purchaseItems.length > 0 ? purchaseItems : undefined,
+        prestationItems: prestationItemsEmail.length > 0 ? prestationItemsEmail : undefined,
         rentalDeliveryAddress: rentalDelivery?.option === 'delivery' ? rentalDelivery.address : null,
         rentalDeliveryFees: rentalDelivery?.fees || 0,
         purchaseDeliveryAddress: purchaseDelivery?.option === 'delivery' ? purchaseDelivery.address : null,
         purchaseDeliveryFees: purchaseDelivery?.fees || 0,
+        prestationDeliveryAddress: prestationDelivery?.option === 'delivery' ? prestationDelivery.address : null,
+        prestationDeliveryFees: prestationDelivery?.fees || 0,
       }
 
       await sendReservationConfirmation(emailData)

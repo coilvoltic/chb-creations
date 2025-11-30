@@ -3,6 +3,7 @@
 import Navbar from '@/components/Navbar'
 import Breadcrumb from '@/components/Breadcrumb'
 import DateRangePicker from '@/components/DateRangePicker'
+import PrestationDatePicker from '@/components/PrestationDatePicker'
 import { useState, useEffect, use } from 'react'
 import { getProductBySlug } from '@/actions/products'
 import type { Product } from '@/lib/supabase'
@@ -42,9 +43,14 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
   // Check if product is already in cart
   const isInCart = product ? cart.items.some(item => item.productId === product.id) : false
 
-  // Determine if this is a rental or purchase product
+  // Determine if this is a rental, purchase, or prestation product
   const isRentalProduct = product?.category === 'locations'
   const isPurchaseProduct = product?.category === 'accessoires-personnalises'
+  const isPrestationProduct = product?.category === 'henne'
+
+  // State for prestation date/time
+  const [prestationDate, setPrestationDate] = useState<Date | null>(null)
+  const [prestationTime, setPrestationTime] = useState('14:00') // Default time
 
   // Get effective price (new_price if available, otherwise price)
   const getEffectivePrice = () => {
@@ -122,9 +128,9 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
         })
       : undefined
 
-    // For purchase products, use dummy dates (not displayed or used)
-    const finalFrom = isPurchaseProduct ? new Date() : rentalPeriod!.from!
-    const finalTo = isPurchaseProduct ? new Date() : rentalPeriod!.to!
+    // For purchase and prestation products, use dummy dates (not displayed or used)
+    const finalFrom = (isPurchaseProduct || isPrestationProduct) ? new Date() : rentalPeriod!.from!
+    const finalTo = (isPurchaseProduct || isPrestationProduct) ? new Date() : rentalPeriod!.to!
 
     addToCart({
       productId: product.id,
@@ -146,6 +152,8 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
       },
       startTime,
       endTime,
+      prestationDate: isPrestationProduct ? prestationDate || undefined : undefined,
+      prestationTime: isPrestationProduct ? prestationTime : undefined,
       category: product.category,
       subcategory: product.subcategory,
     })
@@ -637,10 +645,30 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                   </div>
                 )}
 
+                {/* Prestation Date Picker - Only for prestation products */}
+                {isPrestationProduct && (
+                  <div className="border-t border-stone-200 pt-6">
+                    <h2 className={`text-xl font-semibold mb-3 ${isInCart ? 'text-stone-400' : ''}`}>Date de la prestation</h2>
+                    <p className={`text-sm mb-4 ${isInCart ? 'text-stone-400' : 'text-stone-600'}`}>
+                      Sélectionnez la date et l&apos;heure de votre prestation
+                    </p>
+                    <PrestationDatePicker
+                      selectedDate={prestationDate}
+                      selectedTime={prestationTime}
+                      onDateChange={setPrestationDate}
+                      onTimeChange={setPrestationTime}
+                    />
+                  </div>
+                )}
+
                 <div className="border-t border-stone-200 pt-6">
                   <button
                     onClick={handleAddToCart}
-                    disabled={(isRentalProduct && (!rentalPeriod?.from || !rentalPeriod?.to)) || isInCart}
+                    disabled={
+                      (isRentalProduct && (!rentalPeriod?.from || !rentalPeriod?.to)) ||
+                      (isPrestationProduct && !prestationDate) ||
+                      isInCart
+                    }
                     className="w-full bg-black text-white px-8 py-4 rounded-lg hover:bg-stone-800 transition-colors text-lg font-medium disabled:bg-stone-300 disabled:cursor-not-allowed"
                   >
                     {isInCart ? 'Produit déjà dans le panier' : 'Ajouter au panier'}

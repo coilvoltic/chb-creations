@@ -10,13 +10,17 @@ interface CartContextType {
   updateQuantity: (itemId: string, quantity: number) => void
   setRentalDeliveryOption: (option: DeliveryOption) => void
   setPurchaseDeliveryOption: (option: DeliveryOption) => void
+  setPrestationDeliveryOption: (option: DeliveryOption) => void
   setRentalDeliveryAddress: (address: string) => void
   setPurchaseDeliveryAddress: (address: string) => void
+  setPrestationDeliveryAddress: (address: string) => void
   updateRentalDeliveryFees: (fees: number, distance: number) => void
   updatePurchaseDeliveryFees: (fees: number, distance: number) => void
+  updatePrestationDeliveryFees: (fees: number, distance: number) => void
   clearCart: () => void
   getRentalItems: () => CartItem[]
   getPurchaseItems: () => CartItem[]
+  getPrestationItems: () => CartItem[]
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -34,6 +38,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       option: 'pickup',
       fees: 0,
     },
+    prestationDelivery: {
+      option: 'pickup',
+      fees: 0,
+    },
   })
 
   // Load cart from localStorage on mount
@@ -42,11 +50,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (savedCart) {
       try {
         interface StoredCart {
-          items?: Array<Omit<CartItem, 'rentalPeriod'> & { rentalPeriod: { from: string; to: string } }>
+          items?: Array<Omit<CartItem, 'rentalPeriod' | 'prestationDate'> & {
+            rentalPeriod: { from: string; to: string }
+            prestationDate?: string
+          }>
           totalItems?: number
           totalPrice?: number
           rentalDelivery?: DeliveryInfo
           purchaseDelivery?: DeliveryInfo
+          prestationDelivery?: DeliveryInfo
         }
 
         const parsedCart = JSON.parse(savedCart) as StoredCart
@@ -59,6 +71,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
               from: new Date(item.rentalPeriod.from),
               to: new Date(item.rentalPeriod.to),
             },
+            prestationDate: item.prestationDate ? new Date(item.prestationDate) : undefined,
           })) || [],
           totalItems: parsedCart.totalItems || 0,
           totalPrice: parsedCart.totalPrice || 0,
@@ -67,6 +80,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
             fees: 0,
           },
           purchaseDelivery: parsedCart.purchaseDelivery || {
+            option: 'pickup' as DeliveryOption,
+            fees: 0,
+          },
+          prestationDelivery: parsedCart.prestationDelivery || {
             option: 'pickup' as DeliveryOption,
             fees: 0,
           },
@@ -95,6 +112,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return cart.items.filter(item => item.category === 'accessoires-personnalises')
   }
 
+  const getPrestationItems = (): CartItem[] => {
+    return cart.items.filter(item => item.category === 'henne')
+  }
+
   const calculateDeliveryFees = (items: CartItem[], deliveryInfo: DeliveryInfo | undefined) => {
     if (!deliveryInfo || deliveryInfo.option === 'pickup') return 0
 
@@ -105,7 +126,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }, 0)
   }
 
-  const calculateTotals = (items: CartItem[], rentalDelivery: DeliveryInfo, purchaseDelivery: DeliveryInfo) => {
+  const calculateTotals = (items: CartItem[], rentalDelivery: DeliveryInfo, purchaseDelivery: DeliveryInfo, prestationDelivery: DeliveryInfo) => {
     const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
     const totalPrice = items.reduce((sum, item) => {
       const basePrice = item.pricePerUnit
@@ -120,15 +141,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // Calculer les frais de livraison pour chaque catégorie
     const rentalItems = items.filter(item => item.category === 'locations')
     const purchaseItems = items.filter(item => item.category === 'accessoires-personnalises')
+    const prestationItems = items.filter(item => item.category === 'henne')
 
     const rentalDeliveryFees = calculateDeliveryFees(rentalItems, rentalDelivery)
     const purchaseDeliveryFees = calculateDeliveryFees(purchaseItems, purchaseDelivery)
+    const prestationDeliveryFees = calculateDeliveryFees(prestationItems, prestationDelivery)
 
     return {
       totalItems,
       totalPrice,
       rentalDeliveryFees,
-      purchaseDeliveryFees
+      purchaseDeliveryFees,
+      prestationDeliveryFees
     }
   }
 
@@ -137,7 +161,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const id = `${newItem.productId}-${Date.now()}`
       const item: CartItem = { ...newItem, id }
       const items = [...prevCart.items, item]
-      const { totalItems, totalPrice } = calculateTotals(items, prevCart.rentalDelivery, prevCart.purchaseDelivery)
+      const { totalItems, totalPrice } = calculateTotals(items, prevCart.rentalDelivery, prevCart.purchaseDelivery, prevCart.prestationDelivery)
       return {
         ...prevCart,
         items,
@@ -150,7 +174,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const removeFromCart = (itemId: string) => {
     setCart((prevCart) => {
       const items = prevCart.items.filter((item) => item.id !== itemId)
-      const { totalItems, totalPrice } = calculateTotals(items, prevCart.rentalDelivery, prevCart.purchaseDelivery)
+      const { totalItems, totalPrice } = calculateTotals(items, prevCart.rentalDelivery, prevCart.purchaseDelivery, prevCart.prestationDelivery)
       return {
         ...prevCart,
         items,
@@ -169,7 +193,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const items = prevCart.items.map((item) =>
         item.id === itemId ? { ...item, quantity } : item
       )
-      const { totalItems, totalPrice } = calculateTotals(items, prevCart.rentalDelivery, prevCart.purchaseDelivery)
+      const { totalItems, totalPrice } = calculateTotals(items, prevCart.rentalDelivery, prevCart.purchaseDelivery, prevCart.prestationDelivery)
       return {
         ...prevCart,
         items,
@@ -229,6 +253,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }))
   }
 
+  const setPrestationDeliveryOption = (option: DeliveryOption) => {
+    setCart((prevCart) => {
+      const prestationDelivery: DeliveryInfo = {
+        option,
+        fees: option === 'pickup' ? 0 : prevCart.prestationDelivery.fees,
+        address: option === 'pickup' ? undefined : prevCart.prestationDelivery.address,
+        distance: option === 'pickup' ? undefined : prevCart.prestationDelivery.distance,
+      }
+      return {
+        ...prevCart,
+        prestationDelivery,
+      }
+    })
+  }
+
+  const setPrestationDeliveryAddress = (address: string) => {
+    setCart((prevCart) => ({
+      ...prevCart,
+      prestationDelivery: {
+        ...prevCart.prestationDelivery,
+        address,
+      }
+    }))
+  }
+
   const updateRentalDeliveryFees = (fees: number, distance: number) => {
     setCart((prevCart) => ({
       ...prevCart,
@@ -251,6 +300,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }))
   }
 
+  const updatePrestationDeliveryFees = (fees: number, distance: number) => {
+    setCart((prevCart) => ({
+      ...prevCart,
+      prestationDelivery: {
+        ...prevCart.prestationDelivery,
+        fees,
+        distance,
+      }
+    }))
+  }
+
   const clearCart = () => {
     setCart({
       items: [],
@@ -261,6 +321,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
         fees: 0,
       },
       purchaseDelivery: {
+        option: 'pickup',
+        fees: 0,
+      },
+      prestationDelivery: {
         option: 'pickup',
         fees: 0,
       },
@@ -276,13 +340,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
         updateQuantity,
         setRentalDeliveryOption,
         setPurchaseDeliveryOption,
+        setPrestationDeliveryOption,
         setRentalDeliveryAddress,
         setPurchaseDeliveryAddress,
+        setPrestationDeliveryAddress,
         updateRentalDeliveryFees,
         updatePurchaseDeliveryFees,
+        updatePrestationDeliveryFees,
         clearCart,
         getRentalItems,
         getPurchaseItems,
+        getPrestationItems,
       }}
     >
       {children}

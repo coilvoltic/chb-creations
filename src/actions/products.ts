@@ -314,3 +314,47 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
     return null
   }
 }
+
+export async function getHenneSeulProducts(): Promise<Product[]> {
+  try {
+    const supabase = getSupabaseClient()
+
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('subcategory', 'henne-seul')
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      console.error('Error fetching henne seul products:', error.message)
+      return []
+    }
+
+    return (data as Product[]) || []
+  } catch (err) {
+    console.error('Exception fetching henne seul products:', err)
+    return []
+  }
+}
+
+export async function getPackHenneProducts(): Promise<Product[]> {
+  try {
+    const supabase = getSupabaseClient()
+
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('subcategory', 'pack-henne')
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      console.error('Error fetching pack henne products:', error.message)
+      return []
+    }
+
+    return (data as Product[]) || []
+  } catch (err) {
+    console.error('Exception fetching pack henne products:', err)
+    return []
+  }
+}

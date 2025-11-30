@@ -17,12 +17,16 @@ export default function CartPage() {
     clearCart,
     setRentalDeliveryOption,
     setPurchaseDeliveryOption,
+    setPrestationDeliveryOption,
     setRentalDeliveryAddress,
     setPurchaseDeliveryAddress,
+    setPrestationDeliveryAddress,
     updateRentalDeliveryFees,
     updatePurchaseDeliveryFees,
+    updatePrestationDeliveryFees,
     getRentalItems,
     getPurchaseItems,
+    getPrestationItems,
   } = useCart()
 
   const router = useRouter()
@@ -35,8 +39,10 @@ export default function CartPage() {
   // Séparer les items par catégorie
   const rentalItems = getRentalItems()
   const purchaseItems = getPurchaseItems()
+  const prestationItems = getPrestationItems()
   const hasRentals = rentalItems.length > 0
   const hasPurchases = purchaseItems.length > 0
+  const hasPrestations = prestationItems.length > 0
 
   // Interface for delivery calculation response
   interface DeliveryCalculationInfo {
@@ -58,6 +64,11 @@ export default function CartPage() {
   const [isCalculatingPurchaseFees, setIsCalculatingPurchaseFees] = useState(false)
   const [purchaseDeliveryInfo, setPurchaseDeliveryInfo] = useState<DeliveryCalculationInfo | null>(null)
   const [useSameAddress, setUseSameAddress] = useState(false)
+
+  // États pour la livraison des prestations
+  const [prestationAddressInput, setPrestationAddressInput] = useState('')
+  const [isCalculatingPrestationFees, setIsCalculatingPrestationFees] = useState(false)
+  const [prestationDeliveryInfo, setPrestationDeliveryInfo] = useState<DeliveryCalculationInfo | null>(null)
 
   // Customer info form state
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
@@ -183,12 +194,87 @@ export default function CartPage() {
     }
   }
 
-  // Utiliser la même adresse que les locations
-  const handleUseSameAddress = () => {
-    if (rentalAddressInput && cart.rentalDelivery.option === 'delivery') {
+  // Calculer les frais de livraison pour les prestations
+  const handleCalculatePrestationDeliveryFees = async (address?: string) => {
+    const addressToUse = address || prestationAddressInput
+
+    if (!addressToUse.trim()) {
+      setError('Veuillez saisir une adresse de livraison pour les prestations')
+      return
+    }
+
+    setIsCalculatingPrestationFees(true)
+    setError(null)
+
+    try {
+      const totalBaseDeliveryFees = prestationItems.reduce((sum, item) => {
+        return sum + (item.baseDeliveryFees || 0) * item.quantity
+      }, 0)
+
+      if (totalBaseDeliveryFees === 0) {
+        setPrestationDeliveryInfo({
+          distance: 0,
+          distanceText: '0 km',
+          duration: 'N/A',
+          baseDeliveryFees: 0,
+          distanceFees: 0,
+          totalDeliveryFees: 0,
+        })
+        setPrestationDeliveryAddress(addressToUse)
+        updatePrestationDeliveryFees(0, 0)
+        setIsCalculatingPrestationFees(false)
+        return
+      }
+
+      const response = await fetch('/api/calculate-delivery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deliveryAddress: addressToUse,
+          baseDeliveryFees: totalBaseDeliveryFees,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors du calcul des frais')
+      }
+
+      setPrestationDeliveryInfo(data)
+      setPrestationDeliveryAddress(addressToUse)
+      updatePrestationDeliveryFees(data.totalDeliveryFees, data.distance)
+    } catch (err) {
+      console.error('Erreur calcul frais prestations:', err)
+      setError(err instanceof Error ? err.message : 'Erreur lors du calcul des frais de livraison')
+    } finally {
+      setIsCalculatingPrestationFees(false)
+    }
+  }
+
+  // Réutiliser une adresse déjà renseignée
+  const handleReuseAddressForRentals = () => {
+    if (purchaseAddressInput && cart.purchaseDelivery.address) {
+      setRentalAddressInput(purchaseAddressInput)
+      handleCalculateRentalDeliveryFees(purchaseAddressInput)
+    }
+  }
+
+  const handleReuseAddressForPurchases = () => {
+    if (rentalAddressInput && cart.rentalDelivery.address) {
       setPurchaseAddressInput(rentalAddressInput)
       handleCalculatePurchaseDeliveryFees(rentalAddressInput)
       setUseSameAddress(true)
+    }
+  }
+
+  const handleReuseAddressForPrestations = () => {
+    // Chercher une adresse déjà renseignée (locations ou achats)
+    const existingAddress = cart.rentalDelivery.address || cart.purchaseDelivery.address
+    if (existingAddress) {
+      const sourceInput = cart.rentalDelivery.address ? rentalAddressInput : purchaseAddressInput
+      setPrestationAddressInput(sourceInput)
+      handleCalculatePrestationDeliveryFees(sourceInput)
     }
   }
 
@@ -245,6 +331,14 @@ export default function CartPage() {
     }, 0)
   }
 
+  const calculatePrestationSubtotal = () => {
+    return prestationItems.reduce((sum, item) => {
+      const basePrice = item.pricePerUnit
+      const optionsFees = getItemOptionsFees(item)
+      return sum + item.quantity * (basePrice + optionsFees)
+    }, 0)
+  }
+
   // Vérifier si toutes les adresses de livraison requises sont renseignées
   const isDeliveryInfoComplete = () => {
     // Si locations avec livraison, vérifier l'adresse
@@ -253,6 +347,10 @@ export default function CartPage() {
     }
     // Si achats avec livraison, vérifier l'adresse
     if (hasPurchases && cart.purchaseDelivery.option !== 'pickup' && !cart.purchaseDelivery.address) {
+      return false
+    }
+    // Si prestations avec livraison, vérifier l'adresse
+    if (hasPrestations && cart.prestationDelivery.option === 'delivery' && !cart.prestationDelivery.address) {
       return false
     }
     return true
@@ -272,7 +370,11 @@ export default function CartPage() {
         throw new Error('Veuillez saisir une adresse de livraison pour les achats')
       }
 
-      const totalWithDelivery = cart.totalPrice + cart.rentalDelivery.fees + cart.purchaseDelivery.fees
+      if (hasPrestations && cart.prestationDelivery.option === 'delivery' && !cart.prestationDelivery.address) {
+        throw new Error('Veuillez saisir une adresse pour la prestation')
+      }
+
+      const totalWithDelivery = cart.totalPrice + cart.rentalDelivery.fees + cart.purchaseDelivery.fees + cart.prestationDelivery.fees
 
       // Construire le tableau d'items unifié avec les informations de catégorie
       const allItems = [
@@ -314,6 +416,22 @@ export default function CartPage() {
             rentalEnd: now.toISOString(),
           }
         }),
+        ...prestationItems.map((item) => {
+          const unitPrice = item.pricePerUnit + getItemOptionsFees(item)
+          // Utiliser des dates dummy pour rentalStart/rentalEnd (requis par l'API)
+          const now = new Date()
+          return {
+            productId: item.productId,
+            productName: item.productName,
+            category: item.category,
+            quantity: item.quantity,
+            pricePerUnit: unitPrice,
+            selectedOptions: item.selectedOptions,
+            personalizations: item.personalizations,
+            prestationDate: item.prestationDate?.toISOString(),
+            prestationTime: item.prestationTime,
+          }
+        }),
       ]
 
       const payload = {
@@ -323,6 +441,7 @@ export default function CartPage() {
         caution: cautionAmount,
         rentalDelivery: cart.rentalDelivery,
         purchaseDelivery: cart.purchaseDelivery,
+        prestationDelivery: cart.prestationDelivery,
         totalPrice: totalWithDelivery,
         paymentMethod: 'cash',
       }
@@ -395,6 +514,18 @@ export default function CartPage() {
                 <span className="inline-block">{item.rentalPeriod.from.toLocaleDateString('fr-FR')} {item.startTime}</span>
                 {' - '}
                 <span className="inline-block">{item.rentalPeriod.to.toLocaleDateString('fr-FR')} {item.endTime}</span>
+              </p>
+            )}
+            {/* Show prestation date/time for prestation products */}
+            {item.category === 'henne' && item.prestationDate && item.prestationTime && (
+              <p className="break-words text-purple-700">
+                <span className="font-medium">Date de la prestation :</span>{' '}
+                {item.prestationDate.toLocaleDateString('fr-FR', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })} à {item.prestationTime}
               </p>
             )}
             <p>
@@ -534,6 +665,15 @@ export default function CartPage() {
 
                         {cart.rentalDelivery.option === 'delivery' && (
                           <div className="mt-2 space-y-2">
+                            {hasPurchases && cart.purchaseDelivery.option === 'delivery' && cart.purchaseDelivery.address && !rentalAddressInput && (
+                              <button
+                                onClick={handleReuseAddressForRentals}
+                                className="text-xs text-blue-600 hover:text-blue-700 font-medium underline mb-2"
+                              >
+                                Réutiliser l&apos;adresse renseignée
+                              </button>
+                            )}
+
                             <AddressAutocomplete
                               value={rentalAddressInput}
                               onChange={(value) => {
@@ -624,10 +764,10 @@ export default function CartPage() {
                           <div className="mt-2 space-y-2">
                             {hasRentals && cart.rentalDelivery.option === 'delivery' && cart.rentalDelivery.address && !useSameAddress && (
                               <button
-                                onClick={handleUseSameAddress}
+                                onClick={handleReuseAddressForPurchases}
                                 className="text-xs text-blue-600 hover:text-blue-700 font-medium underline mb-2"
                               >
-                                Utiliser la même adresse que pour les locations
+                                Réutiliser l&apos;adresse renseignée
                               </button>
                             )}
 
@@ -687,6 +827,102 @@ export default function CartPage() {
                 </div>
               </div>
             )}
+
+            {/* Section PRESTATIONS */}
+            {hasPrestations && (
+              <div className="border-1 border-purple-300 rounded-2xl p-4 md:p-6 bg-white">
+                <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
+                  <h2 className="text-2xl font-bold text-purple-900">Prestations</h2>
+                  <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium">
+                    {prestationItems.length} prestation{prestationItems.length > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="space-y-4">
+                  {prestationItems.map(renderCartItem)}
+                </div>
+
+                {/* Options de livraison pour les prestations */}
+                <div className="mt-2 md:mt-4 p-3 md:p-4 bg-purple-50 border border-purple-300 rounded-lg">
+                  <h3 className="font-semibold mb-2 md:mb-3 text-sm md:text-base text-purple-900">Lieu de la prestation</h3>
+                  <div className="space-y-3">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="prestationDeliveryOption"
+                        value="pickup"
+                        checked={cart.prestationDelivery.option === 'pickup'}
+                        onChange={() => {
+                          setPrestationDeliveryOption('pickup')
+                          setPrestationAddressInput('')
+                          setPrestationDeliveryInfo(null)
+                        }}
+                        className="mr-3 w-5 h-5 cursor-pointer"
+                      />
+                      <div className="flex-1">
+                        <span className="font-medium">En boutique</span>
+                        <p className="text-xs text-stone-600">100 Boulevard de Saint-Loup, 13010 Marseille</p>
+                      </div>
+                    </label>
+                    <label className="flex items-start cursor-pointer">
+                      <input
+                        type="radio"
+                        name="prestationDeliveryOption"
+                        value="delivery"
+                        checked={cart.prestationDelivery.option === 'delivery'}
+                        onChange={() => setPrestationDeliveryOption('delivery')}
+                        className="mr-3 w-5 h-5 cursor-pointer mt-1"
+                      />
+                      <div className="flex-1">
+                        <span className="font-medium">À domicile</span>
+                        <p className="text-xs text-stone-600 mb-2">Frais de déplacement calculés selon la distance</p>
+
+                        {cart.prestationDelivery.option === 'delivery' && (
+                          <div className="mt-2 space-y-2">
+                            {(hasRentals && cart.rentalDelivery.address) || (hasPurchases && cart.purchaseDelivery.address) ? (
+                              <button
+                                onClick={handleReuseAddressForPrestations}
+                                className="text-xs text-blue-600 hover:text-blue-700 font-medium underline mb-2"
+                              >
+                                Réutiliser l&apos;adresse renseignée
+                              </button>
+                            ) : null}
+
+                            <AddressAutocomplete
+                              value={prestationAddressInput}
+                              onChange={(value) => {
+                                setPrestationAddressInput(value)
+                                setPrestationDeliveryInfo(null)
+                              }}
+                              onSelect={(address) => {
+                                setPrestationAddressInput(address)
+                                handleCalculatePrestationDeliveryFees(address)
+                              }}
+                              placeholder="Adresse de la prestation"
+                              className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                            />
+
+                            {isCalculatingPrestationFees && (
+                              <div className="flex items-center gap-2 text-sm text-stone-600">
+                                <div className="w-4 h-4 border-2 border-stone-200 border-t-purple-600 rounded-full animate-spin"></div>
+                                <span>Calcul des frais en cours...</span>
+                              </div>
+                            )}
+
+                            {prestationDeliveryInfo && (
+                              <div className="bg-white border-slate-300 border p-3 rounded-lg text-xs space-y-1">
+                                <p className="font-medium text-slate-800">Frais de déplacement calculés</p>
+                                <p className="text-stone-700">Distance : {prestationDeliveryInfo.distanceText}</p>
+                                <p className="font-semibold text-slate-800">Total déplacement : {prestationDeliveryInfo.totalDeliveryFees.toFixed(2)} €</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Order Summary */}
@@ -726,10 +962,25 @@ export default function CartPage() {
                   </div>
                 )}
 
+                {hasPrestations && (
+                  <div className="pb-3 border-b border-stone-200">
+                    <div className="flex justify-between text-purple-700 font-medium gap-2">
+                      <span className="text-sm md:text-base break-words">Prestations ({prestationItems.length} prestation{prestationItems.length > 1 ? 's' : ''})</span>
+                      <span className="text-sm md:text-base flex-shrink-0">{calculatePrestationSubtotal().toFixed(2)} €</span>
+                    </div>
+                    {cart.prestationDelivery.option === 'delivery' && cart.prestationDelivery.address && (
+                      <div className="flex justify-between text-xs md:text-sm text-stone-600 mt-1 gap-2">
+                        <span className="break-words">Frais de déplacement</span>
+                        <span className="flex-shrink-0">{cart.prestationDelivery.fees.toFixed(2)} €</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Total à payer */}
                 <div className="pt-3 flex justify-between font-bold text-base md:text-xl gap-2">
                   <span className="break-words">Total à payer</span>
-                  <span className="flex-shrink-0">{(cart.totalPrice + cart.rentalDelivery.fees + cart.purchaseDelivery.fees).toFixed(2)} €</span>
+                  <span className="flex-shrink-0">{(cart.totalPrice + cart.rentalDelivery.fees + cart.purchaseDelivery.fees + cart.prestationDelivery.fees).toFixed(2)} €</span>
                 </div>
 
                 {/* Informations complémentaires */}

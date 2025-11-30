@@ -37,7 +37,7 @@ export default function LocationsPage() {
       <section className="relative w-full h-[60vh] overflow-hidden">
         <div className="absolute inset-0">
           <img
-            src="/imgs/locations/mainLocation.png"
+            src="/imgs/locations/locationsMain.png"
             alt="Locations"
             className="w-full h-full object-cover"
           />

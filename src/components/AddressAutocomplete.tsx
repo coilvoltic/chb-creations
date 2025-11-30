@@ -95,6 +95,11 @@ export default function AddressAutocomplete({
   }
 
   const handleSelectPrediction = (prediction: AddressPrediction) => {
+    // Annuler tout timeout en cours pour éviter que fetchPredictions ne soit appelé
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+    }
+
     onChange(prediction.description)
     onSelect(prediction.description)
     setShowDropdown(false)
