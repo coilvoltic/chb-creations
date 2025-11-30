@@ -33,6 +33,17 @@ interface PurchaseItem {
   personalizations?: { [key: string]: string }
 }
 
+interface PrestationItem {
+  product_name: string
+  quantity: number
+  prestation_date?: string
+  prestation_time?: string
+  unit_price: number
+  total_price: number
+  selectedOptions?: SelectedOption[]
+  personalizations?: { [key: string]: string }
+}
+
 interface ReservationData {
   id: number
   reservation_code: string
@@ -43,10 +54,13 @@ interface ReservationData {
   created_at: string
   rentalItems?: RentalItem[]
   purchaseItems?: PurchaseItem[]
+  prestationItems?: PrestationItem[]
   rentalDeliveryAddress?: string | null
   purchaseDeliveryAddress?: string | null
+  prestationDeliveryAddress?: string | null
   rentalDeliveryFees?: number
   purchaseDeliveryFees?: number
+  prestationDeliveryFees?: number
 }
 
 export async function sendReservationConfirmation(reservation: ReservationData) {

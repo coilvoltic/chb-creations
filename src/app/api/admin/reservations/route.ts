@@ -4,7 +4,8 @@ import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const cookieStore = await cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
 
     // Vérifier l'authentification
     const {
@@ -43,7 +44,7 @@ export async function GET() {
       return NextResponse.json({ error: ordersError.message }, { status: 500 })
     }
 
-    // Pour chaque commande, récupérer ses rental_reservations ET purchase_reservations
+    // Pour chaque commande, récupérer ses rental_reservations, purchase_reservations ET prestation_reservations
     const ordersWithReservations = await Promise.all(
       (orders || []).map(async (order) => {
         const { data: rentalReservations } = await supabase
@@ -56,10 +57,16 @@ export async function GET() {
           .select('*')
           .eq('customer_order_id', order.id)
 
+        const { data: prestationReservations } = await supabase
+          .from('prestation_reservations')
+          .select('*')
+          .eq('customer_order_id', order.id)
+
         return {
           ...order,
           rental_reservations: rentalReservations || [],
           purchase_reservations: purchaseReservations || [],
+          prestation_reservations: prestationReservations || [],
         }
       })
     )

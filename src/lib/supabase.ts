@@ -131,6 +131,29 @@ export interface PurchaseItem {
   personalizations?: Record<string, string>
 }
 
+// Prestation Reservation (child of CustomerOrder for henné services)
+export interface PrestationReservation {
+  id: number
+  created_at: string
+  customer_order_id: number
+  total_price: number
+  reservation_status: ReservationStatus
+  delivery_address?: string
+  delivery_fees?: number
+}
+
+// Prestation Item (items in a prestation reservation)
+export interface PrestationItem {
+  id: number
+  prestation_reservation_id: number
+  product_id: number
+  date?: string // ISO timestamp for prestation date
+  prestation_time?: string // Time for prestation (e.g., "14:00")
+  quantity: number
+  options?: RentalItemOption // Same structure as rental items
+  personalizations?: Record<string, string>
+}
+
 // Legacy aliases for backward compatibility (will be removed later)
 /** @deprecated Use RentalReservation instead */
 export type Reservation = RentalReservation & { customer_infos: CustomerInfo }

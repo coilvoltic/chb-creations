@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
-import type { CustomerOrder, RentalReservation, PurchaseReservation } from '@/lib/supabase'
+import type { CustomerOrder, RentalReservation, PurchaseReservation, PrestationReservation } from '@/lib/supabase'
+import Loader from '@/components/Loader'
 
 interface OrderWithReservations extends CustomerOrder {
   rental_reservations: RentalReservation[]
   purchase_reservations: PurchaseReservation[]
+  prestation_reservations: PrestationReservation[]
 }
 
 export default function AdminDashboardPage() {
@@ -35,6 +37,13 @@ export default function AdminDashboardPage() {
       }
 
       const data = await response.json()
+      console.log('Orders received:', data.orders)
+      // Log prestation reservations for debugging
+      data.orders?.forEach((order: OrderWithReservations) => {
+        if (order.prestation_reservations && order.prestation_reservations.length > 0) {
+          console.log(`Order ${order.order_number} has ${order.prestation_reservations.length} prestation(s)`)
+        }
+      })
       setOrders(data.orders || [])
     } catch (err) {
       console.error('Erreur:', err)
@@ -77,14 +86,7 @@ export default function AdminDashboardPage() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-          <p className="text-stone-600">Chargement...</p>
-        </div>
-      </div>
-    )
+    return <Loader />
   }
 
   return (
@@ -159,10 +161,11 @@ export default function AdminDashboardPage() {
                 </thead>
                 <tbody className="bg-white divide-y divide-stone-200">
                   {orders.map((order) => {
-                    // Get first reservation (rental or purchase) for display
+                    // Get first reservation (rental, purchase or prestation) for display
                     const firstRental = order.rental_reservations[0]
                     const firstPurchase = order.purchase_reservations[0]
-                    const firstReservation = firstRental || firstPurchase
+                    const firstPrestation = order.prestation_reservations[0]
+                    const firstReservation = firstRental || firstPurchase || firstPrestation
 
                     return (
                       <tr
@@ -191,11 +194,17 @@ export default function AdminDashboardPage() {
                               {order.rental_reservations.length > 0 && (
                                 <span>Location</span>
                               )}
-                              {order.rental_reservations.length > 0 && order.purchase_reservations.length > 0 && (
+                              {order.rental_reservations.length > 0 && (order.purchase_reservations.length > 0 || order.prestation_reservations.length > 0) && (
                                 <span> • </span>
                               )}
                               {order.purchase_reservations.length > 0 && (
                                 <span>Achat</span>
+                              )}
+                              {order.purchase_reservations.length > 0 && order.prestation_reservations.length > 0 && (
+                                <span> • </span>
+                              )}
+                              {order.prestation_reservations.length > 0 && (
+                                <span>Prestation</span>
                               )}
                             </div>
                             {firstReservation && firstReservation.delivery_address && (

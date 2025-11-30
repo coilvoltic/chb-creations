@@ -8,7 +8,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const supabase = createRouteHandlerClient({ cookies })
+    const cookieStore = await cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
 
     // Vérifier l'authentification
     const {
@@ -126,10 +127,53 @@ export async function GET(
       })
     )
 
+    // Récupérer les prestation_reservations de cette commande
+    const { data: prestationReservations, error: prestationError } = await supabase
+      .from('prestation_reservations')
+      .select('*')
+      .eq('customer_order_id', id)
+      .order('id', { ascending: true })
+
+    if (prestationError) {
+      console.error('Erreur récupération prestation_reservations:', prestationError)
+    }
+
+    console.log('Prestation reservations trouvées:', prestationReservations?.length || 0)
+
+    // Pour chaque prestation_reservation, récupérer ses items
+    const prestationReservationsWithItems = await Promise.all(
+      (prestationReservations || []).map(async (reservation) => {
+        const { data: items, error: itemsError } = await supabase
+          .from('prestation_items')
+          .select(`
+            *,
+            products (
+              name,
+              slug,
+              images,
+              price,
+              new_price
+            )
+          `)
+          .eq('prestation_reservation_id', reservation.id)
+          .order('id', { ascending: true })
+
+        if (itemsError) {
+          console.error('Erreur récupération prestation_items:', itemsError)
+        }
+
+        return {
+          ...reservation,
+          items: items || [],
+        }
+      })
+    )
+
     return NextResponse.json({
       order,
       rental_reservations: rentalReservationsWithItems,
-      purchase_reservations: purchaseReservationsWithItems
+      purchase_reservations: purchaseReservationsWithItems,
+      prestation_reservations: prestationReservationsWithItems
     })
   } catch (error) {
     console.error('Erreur API admin/reservations/[id]:', error)
