@@ -5,6 +5,9 @@ export interface SelectedOption {
   additional_fee: number
 }
 
+// Time slot type (matches SQL ENUM and src/lib/supabase.ts)
+export type TimeSlot = 'LUNCH' | 'AFTERNOON' | 'EVENING'
+
 export interface CartItem {
   id: string // unique cart item id
   productId: number
@@ -26,8 +29,8 @@ export interface CartItem {
   }
   startTime: string
   endTime: string
-  prestationDate?: Date // For prestation items (henne, etc.)
-  prestationTime?: string // Time for prestation (e.g., "14:00")
+  prestationDate?: Date // For prestation items (henne, etc.) - date only
+  prestationTimeSlot?: TimeSlot // Fixed time slot ENUM: 'LUNCH' | 'AFTERNOON' | 'EVENING'
   category: string
   subcategory: string
 }

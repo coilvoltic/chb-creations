@@ -1,23 +1,56 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const cookieStore = await cookies()
 
-    // Vérifier l'authentification
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
+    // Chercher le cookie d'authentification Supabase (le nom varie selon le projet)
+    const allCookies = cookieStore.getAll()
+    const authCookie = allCookies.find(cookie =>
+      cookie.name.startsWith('sb-') && cookie.name.endsWith('-auth-token')
+    )
 
-    if (!session) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!authCookie?.value) {
+      return NextResponse.json({ error: 'Non authentifié - aucun cookie d\'auth trouvé' }, { status: 401 })
+    }
+
+    // Parser le cookie qui contient un objet JSON avec le token
+    let accessToken: string
+    try {
+      const parsed = JSON.parse(authCookie.value)
+      accessToken = parsed.access_token || parsed[0]
+    } catch {
+      // Si le parsing échoue, utiliser la valeur directement
+      accessToken = authCookie.value
+    }
+
+    // Créer un client Supabase avec le service role key pour l'admin
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      }
+    )
+
+    // Obtenir la session utilisateur avec le token
+    const { data: { user }, error: userError } = await supabase.auth.getUser(accessToken)
+
+    if (userError || !user) {
+      return NextResponse.json({
+        error: 'Non authentifié - token invalide',
+        details: userError?.message
+      }, { status: 401 })
     }
 
     // Vérifier que c'est un admin
     const { data: isAdmin } = await supabase
-      .rpc('is_admin', { user_email: session.user.email })
+      .rpc('is_admin', { user_email: user.email })
 
     if (!isAdmin) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })

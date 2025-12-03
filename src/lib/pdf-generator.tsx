@@ -1,5 +1,6 @@
 import React from 'react'
 import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer'
+import { TimeSlot, TIME_SLOT_LABELS } from './supabase'
 
 // Types
 interface SelectedOption {
@@ -34,7 +35,7 @@ interface PrestationItem {
   product_name: string
   quantity: number
   prestation_date?: string
-  prestation_time?: string
+  time_slot?: TimeSlot
   unit_price: number
   total_price: number
   selectedOptions?: SelectedOption[]
@@ -91,7 +92,7 @@ interface GenerateReservationPDFParams {
     quantity: number
     pricePerUnit: number
     prestationDate?: string
-    prestationTime?: string
+    timeSlot?: TimeSlot
     selectedOptions?: SelectedOption[]
     personalizations?: { [key: string]: string }
   }>
@@ -439,8 +440,8 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
                     </Text>
                     <Text style={styles.col2}>{item.quantity}</Text>
                     <Text style={styles.col3}>
-                      {item.prestation_date && item.prestation_time ? (
-                        `${formatDate(item.prestation_date)} ${item.prestation_time}`
+                      {item.prestation_date ? (
+                        `${formatDate(item.prestation_date)}${item.time_slot ? ` - ${TIME_SLOT_LABELS[item.time_slot]}` : ''}`
                       ) : (
                         'À définir'
                       )}
@@ -530,7 +531,7 @@ export async function generateReservationPDF(params: GenerateReservationPDFParam
       product_name: item.productName,
       quantity: item.quantity,
       prestation_date: item.prestationDate,
-      prestation_time: item.prestationTime,
+      time_slot: item.timeSlot,
       unit_price: item.pricePerUnit,
       total_price: item.quantity * item.pricePerUnit,
       selectedOptions: item.selectedOptions,

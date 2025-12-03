@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import type { CustomerOrder, RentalReservation, PurchaseReservation, PrestationReservation } from '@/lib/supabase'
+import { TIME_SLOT_LABELS } from '@/lib/supabase'
 import Loader from '@/components/Loader'
 
 interface RentalItem {
@@ -63,8 +64,8 @@ interface PrestationItem {
   prestation_reservation_id: number
   product_id: number
   quantity: number
-  date?: string
-  prestation_time?: string
+  prestation_date?: string // Date only (YYYY-MM-DD)
+  time_slot?: 'LUNCH' | 'AFTERNOON' | 'EVENING' // Fixed time slot ENUM
   options: {
     selectedOptions?: Array<{
       option_type_name: string
@@ -634,9 +635,14 @@ export default function ReservationDetailPage() {
                             <h3 className="font-semibold text-base md:text-lg text-black mb-2 break-words">{item.products.name}</h3>
 
                             <div className="space-y-1 text-sm text-stone-700">
-                              {item.date && (
+                              {item.prestation_date && (
                                 <p>
-                                  <span className="font-medium">Date & Heure :</span> {formatDateOnly(item.date)} {item.prestation_time ? `à ${item.prestation_time}` : ''}
+                                  <span className="font-medium">Date :</span> {formatDateOnly(item.prestation_date)}
+                                </p>
+                              )}
+                              {item.time_slot && (
+                                <p>
+                                  <span className="font-medium">Créneau :</span> {TIME_SLOT_LABELS[item.time_slot]}
                                 </p>
                               )}
                               <p>

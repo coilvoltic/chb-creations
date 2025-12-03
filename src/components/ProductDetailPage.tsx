@@ -4,9 +4,10 @@ import Navbar from '@/components/Navbar'
 import Breadcrumb from '@/components/Breadcrumb'
 import DateRangePicker from '@/components/DateRangePicker'
 import PrestationDatePicker from '@/components/PrestationDatePicker'
+import TimeSlotPicker from '@/components/TimeSlotPicker'
 import { useState, useEffect, use } from 'react'
 import { getProductBySlug } from '@/actions/products'
-import type { Product } from '@/lib/supabase'
+import type { Product, TimeSlot } from '@/lib/supabase'
 import { notFound, useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import type { DateRange } from 'react-day-picker'
@@ -50,7 +51,9 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
 
   // State for prestation date/time
   const [prestationDate, setPrestationDate] = useState<Date | null>(null)
-  const [prestationTime, setPrestationTime] = useState('14:00') // Default time
+  const [prestationTimeSlot, setPrestationTimeSlot] = useState<TimeSlot | undefined>()
+  const [unavailableSlots, setUnavailableSlots] = useState<TimeSlot[]>([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
 
   // Get effective price (new_price if available, otherwise price)
   const getEffectivePrice = () => {
@@ -108,6 +111,42 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
     loadProduct()
   }, [slug])
 
+  // Load unavailable slots when prestation date changes
+  useEffect(() => {
+    async function loadUnavailableSlots() {
+      if (!isPrestationProduct || !prestationDate || !product) {
+        setUnavailableSlots([])
+        return
+      }
+
+      setLoadingSlots(true)
+      try {
+        const dateStr = prestationDate.toISOString().split('T')[0] // Format: YYYY-MM-DD
+        const response = await fetch(`/api/prestation-unavailable-slots?productId=${product.id}&date=${dateStr}`)
+
+        if (response.ok) {
+          const data = await response.json()
+          setUnavailableSlots(data.unavailableSlots || [])
+
+          // Si le créneau sélectionné est maintenant indisponible, le désélectionner
+          if (prestationTimeSlot && data.unavailableSlots?.includes(prestationTimeSlot)) {
+            setPrestationTimeSlot(undefined)
+          }
+        } else {
+          console.error('Failed to fetch unavailable slots')
+          setUnavailableSlots([])
+        }
+      } catch (error) {
+        console.error('Error fetching unavailable slots:', error)
+        setUnavailableSlots([])
+      } finally {
+        setLoadingSlots(false)
+      }
+    }
+
+    loadUnavailableSlots()
+  }, [isPrestationProduct, prestationDate, product, prestationTimeSlot])
+
   const handleAddToCart = () => {
     if (!product) return
 
@@ -153,7 +192,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
       startTime,
       endTime,
       prestationDate: isPrestationProduct ? prestationDate || undefined : undefined,
-      prestationTime: isPrestationProduct ? prestationTime : undefined,
+      prestationTimeSlot: isPrestationProduct ? prestationTimeSlot : undefined,
       category: product.category,
       subcategory: product.subcategory,
     })
@@ -650,13 +689,23 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                   <div className="border-t border-stone-200 pt-6">
                     <h2 className={`text-xl font-semibold mb-3 ${isInCart ? 'text-stone-400' : ''}`}>Date de la prestation</h2>
                     <p className={`text-sm mb-4 ${isInCart ? 'text-stone-400' : 'text-stone-600'}`}>
-                      Sélectionnez la date et l&apos;heure de votre prestation
+                      Sélectionnez la date de votre prestation
                     </p>
                     <PrestationDatePicker
                       selectedDate={prestationDate}
-                      selectedTime={prestationTime}
                       onDateChange={setPrestationDate}
-                      onTimeChange={setPrestationTime}
+                    />
+
+                    <h2 className={`text-xl font-semibold mt-6 mb-3 ${isInCart ? 'text-stone-400' : ''}`}>Créneau horaire</h2>
+                    <p className={`text-sm mb-4 ${isInCart ? 'text-stone-400' : 'text-stone-600'}`}>
+                      Choisissez votre créneau horaire
+                      {loadingSlots && <span className="ml-2 text-xs text-stone-500">(Vérification des disponibilités...)</span>}
+                    </p>
+                    <TimeSlotPicker
+                      selectedSlot={prestationTimeSlot}
+                      onSlotChange={setPrestationTimeSlot}
+                      disabled={isInCart || loadingSlots}
+                      unavailableSlots={unavailableSlots}
                     />
                   </div>
                 )}
@@ -666,7 +715,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                     onClick={handleAddToCart}
                     disabled={
                       (isRentalProduct && (!rentalPeriod?.from || !rentalPeriod?.to)) ||
-                      (isPrestationProduct && !prestationDate) ||
+                      (isPrestationProduct && (!prestationDate || !prestationTimeSlot)) ||
                       isInCart
                     }
                     className="w-full bg-black text-white px-8 py-4 rounded-lg hover:bg-stone-800 transition-colors text-lg font-medium disabled:bg-stone-300 disabled:cursor-not-allowed"

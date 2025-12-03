@@ -41,23 +41,30 @@ The development server runs on http://localhost:3000
 - Use this consistently for all imports: `@/components/...`, `@/app/...`, `@/lib/...`
 
 ### Fonts
-The app uses three Google Fonts configured in [src/app/layout.tsx](src/app/layout.tsx):
+The app uses four Google Fonts configured in [src/app/layout.tsx](src/app/layout.tsx):
 - **Inter**: Primary font (variable: `--font-inter`)
 - **Outfit**: Secondary font (variable: `--font-outfit`)
-- **Satisfy**: Display font for titles (variable: `--font-satisfy`)
-- All loaded with weights 300-800
+- **Frank Ruhl Libre**: Alternative display font (variable: `--font-frank-ruhl-libre`)
+- **Satisfy**: Script font for decorative titles (variable: `--font-satisfy`)
+- Loaded with appropriate weights for each font family
 
 ## Database Architecture (Supabase)
 
 ### New Hierarchical Structure (Updated 2024)
 
-The database now uses a **parent-child hierarchy** to support multiple reservation types (rentals, purchases, services):
+The database uses a **parent-child hierarchy** to support multiple reservation types (rentals, purchases, services):
 
 ```
 customer_orders (parent)
-└── rental_reservations (child for rentals)
-    └── rental_items (items in rental)
+├── rental_reservations (child for rentals)
+│   └── rental_items (items in rental)
+├── purchase_reservations (child for purchases)
+│   └── purchase_items (items in purchase)
+└── prestation_reservations (child for services like henné)
+    └── prestation_items (items in prestation)
 ```
+
+This structure allows a single customer order to contain multiple types of reservations with separate delivery options for each category.
 
 ### Core Tables
 
@@ -67,9 +74,9 @@ customer_orders (parent)
    - `total_price` (real): Total amount for entire order
    - `created_at`: Order creation timestamp
    - **Purpose**: Groups all reservations from a single customer transaction
-   - **Future**: Can contain multiple `rental_reservations` AND `purchase_reservations`
+   - Can contain multiple `rental_reservations`, `purchase_reservations`, and `prestation_reservations`
 
-2. **rental_reservations**: Sub-reservation for product rentals
+2. **rental_reservations**: Sub-reservation for product rentals (locations)
    - `customer_order_id` (FK → customer_orders): Parent order reference
    - `deposit` (real): Required deposit amount (percentage of total)
    - `caution` (real): Security deposit (not charged unless damage)
@@ -101,7 +108,37 @@ customer_orders (parent)
    - Stock management and categorization (category, subcategory, stock)
    - Dynamic unavailabilities computed via SQL function
 
-5. **promotional_messages**: Marketing messages for homepage carousel
+5. **purchase_reservations**: Sub-reservation for product purchases (accessoires personnalisés)
+   - `customer_order_id` (FK → customer_orders): Parent order reference
+   - `total_price` (real): Subtotal for this purchase
+   - `reservation_status`: Same status enum as rentals
+   - `delivery_address`, `delivery_fees`: Same as rentals
+
+6. **purchase_items**: Individual products in a purchase reservation
+   - `purchase_reservation_id` (FK → purchase_reservations): Parent reservation
+   - `product_id` (FK → products): Product reference
+   - `quantity` (integer): Number of units
+   - `estimated_delivery_date` (timestamp, nullable): Expected delivery date
+   - `options` (JSONB): Selected options (same structure as rental_items)
+   - `personalizations` (JSONB): Custom text inputs
+
+7. **prestation_reservations**: Sub-reservation for services (henné)
+   - `customer_order_id` (FK → customer_orders): Parent order reference
+   - `total_price` (real): Subtotal for this prestation
+   - `reservation_status`: Same status enum as rentals
+   - `delivery_address`, `delivery_fees`: For services requiring travel
+
+8. **prestation_items**: Individual services in a prestation reservation
+   - `prestation_reservation_id` (FK → prestation_reservations): Parent reservation
+   - `product_id` (FK → products): Service reference
+   - `quantity` (integer): Number of units (e.g., number of people)
+   - `prestation_date` (date, nullable): Service appointment date (date only, no time)
+   - `time_slot` (TimeSlot ENUM, nullable): Fixed time slot - 'LUNCH' (12h-15h30), 'AFTERNOON' (16h-20h), 'EVENING' (20h30-23h30)
+   - `options` (JSONB): Selected options
+   - `personalizations` (JSONB): Custom requirements
+   - **Note**: Uses SQL ENUM type for time slots instead of free-form time selection for better scheduling and data integrity
+
+9. **promotional_messages**: Marketing messages for homepage carousel
    - `msg` (text): Message content
    - `created_at`: Timestamp for ordering
 
@@ -114,10 +151,12 @@ customer_orders (parent)
   - `get_product_unavailabilities(product_id)`: Computes product availability from `rental_items`
   - `update_past_reservations_to_done()`: Auto-updates rental status when rental period ends
 - **RLS Policies**: See [src/lib/rls-policies.sql](src/lib/rls-policies.sql)
-  - `customer_orders`: Only accessible via service_role (API routes)
-  - `rental_reservations`: Only accessible via service_role (API routes)
-  - `rental_items`: Read-only for anon (for availability checks), writes restricted to service_role
+  - **Security model**: All order creation goes through API routes using service_role key (bypasses RLS safely)
+  - `customer_orders`: Only accessible via service_role and authenticated users (admins)
+  - `rental_reservations`, `purchase_reservations`, `prestation_reservations`: Same as customer_orders
+  - `rental_items`, `purchase_items`, `prestation_items`: Read access for anon (availability checks), write access restricted to service_role
   - `products`: Public read access, service_role write access
+  - **Why this is safe**: API routes validate all data before insertion; clients cannot directly insert/update orders
 
 ### Environment Variables
 Required in `.env.local`:
@@ -135,17 +174,33 @@ Required in `.env.local`:
 ### Page Hierarchy & Routing
 
 **Main sections** (3 services):
-1. **Locations** (`/services/locations`)
+1. **Locations** (`/services/locations`) - Product rentals
    - Art de table (`/services/locations/art-de-table`)
    - Trônes (`/services/locations/trones`)
    - Tenues homme (`/services/locations/tenues-homme`)
    - Déco et accessoires (`/services/locations/deco-et-accessoires`)
 
-2. **Accessoires** (`/services/accessoires`)
+2. **Accessoires Personnalisés** (`/services/accessoires-personnalises`) - Custom product purchases
+   - Bendir (`/services/accessoires-personnalises/bendir`)
+   - Bougies (`/services/accessoires-personnalises/bougies`)
+   - Certificats mariage (`/services/accessoires-personnalises/certificats-mariage`)
+   - Coussins (`/services/accessoires-personnalises/coussins`)
+   - Faire-parts (`/services/accessoires-personnalises/faire-parts`)
+   - Oeufs (`/services/accessoires-personnalises/oeufs`)
+   - Tableaux (`/services/accessoires-personnalises/tableaux`)
+   - Textile (`/services/accessoires-personnalises/textile`)
 
-3. **Henné** (`/services/henne`)
+3. **Henné** (`/services/henne`) - Henné services
+   - Henné seul (`/services/henne/henne-seul`)
+   - Pack henné (`/services/henne/pack-henne`)
 
-**Individual products** follow pattern: `/services/locations/[category]/[product-slug]`
+**Individual products** follow pattern: `/services/[category]/[subcategory]/[product-slug]`
+
+**Admin section**:
+- `/admin/login`: Admin authentication page
+- `/admin/dashboard`: Admin dashboard for managing reservations and viewing analytics
+- `/admin/reservations/[id]`: Individual reservation detail page with PDF generation
+- Protected routes requiring authentication
 
 ### State Management
 
@@ -153,18 +208,28 @@ Required in `.env.local`:
 - Global shopping cart state using React Context
 - Persists to localStorage (key: 'chb-cart')
 - Handles cart operations: addToCart, removeFromCart, updateQuantity, clearCart
-- Delivery management: setDeliveryOption, setDeliveryAddress, updateDeliveryFees
+- **Three separate delivery configurations**: Each category (rentals, purchases, prestations) has independent delivery settings
+  - `rentalDelivery`: For location items
+  - `purchaseDelivery`: For accessoires personnalisés
+  - `prestationDelivery`: For henné services
+- Cart item categorization: getRentalItems(), getPurchaseItems(), getPrestationItems()
 - Automatically calculates totals including option fees, installation fees, delivery fees, and caution
-- Cart items include: product info, quantity, rental period, times, selected option, deposit percentage, caution per unit, installation options
-- Supports two delivery modes: 'pickup' (retrait en boutique) and 'delivery' (livraison)
+- Cart items include: product info, quantity, rental period/dates, times, selected options, deposit percentage, caution per unit, personalizations
+- Supports delivery modes: 'pickup' (retrait en boutique), 'delivery' (livraison), 'relay_point' (point relais)
 
 ### Product Options, Fees & Financial Terms
 
 Products can have optional features and financial requirements:
 - **Options**: Array of choices (e.g., different color schemes) with additional fees
-  - Default: First option is pre-selected
-  - Stored in cart and reservation_items
+  - Grouped by `option_type_name` (e.g., "Installation", "Couleur")
+  - Default: First option in each group is pre-selected
+  - Stored as array in cart items and database (supports multiple option groups)
   - Display: Radio buttons with price adjustments
+- **Personalizations**: Custom text inputs for products (e.g., names, dates on custom items)
+  - Products have `personalizations` field: array of field labels
+  - Customer fills in text fields during add-to-cart
+  - Stored as key-value map in cart and database
+  - Used mainly for accessoires personnalisés (custom products)
 - **Deposits (Acompte)**: Required percentage of total price to validate reservation
   - Only shown if deposit > 0
   - Calculated per-item based on quantity and selected option
@@ -191,11 +256,14 @@ Products can have optional features and financial requirements:
 - **Footer.tsx**: Site footer
 - **Breadcrumb.tsx**: Navigation breadcrumbs using lucide-react's ChevronRight icon
 - **DateRangePicker.tsx**: Rental period selector with unavailability checking and time selection
+- **PrestationDatePicker.tsx**: Single date picker for prestation services (henné)
+- **TimeSlotPicker.tsx**: Fixed time slot selector for prestations (3 slots: lunch, afternoon, evening)
 - **SuccessModal.tsx**: Custom modal for reservation confirmation (replaces browser alerts)
 - **GoogleReviews.tsx**: Displays Google Business reviews
 - **AddressAutocomplete.tsx**: Google Places autocomplete for delivery addresses
 - **ProductDetailPage.tsx**: Reusable product detail component with carousel, options, dates, and add-to-cart
 - **ProductListingPage.tsx**: Reusable product grid/list component for category pages
+- **Loader.tsx**: Loading spinner component
 
 **UI components** in `src/components/ui/`:
 - Uses shadcn/ui convention (configured via components.json)
@@ -238,13 +306,23 @@ Products can have optional features and financial requirements:
 7. **`/api/google-reviews`** (GET):
    - Fetches Google Business reviews via Places API
 
+8. **`/api/admin/reservations`** (GET):
+   - Admin API to fetch all reservations with filtering
+   - Requires authentication
+
+9. **`/api/admin/reservations/[id]`** (GET, PATCH):
+   - Admin API to view and update individual reservations
+   - Supports status updates and modifications
+   - Requires authentication
+
 ### Email & PDF System
 
 **Email** (`src/lib/email.tsx`):
-- Uses Resend API for sending
-- Currently in test mode (sends to volticthedev@gmail.com only)
-- Attaches generated PDF
-- Includes reservation details and selected options
+- Uses Resend API for sending transactional emails
+- Currently in test mode (sends to volticthedev@gmail.com only) - update `to` field in production
+- Attaches generated PDF confirmation document
+- Includes reservation details with all selected options and personalizations
+- Sends for all reservation types: rentals, purchases, and prestations
 
 **PDF Generator** (`src/lib/pdf-generator.tsx`):
 - Uses @react-pdf/renderer
@@ -318,11 +396,12 @@ Product pages (art-de-table, trônes, deco-et-accessoires, etc.) share identical
 - Same component layout and logic
 - Only differ in: route params, breadcrumbs, hero images
 - When adding new categories, copy existing product page structure
-- Server actions in `src/actions/products.ts` follow pattern: `get[Category]Products()`
-- Active rental subcategories with full implementation:
-  - `art-de-table`: Art de table products
-  - `trones`: Trônes products
-  - `deco-et-accessoires`: Décoration et accessoires products
+- Server actions in `src/actions/products.ts` follow pattern: `get[Subcategory]Products()`
+- All subcategories have corresponding server actions:
+  - Locations: `getArtDeTableProducts()`, `getTronesProducts()`, `getTenuesHommeProducts()`, `getDecoEtAccessoiresProducts()`
+  - Accessoires: `getBougiesProducts()`, `getCertificatsMariageProducts()`, `getCoussinsProducts()`, `getTableauxProducts()`, `getTextileProducts()`, `getBendirProducts()`, `getFairePartsProducts()`, `getOeufsProducts()`
+  - Henné: `getHenneSeulProducts()`, `getPackHenneProducts()`
+- Common function: `getProductBySlug(slug)` returns product with unavailabilities attached
 
 ## shadcn/ui Integration
 

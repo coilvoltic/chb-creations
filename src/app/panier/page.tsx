@@ -6,6 +6,7 @@ import { useCart } from '@/contexts/CartContext'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { CustomerInfo } from '@/lib/supabase'
+import { TIME_SLOT_LABELS } from '@/lib/supabase'
 import type { CartItem } from '@/lib/cart-types'
 import SuccessModal from '@/components/SuccessModal'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
@@ -429,7 +430,7 @@ export default function CartPage() {
             selectedOptions: item.selectedOptions,
             personalizations: item.personalizations,
             prestationDate: item.prestationDate?.toISOString(),
-            prestationTime: item.prestationTime,
+            prestationTimeSlot: item.prestationTimeSlot,
           }
         }),
       ]
@@ -516,17 +517,25 @@ export default function CartPage() {
                 <span className="inline-block">{item.rentalPeriod.to.toLocaleDateString('fr-FR')} {item.endTime}</span>
               </p>
             )}
-            {/* Show prestation date/time for prestation products */}
-            {item.category === 'henne' && item.prestationDate && item.prestationTime && (
-              <p className="break-words text-purple-700">
-                <span className="font-medium">Date de la prestation :</span>{' '}
-                {item.prestationDate.toLocaleDateString('fr-FR', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })} à {item.prestationTime}
-              </p>
+            {/* Show prestation date/time slot for prestation products */}
+            {item.category === 'henne' && item.prestationDate && (
+              <div className="space-y-1 text-purple-700">
+                <p className="break-words">
+                  <span className="font-medium">Date de la prestation :</span>{' '}
+                  {item.prestationDate.toLocaleDateString('fr-FR', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </p>
+                {item.prestationTimeSlot && (
+                  <p className="break-words">
+                    <span className="font-medium">Créneau horaire :</span>{' '}
+                    {TIME_SLOT_LABELS[item.prestationTimeSlot]}
+                  </p>
+                )}
+              </div>
             )}
             <p>
               <span className="font-medium">Prix unitaire :</span> {item.pricePerUnit.toFixed(2)} €

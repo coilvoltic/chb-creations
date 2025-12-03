@@ -142,13 +142,26 @@ export interface PrestationReservation {
   delivery_fees?: number
 }
 
+// Time slot types for prestations (matches SQL ENUM TimeSlot)
+export type TimeSlot = 'LUNCH' | 'AFTERNOON' | 'EVENING'
+
+// Time slot display mapping
+export const TIME_SLOT_LABELS: Record<TimeSlot, string> = {
+  LUNCH: '12h à 15h30',
+  AFTERNOON: '16h à 20h',
+  EVENING: '20h30 à 23h30',
+}
+
+// Helper to get all time slots as array
+export const TIME_SLOTS: TimeSlot[] = ['LUNCH', 'AFTERNOON', 'EVENING']
+
 // Prestation Item (items in a prestation reservation)
 export interface PrestationItem {
   id: number
   prestation_reservation_id: number
   product_id: number
-  date?: string // ISO timestamp for prestation date
-  prestation_time?: string // Time for prestation (e.g., "14:00")
+  prestation_date?: string // Date only (YYYY-MM-DD format)
+  time_slot?: TimeSlot // Fixed time slot ENUM: 'LUNCH' | 'AFTERNOON' | 'EVENING'
   quantity: number
   options?: RentalItemOption // Same structure as rental items
   personalizations?: Record<string, string>

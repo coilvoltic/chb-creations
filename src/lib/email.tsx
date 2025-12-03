@@ -2,6 +2,7 @@ import { Resend } from 'resend'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { ReservationPDF } from './pdf-generator'
 import React from 'react'
+import { TimeSlot, TIME_SLOT_LABELS } from './supabase'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -37,7 +38,7 @@ interface PrestationItem {
   product_name: string
   quantity: number
   prestation_date?: string
-  prestation_time?: string
+  time_slot?: TimeSlot
   unit_price: number
   total_price: number
   selectedOptions?: SelectedOption[]

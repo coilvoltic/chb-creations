@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import type { CustomerInfo, ReservationStatus } from '@/lib/supabase'
+import type { CustomerInfo, ReservationStatus, TimeSlot } from '@/lib/supabase'
 import { sendReservationConfirmation } from '@/lib/email'
 import { generateReservationCode } from '@/lib/reservation-code'
+import { format } from 'date-fns'
 
 interface SelectedOption {
   option_type_name: string
@@ -20,7 +21,7 @@ interface CartItemPayload {
   rentalStart: string // ISO timestamp (dummy for purchase/prestation items)
   rentalEnd: string // ISO timestamp (dummy for purchase/prestation items)
   prestationDate?: string // ISO timestamp for prestation date
-  prestationTime?: string // Time for prestation (e.g., "14:00")
+  prestationTimeSlot?: TimeSlot // Time slot ENUM: 'LUNCH' | 'AFTERNOON' | 'EVENING'
   selectedOptions?: SelectedOption[] // Array of selected options
   personalizations?: { [key: string]: string } // Map of personalization field name to value
   needsInstallation?: boolean
@@ -295,20 +296,19 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Combiner date et heure de la prestation pour créer un timestamp
-        let prestationDateTime: string | null = null
-        if (item.prestationDate && item.prestationTime) {
+        // Formater la date de prestation (DATE seulement, pas de timestamp)
+        let prestationDateFormatted: string | null = null
+        if (item.prestationDate) {
           const date = new Date(item.prestationDate)
-          const [hours, minutes] = item.prestationTime.split(':')
-          date.setHours(parseInt(hours), parseInt(minutes), 0, 0)
-          prestationDateTime = date.toISOString()
+          prestationDateFormatted = format(date, 'yyyy-MM-dd')
         }
 
         return {
           prestation_reservation_id: prestationReservationId,
           product_id: item.productId,
           quantity: item.quantity,
-          date: prestationDateTime,
+          prestation_date: prestationDateFormatted,
+          time_slot: item.prestationTimeSlot || null,
           options: optionsData,
           personalizations: item.personalizations || null,
         }
@@ -363,7 +363,7 @@ export async function POST(request: NextRequest) {
           product_name: item.productName,
           quantity: item.quantity,
           prestation_date: item.prestationDate,
-          prestation_time: item.prestationTime,
+          time_slot: item.prestationTimeSlot,
           unit_price: item.pricePerUnit,
           total_price: item.quantity * item.pricePerUnit,
           selectedOptions: item.selectedOptions,

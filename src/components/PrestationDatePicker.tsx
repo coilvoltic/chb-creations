@@ -3,26 +3,20 @@
 import { DayPicker } from 'react-day-picker'
 import { fr } from 'date-fns/locale'
 import 'react-day-picker/style.css'
-import { useState } from 'react'
 
 interface PrestationDatePickerProps {
   selectedDate: Date | null
-  selectedTime: string
   onDateChange: (date: Date) => void
-  onTimeChange: (time: string) => void
   minDate?: Date
   disabled?: boolean
 }
 
 export default function PrestationDatePicker({
   selectedDate,
-  selectedTime,
   onDateChange,
-  onTimeChange,
   minDate,
   disabled = false,
 }: PrestationDatePickerProps) {
-  const [localTime, setLocalTime] = useState(selectedTime || '14:00')
 
   // Disable past dates
   const today = new Date()
@@ -32,14 +26,6 @@ export default function PrestationDatePicker({
     if (date && !disabled) {
       onDateChange(date)
     }
-  }
-
-  const handleTimeChange = (value: string) => {
-    // Prevent empty values
-    if (!value) return
-
-    setLocalTime(value)
-    onTimeChange(value)
   }
 
   return (
@@ -57,26 +43,6 @@ export default function PrestationDatePicker({
           disabled: 'rdp-disabled',
         }}
       />
-
-      {/* Time selection - show only when date is selected */}
-      {selectedDate && (
-        <div className="mt-6 pt-6 border-t border-stone-200 overflow-hidden">
-          <h3 className={`text-sm font-semibold mb-4 ${disabled ? 'text-stone-400' : ''}`}>Heure de la prestation</h3>
-          <div className="min-w-0 overflow-hidden">
-            <label htmlFor="prestation-time" className={`block text-xs mb-2 ${disabled ? 'text-stone-400' : 'text-stone-600'}`}>
-              Heure souhaitée
-            </label>
-            <input
-              id="prestation-time"
-              type="time"
-              value={localTime}
-              disabled={disabled}
-              onChange={(e) => handleTimeChange(e.target.value)}
-              className="w-full max-w-full px-2 md:px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed"
-            />
-          </div>
-        </div>
-      )}
 
       <style jsx global>{`
         .rdp-custom {
