@@ -1103,7 +1103,7 @@ export default function CartPage() {
                   {/* Mode de paiement de l'acompte (si acompte requis) */}
                   {depositAmount > 0 && (
                     <div className="border border-stone-200 rounded-lg p-4">
-                      <h4 className="font-semibold mb-3 text-sm">Mode de paiement de l'acompte</h4>
+                      <h4 className="font-semibold mb-3 text-sm">Mode de paiement de l&apos;acompte</h4>
                       <div className="space-y-2">
                         <label className="flex items-start cursor-pointer">
                           <input
@@ -1117,7 +1117,7 @@ export default function CartPage() {
                           <div className="flex-1">
                             <span className="font-medium text-sm">Paiement en boutique</span>
                             <p className="text-xs text-stone-600 mt-1">
-                              L'acompte de {depositAmount.toFixed(2)} € sera à régler en boutique (espèces, carte ou chèque)
+                              L&apos;acompte de {depositAmount.toFixed(2)} € sera à régler en boutique (espèces, carte ou chèque)
                             </p>
                           </div>
                         </label>
@@ -1133,7 +1133,7 @@ export default function CartPage() {
                           <div className="flex-1">
                             <span className="font-medium text-sm">Paiement en ligne</span>
                             <p className="text-xs text-stone-600 mt-1">
-                              Payez l'acompte maintenant par carte bancaire ou Apple Pay
+                              Payez l&apos;acompte maintenant par carte bancaire ou Apple Pay
                             </p>
                           </div>
                         </label>
