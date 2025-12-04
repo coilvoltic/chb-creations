@@ -5,6 +5,62 @@ import { useState } from 'react'
 import { Search, Package, Calendar, MapPin, CheckCircle, Clock, XCircle } from 'lucide-react'
 import { TIME_SLOT_LABELS } from '@/lib/supabase'
 import type { ReservationStatus } from '@/lib/supabase'
+import Image from 'next/image'
+
+interface ProductInfo {
+  name: string
+  images: string[]
+  slug: string
+  category: string
+  subcategory: string
+}
+
+interface RentalItem {
+  id: number
+  quantity: number
+  rental_start: string
+  rental_end: string
+  products: ProductInfo
+}
+
+interface PurchaseItem {
+  id: number
+  quantity: number
+  products: ProductInfo
+}
+
+interface PrestationItem {
+  id: number
+  quantity: number
+  prestation_date: string | null
+  time_slot: string | null
+  products: ProductInfo
+}
+
+interface RentalReservation {
+  id: number
+  reservation_status: ReservationStatus
+  delivery_address: string | null
+  delivery_fees: number
+  deposit: number
+  rental_items: RentalItem[]
+}
+
+interface PurchaseReservation {
+  id: number
+  reservation_status: ReservationStatus
+  delivery_address: string | null
+  delivery_fees: number
+  purchase_items: PurchaseItem[]
+}
+
+interface PrestationReservation {
+  id: number
+  reservation_status: ReservationStatus
+  delivery_address: string | null
+  delivery_fees: number
+  prestation_items: PrestationItem[]
+}
 
 interface OrderData {
   order: {
@@ -19,9 +75,9 @@ interface OrderData {
       phone: string
     }
   }
-  rentalReservations: any[]
-  purchaseReservations: any[]
-  prestationReservations: any[]
+  rentalReservations: RentalReservation[]
+  purchaseReservations: PurchaseReservation[]
+  prestationReservations: PrestationReservation[]
 }
 
 export default function OrderTrackingPage() {
@@ -233,14 +289,15 @@ export default function OrderTrackingPage() {
 
                 {/* Items */}
                 <div className="space-y-4 mb-4">
-                  {reservation.rental_items?.map((item: any) => (
+                  {reservation.rental_items?.map((item) => (
                     <div key={item.id} className="flex gap-4 pb-4 border-b border-stone-100 last:border-0">
-                      <div className="w-20 h-20 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0">
+                      <div className="w-20 h-20 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0 relative">
                         {item.products?.images?.[0] && (
-                          <img
+                          <Image
                             src={item.products.images[0]}
                             alt={item.products.name}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
                           />
                         )}
                       </div>
@@ -303,14 +360,15 @@ export default function OrderTrackingPage() {
 
                 {/* Items */}
                 <div className="space-y-4 mb-4">
-                  {reservation.purchase_items?.map((item: any) => (
+                  {reservation.purchase_items?.map((item) => (
                     <div key={item.id} className="flex gap-4 pb-4 border-b border-stone-100 last:border-0">
-                      <div className="w-20 h-20 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0">
+                      <div className="w-20 h-20 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0 relative">
                         {item.products?.images?.[0] && (
-                          <img
+                          <Image
                             src={item.products.images[0]}
                             alt={item.products.name}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
                           />
                         )}
                       </div>
@@ -356,14 +414,15 @@ export default function OrderTrackingPage() {
 
                 {/* Items */}
                 <div className="space-y-4 mb-4">
-                  {reservation.prestation_items?.map((item: any) => (
+                  {reservation.prestation_items?.map((item) => (
                     <div key={item.id} className="flex gap-4 pb-4 border-b border-stone-100 last:border-0">
-                      <div className="w-20 h-20 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0">
+                      <div className="w-20 h-20 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0 relative">
                         {item.products?.images?.[0] && (
-                          <img
+                          <Image
                             src={item.products.images[0]}
                             alt={item.products.name}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
                           />
                         )}
                       </div>
