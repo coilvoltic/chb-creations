@@ -134,6 +134,14 @@ export default function Navbar() {
             >
               CONTACT
             </Link>
+
+            <Link
+              href="/suivi"
+              className={`text-xs md:text-sm font-black ${textColor} ${hoverColor} transition-colors duration-200`}
+              onMouseEnter={() => setActiveDropdown(null)}
+            >
+              SUIVI
+            </Link>
           </nav>
 
           {/* Right side - Icons and Login button */}
