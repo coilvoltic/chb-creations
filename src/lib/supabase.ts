@@ -17,6 +17,11 @@ export interface UnavailabilityEntry {
   reserved_products: number
 }
 
+export interface PrestationUnavailableSlot {
+  date: string // YYYY-MM-DD
+  time_slot: TimeSlot
+}
+
 export interface FAQItem {
   question: string
   answer: string
@@ -53,7 +58,8 @@ export interface Product {
   category: string
   subcategory: string
   stock: number
-  unavailabilities?: UnavailabilityEntry[]
+  unavailabilities?: UnavailabilityEntry[] // For rental products (locations)
+  prestationUnavailableSlots?: PrestationUnavailableSlot[] // For prestation products (henne)
   created_at?: string
 }
 

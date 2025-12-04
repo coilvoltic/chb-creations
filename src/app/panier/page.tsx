@@ -10,6 +10,7 @@ import { TIME_SLOT_LABELS } from '@/lib/supabase'
 import type { CartItem } from '@/lib/cart-types'
 import SuccessModal from '@/components/SuccessModal'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
+import PaymentSimulationModal from '@/components/PaymentSimulationModal'
 
 export default function CartPage() {
   const {
@@ -36,6 +37,8 @@ export default function CartPage() {
   const [error, setError] = useState<string | null>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [reservationCode, setReservationCode] = useState<string | null>(null)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'online' | 'cash'>('cash')
 
   // Séparer les items par catégorie
   const rentalItems = getRentalItems()
@@ -358,6 +361,22 @@ export default function CartPage() {
   }
 
   const handleValidateOrder = async () => {
+    // Si paiement en ligne et qu'il y a un acompte, ouvrir la modale de paiement
+    if (selectedPaymentMethod === 'online' && depositAmount > 0) {
+      setShowPaymentModal(true)
+      return
+    }
+
+    // Sinon, créer directement la réservation (paiement en espèce)
+    await createReservation('cash')
+  }
+
+  const handlePaymentConfirmed = async () => {
+    setShowPaymentModal(false)
+    await createReservation('online')
+  }
+
+  const createReservation = async (paymentMethod: 'online' | 'cash') => {
     setIsSubmitting(true)
     setError(null)
 
@@ -444,7 +463,7 @@ export default function CartPage() {
         purchaseDelivery: cart.purchaseDelivery,
         prestationDelivery: cart.prestationDelivery,
         totalPrice: totalWithDelivery,
-        paymentMethod: 'cash',
+        paymentMethod,
       }
 
       // Créer la réservation
@@ -1081,6 +1100,47 @@ export default function CartPage() {
                     required
                   />
 
+                  {/* Mode de paiement de l'acompte (si acompte requis) */}
+                  {depositAmount > 0 && (
+                    <div className="border border-stone-200 rounded-lg p-4">
+                      <h4 className="font-semibold mb-3 text-sm">Mode de paiement de l'acompte</h4>
+                      <div className="space-y-2">
+                        <label className="flex items-start cursor-pointer">
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value="cash"
+                            checked={selectedPaymentMethod === 'cash'}
+                            onChange={() => setSelectedPaymentMethod('cash')}
+                            className="mr-3 w-5 h-5 cursor-pointer mt-0.5"
+                          />
+                          <div className="flex-1">
+                            <span className="font-medium text-sm">Paiement en boutique</span>
+                            <p className="text-xs text-stone-600 mt-1">
+                              L'acompte de {depositAmount.toFixed(2)} € sera à régler en boutique (espèces, carte ou chèque)
+                            </p>
+                          </div>
+                        </label>
+                        <label className="flex items-start cursor-pointer">
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value="online"
+                            checked={selectedPaymentMethod === 'online'}
+                            onChange={() => setSelectedPaymentMethod('online')}
+                            className="mr-3 w-5 h-5 cursor-pointer mt-0.5"
+                          />
+                          <div className="flex-1">
+                            <span className="font-medium text-sm">Paiement en ligne</span>
+                            <p className="text-xs text-stone-600 mt-1">
+                              Payez l'acompte maintenant par carte bancaire ou Apple Pay
+                            </p>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
                   {error && (
                     <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
                       {error}
@@ -1092,7 +1152,11 @@ export default function CartPage() {
                     disabled={isSubmitting}
                     className="w-full bg-black text-white px-6 py-4 rounded-lg hover:bg-stone-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isSubmitting ? 'Validation en cours...' : 'Confirmer la commande'}
+                    {isSubmitting ? 'Validation en cours...' : (
+                      selectedPaymentMethod === 'online' && depositAmount > 0
+                        ? `Payer l'acompte (${depositAmount.toFixed(2)} €)`
+                        : 'Confirmer la commande'
+                    )}
                   </button>
 
                   <button
@@ -1120,6 +1184,14 @@ export default function CartPage() {
           }}
         />
       )}
+
+      {/* Payment Simulation Modal */}
+      <PaymentSimulationModal
+        isOpen={showPaymentModal}
+        depositAmount={depositAmount}
+        onConfirm={handlePaymentConfirmed}
+        onCancel={() => setShowPaymentModal(false)}
+      />
     </div>
   )
 }

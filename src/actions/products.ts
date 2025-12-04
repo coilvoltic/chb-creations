@@ -295,7 +295,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 
     const product = data as Product
 
-    // Fetch unavailabilities dynamically using the SQL function
+    // Fetch unavailabilities dynamically using the SQL function (for rental products)
     const { data: unavailabilities, error: unavailError } = await supabase.rpc(
       'get_product_unavailabilities',
       { product_id_param: product.id }
@@ -307,6 +307,21 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 
     // Attach unavailabilities to the product
     product.unavailabilities = unavailabilities || []
+
+    // For prestation products (henne), fetch unavailable time slots
+    if (product.category === 'henne') {
+      const { data: prestationSlots, error: slotsError } = await supabase.rpc(
+        'get_prestation_all_unavailable_slots',
+        { product_id_param: product.id }
+      )
+
+      if (slotsError) {
+        console.error('Error fetching prestation unavailable slots:', slotsError.message)
+      }
+
+      // Attach prestation unavailable slots to the product
+      product.prestationUnavailableSlots = prestationSlots || []
+    }
 
     return product
   } catch (err) {

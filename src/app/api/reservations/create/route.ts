@@ -82,19 +82,20 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    // Déterminer le statut de la réservation
-    // Si paiement en ligne choisi mais qu'on arrive ici, c'est qu'il y a eu un problème
-    // Normalement, le paiement en ligne passe par l'API /process-payment
+    // Déterminer le statut de la réservation en fonction du mode de paiement
     let reservationStatus: ReservationStatus
-    if (paymentMethod === 'cash' && deposit > 0) {
-      // Réservation avec acompte non payé (à payer en espèces)
+    if (paymentMethod === 'online' && deposit > 0) {
+      // Paiement en ligne effectué (simulation) - l'acompte est considéré comme payé
+      reservationStatus = 'CONFIRMED'
+    } else if (paymentMethod === 'cash' && deposit > 0) {
+      // Réservation avec acompte non payé (à payer en espèces en boutique)
       reservationStatus = 'CONFIRMED_NO_DEPOSIT'
     } else if (deposit === 0) {
       // Pas d'acompte requis
       reservationStatus = 'CONFIRMED_NO_DEPOSIT'
     } else {
-      // Acompte payé (ne devrait pas arriver ici car géré par /process-payment)
-      reservationStatus = 'CONFIRMED'
+      // Par défaut
+      reservationStatus = 'CONFIRMED_NO_DEPOSIT'
     }
 
     // 1. Créer la commande client (customer_order)

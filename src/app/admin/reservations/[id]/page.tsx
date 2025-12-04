@@ -245,7 +245,7 @@ export default function ReservationDetailPage() {
                 ← Retour
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-black tracking-wide">Réservation n° {order.order_number}</h1>
+                <h1 className="text-xl md:text-2xl font-bold text-black tracking-wide">Réservation n° {order.order_number}</h1>
                 <p className="text-sm text-stone-600">Créée le {formatDate(order.created_at)}</p>
               </div>
             </div>
