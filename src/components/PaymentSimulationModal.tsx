@@ -45,7 +45,7 @@ export default function PaymentSimulationModal({
 
         {/* Header */}
         <div className="mb-6">
-          <h2 className="text-2xl font-bold mb-2">Paiement de l'acompte</h2>
+          <h2 className="text-2xl font-bold mb-2">Paiement de l&apos;acompte</h2>
           <p className="text-stone-600">
             Montant à payer : <span className="font-bold text-black">{depositAmount.toFixed(2)} €</span>
           </p>
