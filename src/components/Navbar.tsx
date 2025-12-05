@@ -134,14 +134,6 @@ export default function Navbar() {
             >
               CONTACT
             </Link>
-
-            <Link
-              href="/suivi"
-              className={`text-xs md:text-sm font-black ${textColor} ${hoverColor} transition-colors duration-200`}
-              onMouseEnter={() => setActiveDropdown(null)}
-            >
-              SUIVI
-            </Link>
           </nav>
 
           {/* Right side - Icons and Login button */}
@@ -163,11 +155,11 @@ export default function Navbar() {
               )}
             </Link>
 
-            {/* Login Button - Desktop / Icon - Mobile */}
-            <Link href="/connexion" className="cursor-pointer">
+            {/* Account Button - Desktop / Icon - Mobile */}
+            <Link href="/suivi" className="cursor-pointer">
               {/* Desktop: Button with text */}
               <span className={`hidden md:inline-block ${shouldBeTransparent ? 'bg-white text-black hover:bg-gray-200' : 'bg-black text-white hover:bg-gray-800'} px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg`}>
-                Connexion
+                Mon espace
               </span>
               {/* Mobile: Icon only */}
               <button className={`md:hidden p-1 rounded-full ${shouldBeTransparent ? 'hover:bg-white/20' : 'hover:bg-gray-100'} transition-colors duration-200`}>
