@@ -276,6 +276,14 @@ export default function ReservationDetailPage() {
                   <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Téléphone</p>
                   <p className="text-sm text-black">{order.customer_infos.phone}</p>
                 </div>
+                {order.promotional_code_name && order.promotional_code_discount && (
+                  <div className="pt-3 border-t border-stone-200">
+                    <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Code promo</p>
+                    <p className="text-sm font-medium text-green-700">
+                      {order.promotional_code_name} (-{order.promotional_code_discount}%)
+                    </p>
+                  </div>
+                )}
               </div>
 
               <hr className="my-6 border-stone-200" />

@@ -11,6 +11,7 @@ import type { CartItem } from '@/lib/cart-types'
 import SuccessModal from '@/components/SuccessModal'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
 import PaymentSimulationModal from '@/components/PaymentSimulationModal'
+import PromoCodeInput from '@/components/PromoCodeInput'
 
 export default function CartPage() {
   const {
@@ -29,6 +30,9 @@ export default function CartPage() {
     getRentalItems,
     getPurchaseItems,
     getPrestationItems,
+    getSubtotal,
+    getDiscountAmount,
+    getFinalTotal,
   } = useCart()
 
   const router = useRouter()
@@ -394,8 +398,6 @@ export default function CartPage() {
         throw new Error('Veuillez saisir une adresse pour la prestation')
       }
 
-      const totalWithDelivery = cart.totalPrice + cart.rentalDelivery.fees + cart.purchaseDelivery.fees + cart.prestationDelivery.fees
-
       // Construire le tableau d'items unifié avec les informations de catégorie
       const allItems = [
         ...rentalItems.map((item) => {
@@ -462,7 +464,8 @@ export default function CartPage() {
         rentalDelivery: cart.rentalDelivery,
         purchaseDelivery: cart.purchaseDelivery,
         prestationDelivery: cart.prestationDelivery,
-        totalPrice: totalWithDelivery,
+        totalPrice: getFinalTotal(), // Use final total with promo discount
+        promoCode: cart.promoCode, // Include promo code if applied
         paymentMethod,
       }
 
@@ -1005,10 +1008,28 @@ export default function CartPage() {
                   </div>
                 )}
 
-                {/* Total à payer */}
-                <div className="pt-3 flex justify-between font-bold text-base md:text-xl gap-2">
+                {/* Code promo */}
+                <PromoCodeInput />
+
+                {/* Discount (if promo code applied) */}
+                {cart.promoCode && getDiscountAmount() > 0 && (
+                  <>
+                    {/* Subtotal (before discount) */}
+                    <div className="pt-3 flex justify-between text-sm md:text-base text-stone-700 gap-2">
+                      <span className="break-words">Sous-total</span>
+                      <span className="flex-shrink-0">{getSubtotal().toFixed(2)} €</span>
+                    </div>
+                    <div className="flex justify-between text-sm md:text-base text-green-700 font-medium gap-2">
+                      <span className="break-words">Réduction ({cart.promoCode.code} -{cart.promoCode.discount}%)</span>
+                      <span className="flex-shrink-0">-{getDiscountAmount().toFixed(2)} €</span>
+                    </div>
+                  </>
+                )}
+
+                {/* Total à payer (after discount) */}
+                <div className="pt-2 flex justify-between font-bold text-base md:text-xl gap-2 border-t border-stone-300">
                   <span className="break-words">Total à payer</span>
-                  <span className="flex-shrink-0">{(cart.totalPrice + cart.rentalDelivery.fees + cart.purchaseDelivery.fees + cart.prestationDelivery.fees).toFixed(2)} €</span>
+                  <span className="flex-shrink-0">{getFinalTotal().toFixed(2)} €</span>
                 </div>
 
                 {/* Informations complémentaires */}

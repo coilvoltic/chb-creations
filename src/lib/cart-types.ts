@@ -44,6 +44,11 @@ export interface DeliveryInfo {
   distance?: number
 }
 
+export interface PromoCode {
+  code: string // Code name entered by user
+  discount: number // Percentage (0-100)
+}
+
 export interface Cart {
   items: CartItem[]
   totalItems: number
@@ -52,4 +57,5 @@ export interface Cart {
   rentalDelivery: DeliveryInfo // Pour les locations
   purchaseDelivery: DeliveryInfo // Pour les achats d'accessoires personnalisés
   prestationDelivery: DeliveryInfo // Pour les prestations (henné, etc.)
+  promoCode?: PromoCode // Code promo appliqué
 }

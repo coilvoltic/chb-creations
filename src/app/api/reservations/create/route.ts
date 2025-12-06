@@ -40,6 +40,11 @@ interface DeliveryInfo {
   distance?: number
 }
 
+interface PromoCodePayload {
+  code: string
+  discount: number // Percentage (0-100)
+}
+
 interface CreateReservationPayload {
   customerInfo: CustomerInfo
   items: CartItemPayload[]
@@ -49,6 +54,7 @@ interface CreateReservationPayload {
   purchaseDelivery?: DeliveryInfo // Delivery info for purchase items
   prestationDelivery?: DeliveryInfo // Delivery info for prestation items
   totalPrice: number
+  promoCode?: PromoCodePayload // Promotional code if applied
   paymentMethod?: 'online' | 'cash' | null
 }
 
@@ -64,7 +70,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { customerInfo, items, deposit, caution, rentalDelivery, purchaseDelivery, prestationDelivery, totalPrice, paymentMethod } = payload
+    const { customerInfo, items, deposit, caution, rentalDelivery, purchaseDelivery, prestationDelivery, totalPrice, promoCode, paymentMethod } = payload
 
     // Create Supabase client with service_role key (bypasses RLS)
     // This is safe because:
@@ -101,12 +107,27 @@ export async function POST(request: NextRequest) {
     // 1. Créer la commande client (customer_order)
     const reservationCode = generateReservationCode()
 
+    // If promo code is provided, get the promo code ID from database
+    let promoCodeId: number | null = null
+    if (promoCode && promoCode.code) {
+      const { data: promoData } = await supabase
+        .from('promotional_codes')
+        .select('id')
+        .eq('name', promoCode.code.toUpperCase())
+        .single()
+
+      promoCodeId = promoData?.id || null
+    }
+
     const { data: customerOrder, error: orderError } = await supabase
       .from('customer_orders')
       .insert({
         customer_infos: customerInfo,
         total_price: totalPrice,
         order_number: reservationCode,
+        promotional_code_id: promoCodeId,
+        promotional_code_name: promoCode?.code || null,
+        promotional_code_discount: promoCode?.discount || null,
       })
       .select()
       .single()
@@ -344,6 +365,8 @@ export async function POST(request: NextRequest) {
           total_price: item.quantity * item.pricePerUnit,
           selectedOptions: item.selectedOptions,
           personalizations: item.personalizations,
+          installationFees: item.installationFees,
+          needsInstallation: item.needsInstallation,
         }))
 
       const purchaseItems = items
@@ -388,6 +411,8 @@ export async function POST(request: NextRequest) {
         purchaseDeliveryFees: purchaseDelivery?.fees || 0,
         prestationDeliveryAddress: prestationDelivery?.option === 'delivery' ? prestationDelivery.address : null,
         prestationDeliveryFees: prestationDelivery?.fees || 0,
+        promoCode: promoCode?.code || null,
+        promoDiscount: promoCode?.discount || null,
       }
 
       await sendReservationConfirmation(emailData)

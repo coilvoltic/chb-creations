@@ -191,9 +191,9 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-white flex flex-col">
         <Navbar />
-        <div className="container mx-auto px-4 py-20 flex justify-center items-center">
+        <div className="flex-1 flex justify-center items-center">
           <div className="spinner"></div>
         </div>
 
@@ -315,7 +315,9 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                     )}
                   </div>
                   <p className="text-stone-600 mt-2">
-                    Prix de location
+                    {isRentalProduct && 'Prix de location'}
+                    {isPurchaseProduct && "Prix d'achat"}
+                    {isPrestationProduct && 'Prix de la prestation'}
                   </p>
                 </div>
 
@@ -649,9 +651,6 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                         </button>
                       </div>
                     </div>
-                    <p className={`text-sm ${isInCart ? 'text-stone-400' : 'text-stone-600'}`}>
-                      {product.stock} en stock
-                    </p>
                   </div>
                 </div>
 

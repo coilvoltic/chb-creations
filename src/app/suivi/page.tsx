@@ -75,10 +75,278 @@ interface OrderData {
       email: string
       phone: string
     }
+    promoCode?: string | null
+    promoDiscount?: number | null
   }
   rentalReservations: RentalReservation[]
   purchaseReservations: PurchaseReservation[]
   prestationReservations: PrestationReservation[]
+}
+
+// Order Card Component - Reusable
+function OrderCard({
+  orderData,
+  isExpanded,
+  onToggle,
+  getStatusDisplay
+}: {
+  orderData: OrderData
+  isExpanded: boolean
+  onToggle: () => void
+  getStatusDisplay: (status: ReservationStatus) => React.ReactElement
+}) {
+  const totalReservations =
+    orderData.rentalReservations.length +
+    orderData.purchaseReservations.length +
+    orderData.prestationReservations.length
+
+  return (
+    <div className="border border-stone-200 rounded-lg overflow-hidden">
+      {/* Order Header - Always Visible - Clickable */}
+      <button
+        onClick={onToggle}
+        className="w-full p-4 md:p-6 text-left hover:bg-stone-50 transition-colors bg-white"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-1">
+              <h2 className="text-lg md:text-xl font-bold">Commande #{orderData.order.orderNumber}</h2>
+              {isExpanded ? (
+                <ChevronUp className="w-5 h-5 text-stone-600" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-stone-600" />
+              )}
+            </div>
+            <p className="text-stone-600 text-sm">
+              {new Date(orderData.order.createdAt).toLocaleDateString('fr-FR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })} • {totalReservations} réservation(s)
+            </p>
+          </div>
+          <div className="text-right ml-4">
+            <p className="text-xl md:text-2xl font-bold">{orderData.order.totalPrice.toFixed(2)} €</p>
+          </div>
+        </div>
+      </button>
+
+      {/* Order Details - Expandable */}
+      {isExpanded && (
+        <div className="border-t border-stone-200 p-4 md:p-6 space-y-4 bg-stone-50">
+          {/* Customer Info */}
+          <div className="bg-white p-4 rounded-lg border border-stone-200">
+            <h3 className="font-semibold mb-3 text-sm">Informations client</h3>
+            <div className="grid md:grid-cols-2 gap-2 text-sm">
+              <p>
+                <span className="text-stone-600">Nom :</span>{' '}
+                {orderData.order.customerInfo.firstName} {orderData.order.customerInfo.lastName}
+              </p>
+              <p>
+                <span className="text-stone-600">Email :</span> {orderData.order.customerInfo.email}
+              </p>
+              <p>
+                <span className="text-stone-600">Téléphone :</span> {orderData.order.customerInfo.phone}
+              </p>
+            </div>
+            {orderData.order.promoCode && orderData.order.promoDiscount && (
+              <div className="mt-3 pt-3 border-t border-stone-200">
+                <p className="text-sm text-green-700 font-medium">
+                  <span className="text-stone-600">Code promo :</span> {orderData.order.promoCode} (-{orderData.order.promoDiscount}%)
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Rental Reservations */}
+          {orderData.rentalReservations.map((reservation) => (
+            <div key={reservation.id} className="bg-white border-l-4 border-l-blue-500 border border-stone-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Package className="w-5 h-5 text-blue-600" />
+                  <div>
+                    <h3 className="font-bold text-sm">Location</h3>
+                    <p className="text-xs text-stone-600">{reservation.rental_items?.length || 0} article(s)</p>
+                  </div>
+                </div>
+                {getStatusDisplay(reservation.reservation_status)}
+              </div>
+
+              {/* Items */}
+              <div className="space-y-3 mb-3">
+                {reservation.rental_items?.map((item) => (
+                  <div key={item.id} className="flex gap-4 pb-4 border-b border-stone-100 last:border-0">
+                    <div className="w-20 h-20 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0 relative">
+                      {item.products?.images?.[0] && (
+                        <Image
+                          src={item.products.images[0]}
+                          alt={item.products.name}
+                          fill
+                          className="object-cover"
+                        />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold">{item.products?.name}</h4>
+                      <p className="text-sm text-stone-600">Quantité : {item.quantity}</p>
+                      {item.rental_start && item.rental_end && (
+                        <div className="flex items-center gap-1 text-sm text-blue-700 mt-1">
+                          <Calendar className="w-4 h-4" />
+                          <span>
+                            {new Date(item.rental_start).toLocaleDateString('fr-FR')} -{' '}
+                            {new Date(item.rental_end).toLocaleDateString('fr-FR')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Delivery Info */}
+              {reservation.delivery_address && (
+                <div className="bg-blue-50 rounded-lg p-3 flex items-start gap-2 text-sm">
+                  <MapPin className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-blue-900">Livraison : {reservation.delivery_address}</p>
+                    {reservation.delivery_fees > 0 && (
+                      <p className="text-blue-600 text-xs mt-1">Frais : {reservation.delivery_fees.toFixed(2)} €</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {reservation.deposit > 0 && (
+                <div className="mt-2 mb:mt-4 bg-amber-50 rounded-lg p-2 text-xs text-amber-800">
+                  <span className="font-medium">Acompte :</span> {reservation.deposit.toFixed(2)} €
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Purchase Reservations */}
+          {orderData.purchaseReservations.map((reservation) => (
+            <div key={reservation.id} className="bg-white border-l-4 border-l-green-500 border border-stone-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Package className="w-5 h-5 text-green-600" />
+                  <div>
+                    <h3 className="font-bold text-sm">Achat</h3>
+                    <p className="text-xs text-stone-600">{reservation.purchase_items?.length || 0} article(s)</p>
+                  </div>
+                </div>
+                {getStatusDisplay(reservation.reservation_status)}
+              </div>
+
+              {/* Items */}
+              <div className="space-y-3 mb-3">
+                {reservation.purchase_items?.map((item) => (
+                  <div key={item.id} className="flex gap-4 pb-4 border-b border-stone-100 last:border-0">
+                    <div className="w-20 h-20 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0 relative">
+                      {item.products?.images?.[0] && (
+                        <Image
+                          src={item.products.images[0]}
+                          alt={item.products.name}
+                          fill
+                          className="object-cover"
+                        />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold">{item.products?.name}</h4>
+                      <p className="text-sm text-stone-600">Quantité : {item.quantity}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Delivery Info */}
+              {reservation.delivery_address && (
+                <div className="bg-green-50 rounded-lg p-3 flex items-start gap-2 text-sm">
+                  <MapPin className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-green-900">Livraison : {reservation.delivery_address}</p>
+                    {reservation.delivery_fees > 0 && (
+                      <p className="text-green-600 text-xs mt-1">Frais : {reservation.delivery_fees.toFixed(2)} €</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Prestation Reservations */}
+          {orderData.prestationReservations.map((reservation) => (
+            <div key={reservation.id} className="bg-white border-l-4 border-l-purple-500 border border-stone-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Package className="w-5 h-5 text-purple-600" />
+                  <div>
+                    <h3 className="font-bold text-sm">Prestation</h3>
+                    <p className="text-xs text-stone-600">{reservation.prestation_items?.length || 0} prestation(s)</p>
+                  </div>
+                </div>
+                {getStatusDisplay(reservation.reservation_status)}
+              </div>
+
+              {/* Items */}
+              <div className="space-y-3 mb-3">
+                {reservation.prestation_items?.map((item) => (
+                  <div key={item.id} className="flex gap-4 pb-4 border-b border-stone-100 last:border-0">
+                    <div className="w-20 h-20 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0 relative">
+                      {item.products?.images?.[0] && (
+                        <Image
+                          src={item.products.images[0]}
+                          alt={item.products.name}
+                          fill
+                          className="object-cover"
+                        />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold">{item.products?.name}</h4>
+                      <p className="text-sm text-stone-600">Quantité : {item.quantity}</p>
+                      {item.prestation_date && (
+                        <div className="flex items-center gap-1 text-sm text-purple-700 mt-1">
+                          <Calendar className="w-4 h-4" />
+                          <span>
+                            {new Date(item.prestation_date).toLocaleDateString('fr-FR', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}
+                          </span>
+                        </div>
+                      )}
+                      {item.time_slot && (
+                        <p className="text-sm text-purple-600 mt-1">
+                          Créneau : {TIME_SLOT_LABELS[item.time_slot as keyof typeof TIME_SLOT_LABELS]}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Delivery Info */}
+              {reservation.delivery_address && (
+                <div className="bg-purple-50 rounded-lg p-3 flex items-start gap-2 text-sm">
+                  <MapPin className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-purple-900">Prestation : {reservation.delivery_address}</p>
+                    {reservation.delivery_fees > 0 && (
+                      <p className="text-purple-600 text-xs mt-1">Frais : {reservation.delivery_fees.toFixed(2)} €</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function OrderTrackingPage() {
@@ -374,240 +642,13 @@ export default function OrderTrackingPage() {
 
         {/* Order Details */}
         {orderData && (
-          <div className="max-w-4xl mx-auto space-y-6 animate-fade-in-up">
-            {/* Order Summary Card */}
-            <div className="bg-white border border-stone-200 rounded-2xl p-6 md:p-8 shadow-soft">
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-bold mb-2">Commande #{orderData.order.orderNumber}</h2>
-                  <p className="text-stone-600">
-                    Passée le {new Date(orderData.order.createdAt).toLocaleDateString('fr-FR', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-stone-600 mb-1">Total</p>
-                  <p className="text-2xl font-bold">{orderData.order.totalPrice.toFixed(2)} €</p>
-                </div>
-              </div>
-
-              <div className="border-t border-stone-200 pt-4">
-                <h3 className="font-semibold mb-2">Informations client</h3>
-                <div className="grid md:grid-cols-2 gap-2 text-sm">
-                  <p>
-                    <span className="text-stone-600">Nom :</span>{' '}
-                    {orderData.order.customerInfo.firstName} {orderData.order.customerInfo.lastName}
-                  </p>
-                  <p>
-                    <span className="text-stone-600">Email :</span> {orderData.order.customerInfo.email}
-                  </p>
-                  <p>
-                    <span className="text-stone-600">Téléphone :</span> {orderData.order.customerInfo.phone}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Rental Reservations */}
-            {orderData.rentalReservations.map((reservation) => (
-              <div key={reservation.id} className="bg-white border-2 border-blue-200 rounded-2xl p-6 md:p-8 shadow-soft">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                      <Package className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold">Location</h3>
-                      <p className="text-sm text-stone-600">{reservation.rental_items?.length || 0} article(s)</p>
-                    </div>
-                  </div>
-                  {getStatusDisplay(reservation.reservation_status)}
-                </div>
-
-                {/* Items */}
-                <div className="space-y-4 mb-4">
-                  {reservation.rental_items?.map((item) => (
-                    <div key={item.id} className="flex gap-4 pb-4 border-b border-stone-100 last:border-0">
-                      <div className="w-20 h-20 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0 relative">
-                        {item.products?.images?.[0] && (
-                          <Image
-                            src={item.products.images[0]}
-                            alt={item.products.name}
-                            fill
-                            className="object-cover"
-                          />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold">{item.products?.name}</h4>
-                        <p className="text-sm text-stone-600">Quantité : {item.quantity}</p>
-                        {item.rental_start && item.rental_end && (
-                          <div className="flex items-center gap-1 text-sm text-blue-700 mt-1">
-                            <Calendar className="w-4 h-4" />
-                            <span>
-                              {new Date(item.rental_start).toLocaleDateString('fr-FR')} -{' '}
-                              {new Date(item.rental_end).toLocaleDateString('fr-FR')}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Delivery Info */}
-                {reservation.delivery_address && (
-                  <div className="bg-blue-50 rounded-lg p-4 flex items-start gap-3">
-                    <MapPin className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-blue-900">Livraison à domicile</p>
-                      <p className="text-sm text-blue-700">{reservation.delivery_address}</p>
-                      {reservation.delivery_fees > 0 && (
-                        <p className="text-sm text-blue-600 mt-1">Frais de livraison : {reservation.delivery_fees.toFixed(2)} €</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {reservation.deposit > 0 && (
-                  <div className="mt-2 md:mt-4 p-3 bg-amber-50 rounded-lg text-sm">
-                    <p className="text-amber-800">
-                      <span className="font-medium">Acompte :</span> {reservation.deposit.toFixed(2)} €
-                    </p>
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {/* Purchase Reservations */}
-            {orderData.purchaseReservations.map((reservation) => (
-              <div key={reservation.id} className="bg-white border-2 border-green-200 rounded-2xl p-6 md:p-8 shadow-soft">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                      <Package className="w-6 h-6 text-green-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold">Achat</h3>
-                      <p className="text-sm text-stone-600">{reservation.purchase_items?.length || 0} article(s)</p>
-                    </div>
-                  </div>
-                  {getStatusDisplay(reservation.reservation_status)}
-                </div>
-
-                {/* Items */}
-                <div className="space-y-4 mb-4">
-                  {reservation.purchase_items?.map((item) => (
-                    <div key={item.id} className="flex gap-4 pb-4 border-b border-stone-100 last:border-0">
-                      <div className="w-20 h-20 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0 relative">
-                        {item.products?.images?.[0] && (
-                          <Image
-                            src={item.products.images[0]}
-                            alt={item.products.name}
-                            fill
-                            className="object-cover"
-                          />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold">{item.products?.name}</h4>
-                        <p className="text-sm text-stone-600">Quantité : {item.quantity}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Delivery Info */}
-                {reservation.delivery_address && (
-                  <div className="bg-green-50 rounded-lg p-4 flex items-start gap-3">
-                    <MapPin className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-green-900">Livraison à domicile</p>
-                      <p className="text-sm text-green-700">{reservation.delivery_address}</p>
-                      {reservation.delivery_fees > 0 && (
-                        <p className="text-sm text-green-600 mt-1">Frais de livraison : {reservation.delivery_fees.toFixed(2)} €</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {/* Prestation Reservations */}
-            {orderData.prestationReservations.map((reservation) => (
-              <div key={reservation.id} className="bg-white border-2 border-purple-200 rounded-2xl p-6 md:p-8 shadow-soft">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                      <Package className="w-6 h-6 text-purple-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold">Prestation</h3>
-                      <p className="text-sm text-stone-600">{reservation.prestation_items?.length || 0} prestation(s)</p>
-                    </div>
-                  </div>
-                  {getStatusDisplay(reservation.reservation_status)}
-                </div>
-
-                {/* Items */}
-                <div className="space-y-4 mb-4">
-                  {reservation.prestation_items?.map((item) => (
-                    <div key={item.id} className="flex gap-4 pb-4 border-b border-stone-100 last:border-0">
-                      <div className="w-20 h-20 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0 relative">
-                        {item.products?.images?.[0] && (
-                          <Image
-                            src={item.products.images[0]}
-                            alt={item.products.name}
-                            fill
-                            className="object-cover"
-                          />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold">{item.products?.name}</h4>
-                        <p className="text-sm text-stone-600">Quantité : {item.quantity}</p>
-                        {item.prestation_date && (
-                          <div className="flex items-center gap-1 text-sm text-purple-700 mt-1">
-                            <Calendar className="w-4 h-4" />
-                            <span>
-                              {new Date(item.prestation_date).toLocaleDateString('fr-FR', {
-                                weekday: 'long',
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                              })}
-                            </span>
-                          </div>
-                        )}
-                        {item.time_slot && (
-                          <p className="text-sm text-purple-600 mt-1">
-                            Créneau : {TIME_SLOT_LABELS[item.time_slot as keyof typeof TIME_SLOT_LABELS]}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Delivery Info */}
-                {reservation.delivery_address && (
-                  <div className="bg-purple-50 rounded-lg p-4 flex items-start gap-3">
-                    <MapPin className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-purple-900">Prestation à domicile</p>
-                      <p className="text-sm text-purple-700">{reservation.delivery_address}</p>
-                      {reservation.delivery_fees > 0 && (
-                        <p className="text-sm text-purple-600 mt-1">Frais de déplacement : {reservation.delivery_fees.toFixed(2)} €</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+          <div className="max-w-2xl mx-auto animate-fade-in-up">
+            <OrderCard
+              orderData={orderData}
+              isExpanded={expandedOrderIds.has(orderData.order.id)}
+              onToggle={() => toggleOrderExpansion(orderData.order.id)}
+              getStatusDisplay={getStatusDisplay}
+            />
           </div>
         )}
           </>
@@ -654,254 +695,15 @@ export default function OrderTrackingPage() {
                 </div>
 
                 {/* Display all user orders */}
-                {userOrders.map((orderData) => {
-                  const isExpanded = expandedOrderIds.has(orderData.order.id)
-                  const totalReservations =
-                    orderData.rentalReservations.length +
-                    orderData.purchaseReservations.length +
-                    orderData.prestationReservations.length
-
-                  return (
-                    <div key={orderData.order.id} className="border border-stone-200 rounded-lg overflow-hidden">
-                      {/* Order Header - Always Visible - Clickable */}
-                      <button
-                        onClick={() => toggleOrderExpansion(orderData.order.id)}
-                        className="w-full p-4 md:p-6 text-left hover:bg-stone-50 transition-colors bg-white"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-1">
-                              <h2 className="text-lg md:text-xl font-bold">Commande #{orderData.order.orderNumber}</h2>
-                              {isExpanded ? (
-                                <ChevronUp className="w-5 h-5 text-stone-600" />
-                              ) : (
-                                <ChevronDown className="w-5 h-5 text-stone-600" />
-                              )}
-                            </div>
-                            <p className="text-stone-600 text-sm">
-                              {new Date(orderData.order.createdAt).toLocaleDateString('fr-FR', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                              })} • {totalReservations} réservation(s)
-                            </p>
-                          </div>
-                          <div className="text-right ml-4">
-                            <p className="text-xl md:text-2xl font-bold">{orderData.order.totalPrice.toFixed(2)} €</p>
-                          </div>
-                        </div>
-                      </button>
-
-                      {/* Order Details - Expandable */}
-                      {isExpanded && (
-                        <div className="border-t border-stone-200 p-4 md:p-6 space-y-4 bg-stone-50">
-                          {/* Customer Info */}
-                          <div className="bg-white p-4 rounded-lg border border-stone-200">
-                            <h3 className="font-semibold mb-3 text-sm">Informations client</h3>
-                            <div className="grid md:grid-cols-2 gap-2 text-sm">
-                              <p>
-                                <span className="text-stone-600">Nom :</span>{' '}
-                                {orderData.order.customerInfo.firstName} {orderData.order.customerInfo.lastName}
-                              </p>
-                              <p>
-                                <span className="text-stone-600">Email :</span> {orderData.order.customerInfo.email}
-                              </p>
-                              <p>
-                                <span className="text-stone-600">Téléphone :</span> {orderData.order.customerInfo.phone}
-                              </p>
-                            </div>
-                          </div>
-
-                    {/* Rental Reservations */}
-                    {orderData.rentalReservations.map((reservation) => (
-                      <div key={reservation.id} className="bg-white border-l-4 border-l-blue-500 border border-stone-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-2">
-                            <Package className="w-5 h-5 text-blue-600" />
-                            <div>
-                              <h3 className="font-bold text-sm">Location</h3>
-                              <p className="text-xs text-stone-600">{reservation.rental_items?.length || 0} article(s)</p>
-                            </div>
-                          </div>
-                          {getStatusDisplay(reservation.reservation_status)}
-                        </div>
-
-                        {/* Items */}
-                        <div className="space-y-3 mb-3">
-                          {reservation.rental_items?.map((item) => (
-                            <div key={item.id} className="flex gap-4 pb-4 border-b border-stone-100 last:border-0">
-                              <div className="w-20 h-20 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0 relative">
-                                {item.products?.images?.[0] && (
-                                  <Image
-                                    src={item.products.images[0]}
-                                    alt={item.products.name}
-                                    fill
-                                    className="object-cover"
-                                  />
-                                )}
-                              </div>
-                              <div className="flex-1">
-                                <h4 className="font-semibold">{item.products?.name}</h4>
-                                <p className="text-sm text-stone-600">Quantité : {item.quantity}</p>
-                                {item.rental_start && item.rental_end && (
-                                  <div className="flex items-center gap-1 text-sm text-blue-700 mt-1">
-                                    <Calendar className="w-4 h-4" />
-                                    <span>
-                                      {new Date(item.rental_start).toLocaleDateString('fr-FR')} -{' '}
-                                      {new Date(item.rental_end).toLocaleDateString('fr-FR')}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Delivery Info */}
-                        {reservation.delivery_address && (
-                          <div className="bg-blue-50 rounded-lg p-3 flex items-start gap-2 text-sm">
-                            <MapPin className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                            <div>
-                              <p className="font-medium text-blue-900">Livraison : {reservation.delivery_address}</p>
-                              {reservation.delivery_fees > 0 && (
-                                <p className="text-blue-600 text-xs mt-1">Frais : {reservation.delivery_fees.toFixed(2)} €</p>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {reservation.deposit > 0 && (
-                          <div className="mt-2 mb:mt-4 bg-amber-50 rounded-lg p-2 text-xs text-amber-800">
-                            <span className="font-medium">Acompte :</span> {reservation.deposit.toFixed(2)} €
-                          </div>
-                        )}
-                      </div>
-                    ))}
-
-                    {/* Purchase Reservations */}
-                    {orderData.purchaseReservations.map((reservation) => (
-                      <div key={reservation.id} className="bg-white border-l-4 border-l-green-500 border border-stone-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-2">
-                            <Package className="w-5 h-5 text-green-600" />
-                            <div>
-                              <h3 className="font-bold text-sm">Achat</h3>
-                              <p className="text-xs text-stone-600">{reservation.purchase_items?.length || 0} article(s)</p>
-                            </div>
-                          </div>
-                          {getStatusDisplay(reservation.reservation_status)}
-                        </div>
-
-                        {/* Items */}
-                        <div className="space-y-3 mb-3">
-                          {reservation.purchase_items?.map((item) => (
-                            <div key={item.id} className="flex gap-4 pb-4 border-b border-stone-100 last:border-0">
-                              <div className="w-20 h-20 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0 relative">
-                                {item.products?.images?.[0] && (
-                                  <Image
-                                    src={item.products.images[0]}
-                                    alt={item.products.name}
-                                    fill
-                                    className="object-cover"
-                                  />
-                                )}
-                              </div>
-                              <div className="flex-1">
-                                <h4 className="font-semibold">{item.products?.name}</h4>
-                                <p className="text-sm text-stone-600">Quantité : {item.quantity}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Delivery Info */}
-                        {reservation.delivery_address && (
-                          <div className="bg-green-50 rounded-lg p-3 flex items-start gap-2 text-sm">
-                            <MapPin className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                            <div>
-                              <p className="font-medium text-green-900">Livraison : {reservation.delivery_address}</p>
-                              {reservation.delivery_fees > 0 && (
-                                <p className="text-green-600 text-xs mt-1">Frais : {reservation.delivery_fees.toFixed(2)} €</p>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-
-                    {/* Prestation Reservations */}
-                    {orderData.prestationReservations.map((reservation) => (
-                      <div key={reservation.id} className="bg-white border-l-4 border-l-purple-500 border border-stone-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-2">
-                            <Package className="w-5 h-5 text-purple-600" />
-                            <div>
-                              <h3 className="font-bold text-sm">Prestation</h3>
-                              <p className="text-xs text-stone-600">{reservation.prestation_items?.length || 0} prestation(s)</p>
-                            </div>
-                          </div>
-                          {getStatusDisplay(reservation.reservation_status)}
-                        </div>
-
-                        {/* Items */}
-                        <div className="space-y-3 mb-3">
-                          {reservation.prestation_items?.map((item) => (
-                            <div key={item.id} className="flex gap-4 pb-4 border-b border-stone-100 last:border-0">
-                              <div className="w-20 h-20 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0 relative">
-                                {item.products?.images?.[0] && (
-                                  <Image
-                                    src={item.products.images[0]}
-                                    alt={item.products.name}
-                                    fill
-                                    className="object-cover"
-                                  />
-                                )}
-                              </div>
-                              <div className="flex-1">
-                                <h4 className="font-semibold">{item.products?.name}</h4>
-                                <p className="text-sm text-stone-600">Quantité : {item.quantity}</p>
-                                {item.prestation_date && (
-                                  <div className="flex items-center gap-1 text-sm text-purple-700 mt-1">
-                                    <Calendar className="w-4 h-4" />
-                                    <span>
-                                      {new Date(item.prestation_date).toLocaleDateString('fr-FR', {
-                                        weekday: 'long',
-                                        year: 'numeric',
-                                        month: 'long',
-                                        day: 'numeric',
-                                      })}
-                                    </span>
-                                  </div>
-                                )}
-                                {item.time_slot && (
-                                  <p className="text-sm text-purple-600 mt-1">
-                                    Créneau : {TIME_SLOT_LABELS[item.time_slot as keyof typeof TIME_SLOT_LABELS]}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Delivery Info */}
-                        {reservation.delivery_address && (
-                          <div className="bg-purple-50 rounded-lg p-3 flex items-start gap-2 text-sm">
-                            <MapPin className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
-                            <div>
-                              <p className="font-medium text-purple-900">Prestation : {reservation.delivery_address}</p>
-                              {reservation.delivery_fees > 0 && (
-                                <p className="text-purple-600 text-xs mt-1">Frais : {reservation.delivery_fees.toFixed(2)} €</p>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
+                {userOrders.map((orderData) => (
+                  <OrderCard
+                    key={orderData.order.id}
+                    orderData={orderData}
+                    isExpanded={expandedOrderIds.has(orderData.order.id)}
+                    onToggle={() => toggleOrderExpansion(orderData.order.id)}
+                    getStatusDisplay={getStatusDisplay}
+                  />
+                ))}
               </div>
             ) : (
               /* User is not logged in - Show login button */

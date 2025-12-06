@@ -73,6 +73,14 @@ export interface CustomerInfo {
   phone: string
 }
 
+// Promotional Code type
+export interface PromotionalCode {
+  id: number
+  name: string // Code name (e.g., "NOEL2024")
+  discount: number // Percentage (0-100)
+  created_at?: string
+}
+
 // New schema: Customer Order (parent table)
 export interface CustomerOrder {
   id: number
@@ -80,6 +88,9 @@ export interface CustomerOrder {
   order_number: string
   customer_infos: CustomerInfo
   total_price: number
+  promotional_code_id?: number // FK to promotional_codes
+  promotional_code_name?: string // Snapshot of code name at order time
+  promotional_code_discount?: number // Snapshot of discount percentage (0-100)
 }
 
 // Rental Reservation (child of CustomerOrder)

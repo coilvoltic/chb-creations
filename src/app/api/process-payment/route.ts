@@ -71,12 +71,27 @@ export async function POST(request: NextRequest) {
     // 1. Créer la commande client (customer_order)
     const reservationCode = generateReservationCode()
 
+    // If promo code is provided in metadata, get the promo code ID
+    let promoCodeId: number | null = null
+    if (reservationData.promoCode && reservationData.promoCode.code) {
+      const { data: promoData } = await supabase
+        .from('promotional_codes')
+        .select('id')
+        .eq('name', reservationData.promoCode.code.toUpperCase())
+        .single()
+
+      promoCodeId = promoData?.id || null
+    }
+
     const { data: customerOrder, error: orderError } = await supabase
       .from('customer_orders')
       .insert({
         customer_infos: reservationData.customerInfo,
         total_price: reservationData.totalPrice,
         order_number: reservationCode,
+        promotional_code_id: promoCodeId,
+        promotional_code_name: reservationData.promoCode?.code || null,
+        promotional_code_discount: reservationData.promoCode?.discount || null,
       })
       .select()
       .single()
@@ -195,6 +210,8 @@ export async function POST(request: NextRequest) {
         pricePerUnit: item.pricePerUnit,
         selectedOptions: item.selectedOptions,
         personalizations: item.personalizations,
+        installationFees: item.installationFees,
+        needsInstallation: item.needsInstallation,
       }))
 
     const purchaseItemsForPdf = reservationData.items

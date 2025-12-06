@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { CartItem, Cart, DeliveryOption, DeliveryInfo } from '@/lib/cart-types'
+import { CartItem, Cart, DeliveryOption, DeliveryInfo, PromoCode } from '@/lib/cart-types'
 
 interface CartContextType {
   cart: Cart
@@ -17,10 +17,14 @@ interface CartContextType {
   updateRentalDeliveryFees: (fees: number, distance: number) => void
   updatePurchaseDeliveryFees: (fees: number, distance: number) => void
   updatePrestationDeliveryFees: (fees: number, distance: number) => void
+  setPromoCode: (promoCode: PromoCode | undefined) => void
   clearCart: () => void
   getRentalItems: () => CartItem[]
   getPurchaseItems: () => CartItem[]
   getPrestationItems: () => CartItem[]
+  getSubtotal: () => number
+  getDiscountAmount: () => number
+  getFinalTotal: () => number
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -59,6 +63,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           rentalDelivery?: DeliveryInfo
           purchaseDelivery?: DeliveryInfo
           prestationDelivery?: DeliveryInfo
+          promoCode?: PromoCode
         }
 
         const parsedCart = JSON.parse(savedCart) as StoredCart
@@ -87,6 +92,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             option: 'pickup' as DeliveryOption,
             fees: 0,
           },
+          promoCode: parsedCart.promoCode,
         }
 
         setCart(migratedCart)
@@ -311,6 +317,33 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }))
   }
 
+  const setPromoCode = (promoCode: PromoCode | undefined) => {
+    setCart((prevCart) => ({
+      ...prevCart,
+      promoCode,
+    }))
+  }
+
+  // Calculate subtotal (before promo code discount)
+  const getSubtotal = (): number => {
+    return cart.totalPrice +
+           (cart.rentalDelivery.fees || 0) +
+           (cart.purchaseDelivery.fees || 0) +
+           (cart.prestationDelivery.fees || 0)
+  }
+
+  // Calculate discount amount
+  const getDiscountAmount = (): number => {
+    if (!cart.promoCode || cart.promoCode.discount === 0) return 0
+    const subtotal = getSubtotal()
+    return (subtotal * cart.promoCode.discount) / 100
+  }
+
+  // Calculate final total (subtotal - discount)
+  const getFinalTotal = (): number => {
+    return getSubtotal() - getDiscountAmount()
+  }
+
   const clearCart = () => {
     setCart({
       items: [],
@@ -328,6 +361,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         option: 'pickup',
         fees: 0,
       },
+      promoCode: undefined,
     })
   }
 
@@ -347,10 +381,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
         updateRentalDeliveryFees,
         updatePurchaseDeliveryFees,
         updatePrestationDeliveryFees,
+        setPromoCode,
         clearCart,
         getRentalItems,
         getPurchaseItems,
         getPrestationItems,
+        getSubtotal,
+        getDiscountAmount,
+        getFinalTotal,
       }}
     >
       {children}

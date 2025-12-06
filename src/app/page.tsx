@@ -110,7 +110,7 @@ export default function Home() {
               </Link>
 
               {/* Accessoires */}
-              <Link href="/services/accessoires" className="group cursor-pointer">
+              <Link href="/services/accessoires-personnalises" className="group cursor-pointer">
                 <div className="bg-white rounded-2xl overflow-hidden transition-all duration-300 ease-in-out hover:scale-[1.02] hover:-translate-y-2 animate-fade-in-up delay-200">
                   <div className="relative aspect-[3/4] md:aspect-[4/5] overflow-hidden">
                     <img

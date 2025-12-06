@@ -114,6 +114,8 @@ export async function POST(request: NextRequest) {
         totalPrice: order.total_price,
         createdAt: order.created_at,
         customerInfo: order.customer_infos,
+        promoCode: order.promotional_code_name || null,
+        promoDiscount: order.promotional_code_discount || null,
       },
       rentalReservations: rentalReservations || [],
       purchaseReservations: purchaseReservations || [],

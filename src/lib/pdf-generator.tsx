@@ -19,6 +19,8 @@ interface RentalItem {
   total_price: number
   selectedOptions?: SelectedOption[]
   personalizations?: { [key: string]: string }
+  installationFees?: number
+  needsInstallation?: boolean
 }
 
 interface PurchaseItem {
@@ -59,6 +61,8 @@ interface ReservationData {
   rentalDeliveryFees?: number
   purchaseDeliveryFees?: number
   prestationDeliveryFees?: number
+  promoCode?: string | null
+  promoDiscount?: number | null
 }
 
 interface GenerateReservationPDFParams {
@@ -78,6 +82,8 @@ interface GenerateReservationPDFParams {
     rentalEnd: string
     selectedOptions?: SelectedOption[]
     personalizations?: { [key: string]: string }
+    installationFees?: number
+    needsInstallation?: boolean
   }>
   purchaseItems?: Array<{
     productName: string
@@ -298,6 +304,11 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
                           )).join('')}
                         </Text>
                       )}
+                      {item.needsInstallation && item.installationFees && (
+                        <Text style={{ fontSize: 9, color: '#d97706', fontWeight: 'bold' }}>
+                          {`\n+ Installation (+${item.installationFees.toFixed(2)} €/unité)`}
+                        </Text>
+                      )}
                       {item.personalizations && Object.keys(item.personalizations).length > 0 && (
                         <Text style={{ fontSize: 9, color: '#444', fontStyle: 'italic' }}>
                           {Object.entries(item.personalizations).map(([key, value]) => (
@@ -454,8 +465,30 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
           </View>
         )}
 
-        {/* Total */}
+        {/* Total Section */}
         <View style={styles.totalSection}>
+          {/* Calculate subtotal (items + delivery fees) */}
+          {reservation.promoCode && reservation.promoDiscount ? (
+            <>
+              {/* Subtotal before discount */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text style={{ fontSize: 11, color: '#666' }}>Sous-total:</Text>
+                <Text style={{ fontSize: 11, color: '#666' }}>
+                  {(reservation.total_amount / (1 - reservation.promoDiscount / 100)).toFixed(2)} €
+                </Text>
+              </View>
+              {/* Promo code discount */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text style={{ fontSize: 11, color: '#16a34a', fontWeight: 'bold' }}>
+                  Réduction ({reservation.promoCode} -{reservation.promoDiscount}%):
+                </Text>
+                <Text style={{ fontSize: 11, color: '#16a34a', fontWeight: 'bold' }}>
+                  -{(reservation.total_amount / (1 - reservation.promoDiscount / 100) * (reservation.promoDiscount / 100)).toFixed(2)} €
+                </Text>
+              </View>
+            </>
+          ) : null}
+          {/* Final total */}
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>TOTAL:</Text>
             <Text style={styles.totalAmount}>{reservation.total_amount.toFixed(2)} €</Text>
@@ -517,6 +550,8 @@ export async function generateReservationPDF(params: GenerateReservationPDFParam
       total_price: item.quantity * item.pricePerUnit,
       selectedOptions: item.selectedOptions,
       personalizations: item.personalizations,
+      installationFees: item.installationFees,
+      needsInstallation: item.needsInstallation,
     })),
     purchaseItems: params.purchaseItems?.map((item) => ({
       product_name: item.productName,

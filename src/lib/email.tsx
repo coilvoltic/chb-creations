@@ -22,6 +22,8 @@ interface RentalItem {
   total_price: number
   selectedOptions?: SelectedOption[]
   personalizations?: { [key: string]: string }
+  installationFees?: number
+  needsInstallation?: boolean
 }
 
 interface PurchaseItem {
@@ -62,6 +64,8 @@ interface ReservationData {
   rentalDeliveryFees?: number
   purchaseDeliveryFees?: number
   prestationDeliveryFees?: number
+  promoCode?: string | null
+  promoDiscount?: number | null
 }
 
 export async function sendReservationConfirmation(reservation: ReservationData) {
@@ -159,7 +163,10 @@ export async function sendReservationConfirmation(reservation: ReservationData) 
 
               <div class="info-section">
                 <h2>Récapitulatif</h2>
-                <p><strong>Nombre d'articles:</strong> ${(reservation.rentalItems?.length || 0) + (reservation.purchaseItems?.length || 0)}</p>
+                <p><strong>Nombre d'articles:</strong> ${(reservation.rentalItems?.length || 0) + (reservation.purchaseItems?.length || 0) + (reservation.prestationItems?.length || 0)}</p>
+                ${reservation.promoCode && reservation.promoDiscount ? `
+                  <p style="color: #16a34a;"><strong>Code promo appliqué:</strong> ${reservation.promoCode} (-${reservation.promoDiscount}%)</p>
+                ` : ''}
                 <p><strong>Montant total:</strong> ${reservation.total_amount.toFixed(2)} €</p>
               </div>
 
