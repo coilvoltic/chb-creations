@@ -99,12 +99,20 @@ export default function AdminDashboardPage() {
               <h1 className="text-2xl font-bold text-black mb-1 md:mb-2">Administration</h1>
               <p className="text-sm text-stone-600 font-satisfy">CHB Créations<span className="text-sm text-stone-600 font-sans"> - Gestion des réservations</span></p>
             </div>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
-            >
-              Déconnexion
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => router.push('/admin/products/new')}
+                className="px-4 py-2 bg-black hover:bg-stone-800 text-white rounded-lg transition-colors"
+              >
+                + Nouveau produit
+              </button>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
+              >
+                Déconnexion
+              </button>
+            </div>
           </div>
         </div>
       </header>

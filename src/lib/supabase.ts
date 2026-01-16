@@ -46,14 +46,10 @@ export interface Product {
   new_price?: number // Promotional price (if set, display this instead of price)
   images: string[]
   description?: string
-  features?: string[]
   faq?: FAQItem[]
   options?: ProductOptionGroup[] // Array of option groups (e.g., installation options, color options)
   personalizations?: string[] // Array of personalization field labels (e.g., ["Prénom", "Date de naissance"])
-  deposit?: number // Percentage (0-100) or null
-  caution?: number // Fixed amount for security deposit (not charged unless damage/loss)
   is_out_of_stock?: boolean // True if product is out of stock
-  base_delivery_fees?: number // Base delivery fees for this product
   installation_fees?: number // Optional installation fees
   category: string
   subcategory: string

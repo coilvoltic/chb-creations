@@ -302,14 +302,6 @@ export default function ReservationDetailPage() {
                       <span className="text-sm text-stone-600">Frais de livraison</span>
                       <span className="text-sm font-semibold text-blue-700">{(firstRental?.delivery_fees ?? 0).toFixed(2)} €</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-stone-600">Acompte</span>
-                      <span className="text-sm font-semibold text-blue-600">{(firstRental?.deposit ?? 0).toFixed(2)} €</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-stone-600">Caution</span>
-                      <span className="text-sm font-semibold text-amber-600">{(firstRental?.caution ?? 0).toFixed(2)} €</span>
-                    </div>
                   </div>
                 )}
 
@@ -348,6 +340,24 @@ export default function ReservationDetailPage() {
                   <span className="text-sm font-bold text-stone-900">MONTANT TOTAL</span>
                   <span className="text-sm font-bold text-black">{order.total_price.toFixed(2)} €</span>
                 </div>
+
+                {/* Section globale Acompte & Caution */}
+                {(firstRental?.deposit || firstRental?.caution) && (
+                  <div className="pt-4 space-y-2 border-t border-stone-200">
+                    {firstRental.deposit && firstRental.deposit > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-stone-600">💳 Acompte</span>
+                        <span className="text-sm font-semibold text-blue-600">{firstRental.deposit.toFixed(2)} €</span>
+                      </div>
+                    )}
+                    {firstRental.caution && firstRental.caution > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-stone-600">⚠️ Caution</span>
+                        <span className="text-sm font-semibold text-amber-600">{firstRental.caution.toFixed(2)} €</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {(hasRentals || hasPurchases || hasPrestations) && (

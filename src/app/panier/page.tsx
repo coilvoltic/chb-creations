@@ -3,7 +3,7 @@
 import Navbar from '@/components/Navbar'
 import Link from 'next/link'
 import { useCart } from '@/contexts/CartContext'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { CustomerInfo } from '@/lib/supabase'
 import { TIME_SLOT_LABELS } from '@/lib/supabase'
@@ -86,6 +86,20 @@ export default function CartPage() {
     phone: '',
   })
 
+  // Load saved addresses from cart context on mount
+  useEffect(() => {
+    if (cart.rentalDelivery.address) {
+      setRentalAddressInput(cart.rentalDelivery.address)
+    }
+    if (cart.purchaseDelivery.address) {
+      setPurchaseAddressInput(cart.purchaseDelivery.address)
+    }
+    if (cart.prestationDelivery.address) {
+      setPrestationAddressInput(cart.prestationDelivery.address)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Run only once on mount - cart is intentionally not in deps
+
   // Calculer les frais de livraison pour les locations
   const handleCalculateRentalDeliveryFees = async (address?: string) => {
     const addressToUse = address || rentalAddressInput
@@ -99,31 +113,12 @@ export default function CartPage() {
     setError(null)
 
     try {
-      const totalBaseDeliveryFees = rentalItems.reduce((sum, item) => {
-        return sum + (item.baseDeliveryFees || 0) * item.quantity
-      }, 0)
-
-      if (totalBaseDeliveryFees === 0) {
-        setRentalDeliveryInfo({
-          distance: 0,
-          distanceText: '0 km',
-          duration: 'N/A',
-          baseDeliveryFees: 0,
-          distanceFees: 0,
-          totalDeliveryFees: 0,
-        })
-        setRentalDeliveryAddress(addressToUse)
-        updateRentalDeliveryFees(0, 0)
-        setIsCalculatingRentalFees(false)
-        return
-      }
-
       const response = await fetch('/api/calculate-delivery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           deliveryAddress: addressToUse,
-          baseDeliveryFees: totalBaseDeliveryFees,
+          category: 'locations',
         }),
       })
 
@@ -157,31 +152,12 @@ export default function CartPage() {
     setError(null)
 
     try {
-      const totalBaseDeliveryFees = purchaseItems.reduce((sum, item) => {
-        return sum + (item.baseDeliveryFees || 0) * item.quantity
-      }, 0)
-
-      if (totalBaseDeliveryFees === 0) {
-        setPurchaseDeliveryInfo({
-          distance: 0,
-          distanceText: '0 km',
-          duration: 'N/A',
-          baseDeliveryFees: 0,
-          distanceFees: 0,
-          totalDeliveryFees: 0,
-        })
-        setPurchaseDeliveryAddress(addressToUse)
-        updatePurchaseDeliveryFees(0, 0)
-        setIsCalculatingPurchaseFees(false)
-        return
-      }
-
       const response = await fetch('/api/calculate-delivery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           deliveryAddress: addressToUse,
-          baseDeliveryFees: totalBaseDeliveryFees,
+          category: 'accessoires-personnalises',
         }),
       })
 
@@ -215,31 +191,12 @@ export default function CartPage() {
     setError(null)
 
     try {
-      const totalBaseDeliveryFees = prestationItems.reduce((sum, item) => {
-        return sum + (item.baseDeliveryFees || 0) * item.quantity
-      }, 0)
-
-      if (totalBaseDeliveryFees === 0) {
-        setPrestationDeliveryInfo({
-          distance: 0,
-          distanceText: '0 km',
-          duration: 'N/A',
-          baseDeliveryFees: 0,
-          distanceFees: 0,
-          totalDeliveryFees: 0,
-        })
-        setPrestationDeliveryAddress(addressToUse)
-        updatePrestationDeliveryFees(0, 0)
-        setIsCalculatingPrestationFees(false)
-        return
-      }
-
       const response = await fetch('/api/calculate-delivery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           deliveryAddress: addressToUse,
-          baseDeliveryFees: totalBaseDeliveryFees,
+          category: 'henne',
         }),
       })
 
@@ -292,30 +249,26 @@ export default function CartPage() {
     return item.selectedOptions.reduce((sum, option) => sum + option.additional_fee, 0)
   }
 
-  // Calculate deposit based on products with deposit requirements
+  // Calculate deposit: 50% of total order (all categories + delivery)
   const calculateDeposit = () => {
-    let totalDeposit = 0
-    rentalItems.forEach((item) => {
-      if (item.depositPercentage && item.depositPercentage > 0) {
-        const itemPrice = item.pricePerUnit + getItemOptionsFees(item)
-        const itemTotal = itemPrice * item.quantity
-        totalDeposit += (itemTotal * item.depositPercentage) / 100
-      }
-    })
-    return totalDeposit
+    const subtotal = getSubtotal() // Includes products, options, installation, and delivery fees
+    return subtotal * 0.5 // 50% de la commande totale
   }
 
   const depositAmount = calculateDeposit()
 
-  // Calculate total caution based on items with caution
+  // Calculate caution: 50% of rental items subtotal only (locations)
   const calculateCaution = () => {
-    let totalCaution = 0
+    if (rentalItems.length === 0) return 0
+
+    let rentalSubtotal = 0
     rentalItems.forEach((item) => {
-      if (item.cautionPerUnit && item.cautionPerUnit > 0) {
-        totalCaution += item.cautionPerUnit * item.quantity
-      }
+      const itemPrice = item.pricePerUnit + getItemOptionsFees(item)
+      const installationFee = (item.needsInstallation && item.installationFees) ? item.installationFees : 0
+      rentalSubtotal += (itemPrice + installationFee) * item.quantity
     })
-    return totalCaution
+
+    return rentalSubtotal * 0.5 // 50% du total des locations
   }
 
   const cautionAmount = calculateCaution()
@@ -450,7 +403,13 @@ export default function CartPage() {
             pricePerUnit: unitPrice,
             selectedOptions: item.selectedOptions,
             personalizations: item.personalizations,
-            prestationDate: item.prestationDate?.toISOString(),
+            prestationDate: item.prestationDate ? (() => {
+              // Format date in local timezone to avoid UTC conversion issues
+              const year = item.prestationDate.getFullYear()
+              const month = String(item.prestationDate.getMonth() + 1).padStart(2, '0')
+              const day = String(item.prestationDate.getDate()).padStart(2, '0')
+              return `${year}-${month}-${day}`
+            })() : undefined,
             prestationTimeSlot: item.prestationTimeSlot,
           }
         }),
@@ -584,16 +543,6 @@ export default function CartPage() {
             {item.needsInstallation && item.installationFees && (
               <p className="text-blue-700">
                 <span className="font-medium">Installation :</span> +{item.installationFees}€ / unité
-              </p>
-            )}
-            {item.depositPercentage && item.depositPercentage > 0 && (
-              <p className="text-blue-700">
-                <span className="font-medium">Acompte requis :</span> {item.depositPercentage}%
-              </p>
-            )}
-            {item.cautionPerUnit && item.cautionPerUnit > 0 && (
-              <p className="text-amber-700">
-                <span className="font-medium">Caution :</span> {item.cautionPerUnit.toFixed(2)}€ / unité
               </p>
             )}
             <p>
@@ -1055,13 +1004,13 @@ export default function CartPage() {
                 {depositAmount > 0 && (
                   <div className="text-xs text-blue-700 bg-blue-50 p-3 rounded-lg break-words">
                     <p className="font-medium mb-1">💳 Acompte :</p>
-                    <p>Un acompte de {depositAmount.toFixed(2)} € sera requis pour valider la réservation.</p>
+                    <p>Un acompte de {depositAmount.toFixed(2)} € (50% du total) sera requis pour valider la réservation.</p>
                   </div>
                 )}
                 {cautionAmount > 0 && (
                   <div className="text-xs text-amber-700 bg-amber-50 p-3 rounded-lg break-words">
                     <p className="font-medium mb-1">⚠️ Caution :</p>
-                    <p>Une caution de {cautionAmount.toFixed(2)} € sera demandée lors de la récupération (non encaissée sauf dommage).</p>
+                    <p>Une caution de {cautionAmount.toFixed(2)} € (50% des locations) sera demandée lors de la récupération (non encaissée sauf dommage).</p>
                   </div>
                 )}
               </div>

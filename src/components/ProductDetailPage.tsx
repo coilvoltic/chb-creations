@@ -83,11 +83,6 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
     return basePrice + optionsFees + installationFee
   }
 
-  // Calculate deposit amount if applicable
-  const getDepositAmount = () => {
-    if (!product || !product.deposit) return 0
-    return (getTotalPrice() * quantity * product.deposit) / 100
-  }
 
   useEffect(() => {
     async function loadProduct() {
@@ -115,7 +110,11 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
       return []
     }
 
-    const dateStr = date.toISOString().split('T')[0] // Format: YYYY-MM-DD
+    // Format date in local timezone to avoid UTC conversion issues
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const dateStr = `${year}-${month}-${day}` // Format: YYYY-MM-DD
 
     // Filter slots for the selected date
     const slotsForDate = product.prestationUnavailableSlots
@@ -168,9 +167,6 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
       pricePerUnit: getEffectivePrice(),
       selectedOptions,
       personalizations: Object.keys(personalizationValues).length > 0 ? personalizationValues : undefined,
-      depositPercentage: product.deposit || undefined,
-      cautionPerUnit: product.caution || undefined,
-      baseDeliveryFees: product.base_delivery_fees || undefined,
       installationFees: product.installation_fees || undefined,
       needsInstallation,
       rentalPeriod: {
@@ -550,47 +546,6 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                   </div>
                 )}
 
-                {/* Deposit info */}
-                {product.deposit !== undefined && product.deposit > 0 && (
-                  <div className="border-t border-stone-200 pt-6">
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-start gap-3">
-                        <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-blue-900 mb-1">
-                            Acompte requis : {product.deposit}%
-                          </p>
-                          <p className="text-sm text-blue-800">
-                            Un acompte de <strong>{getDepositAmount().toFixed(2)} €</strong> sera requis pour valider cette réservation (à payer en ligne ou en boutique).
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Caution warning */}
-                {product.caution !== undefined && product.caution > 0 && (
-                  <div className={product.deposit !== undefined && product.deposit > 0 ? 'border-t border-stone-200 pt-6' : 'border-t border-stone-200 pt-6'}>
-                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                      <div className="flex items-start gap-3">
-                        <svg className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-amber-900 mb-1">
-                            Caution : {product.caution.toFixed(2)} € par unité
-                          </p>
-                          <p className="text-sm text-amber-800">
-                            Une caution de <strong>{(product.caution * quantity).toFixed(2)} €</strong> sera demandée (espèces, chèque ou CB). Elle ne sera encaissée qu&apos;en cas de dégradation ou perte du matériel.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 <div className="border-t border-stone-200 pt-6">
                   {isInCart && (

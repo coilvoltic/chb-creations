@@ -122,16 +122,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return cart.items.filter(item => item.category === 'henne')
   }
 
-  const calculateDeliveryFees = (items: CartItem[], deliveryInfo: DeliveryInfo | undefined) => {
-    if (!deliveryInfo || deliveryInfo.option === 'pickup') return 0
-
-    // Calculer les frais de livraison de base
-    return items.reduce((sum, item) => {
-      const deliveryFee = item.baseDeliveryFees || 0
-      return sum + (deliveryFee * item.quantity)
-    }, 0)
-  }
-
   const calculateTotals = (items: CartItem[], rentalDelivery: DeliveryInfo, purchaseDelivery: DeliveryInfo, prestationDelivery: DeliveryInfo) => {
     const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
     const totalPrice = items.reduce((sum, item) => {
@@ -144,21 +134,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return sum + item.quantity * (basePrice + optionsFees + installationFee)
     }, 0)
 
-    // Calculer les frais de livraison pour chaque catégorie
-    const rentalItems = items.filter(item => item.category === 'locations')
-    const purchaseItems = items.filter(item => item.category === 'accessoires-personnalises')
-    const prestationItems = items.filter(item => item.category === 'henne')
-
-    const rentalDeliveryFees = calculateDeliveryFees(rentalItems, rentalDelivery)
-    const purchaseDeliveryFees = calculateDeliveryFees(purchaseItems, purchaseDelivery)
-    const prestationDeliveryFees = calculateDeliveryFees(prestationItems, prestationDelivery)
-
     return {
       totalItems,
       totalPrice,
-      rentalDeliveryFees,
-      purchaseDeliveryFees,
-      prestationDeliveryFees
     }
   }
 

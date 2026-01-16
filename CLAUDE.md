@@ -96,17 +96,15 @@ This structure allows a single customer order to contain multiple types of reser
    - `personalizations` (JSONB): Custom text inputs: `{field_name: value}`
    - `needs_installation` (boolean): Installation service requested
 
-4. **products**: Product catalog (unchanged structure)
-   - Basic info: name, slug, price, new_price (promotional price), images[], description, features[]
+4. **products**: Product catalog
+   - Basic info: name, slug, price, new_price (promotional price), images[], description
    - **options**: JSONB array of product option groups
-   - **deposit**: Integer percentage (0-100) for required deposit (paid upfront)
-   - **caution**: Fixed amount for security deposit (not charged unless damage/loss)
    - **faq**: JSONB array of `{question, answer}` pairs
    - **is_out_of_stock**: Boolean flag to hide products from public access
-   - **base_delivery_fees**: Base delivery cost for this product
    - **installation_fees**: Optional per-unit installation service fee
    - Stock management and categorization (category, subcategory, stock)
    - Dynamic unavailabilities computed via SQL function
+   - **Note**: Caution and deposit are now calculated globally per order, not per product
 
 5. **purchase_reservations**: Sub-reservation for product purchases (accessoires personnalisés)
    - `customer_order_id` (FK → customer_orders): Parent order reference
@@ -219,7 +217,7 @@ Required in `.env.local`:
 
 ### Product Options, Fees & Financial Terms
 
-Products can have optional features and financial requirements:
+Products can have optional configurations and financial requirements:
 - **Options**: Array of choices (e.g., different color schemes) with additional fees
   - Grouped by `option_type_name` (e.g., "Installation", "Couleur")
   - Default: First option in each group is pre-selected
@@ -230,14 +228,14 @@ Products can have optional features and financial requirements:
   - Customer fills in text fields during add-to-cart
   - Stored as key-value map in cart and database
   - Used mainly for accessoires personnalisés (custom products)
-- **Deposits (Acompte)**: Required percentage of total price to validate reservation
-  - Only shown if deposit > 0
-  - Calculated per-item based on quantity and selected option
+- **Acompte (Deposit)**: Required upfront payment to validate reservation
+  - **Calculation**: 50% of total order amount (all categories combined)
+  - Includes: product prices + options + installation + delivery fees
   - Paid upfront (online or in-store) to confirm reservation
   - Displayed prominently with blue info styling (info icon)
-- **Caution (Security Deposit)**: Fixed amount per unit as security deposit
-  - Only shown if caution > 0
-  - Calculated: caution × quantity
+- **Caution (Security Deposit)**: Security deposit for rental items
+  - **Calculation**: 50% of rental items subtotal only (locations category)
+  - Applied only to rental items, not purchases or prestations
   - Requested at pickup/delivery (cash, check, or card)
   - **NOT charged/cashed unless damage or loss occurs**
   - Displayed with amber warning styling (warning icon)
@@ -245,9 +243,13 @@ Products can have optional features and financial requirements:
   - Products may have `installation_fees` field
   - Customer can opt-in via checkbox in product detail page
   - Installation flag and fees stored in cart items
-- **Delivery Fees**: Base delivery fees per product
-  - Products have `base_delivery_fees` field
-  - Total delivery calculated: base fees × quantity + distance-based fees (1€/km from shop)
+- **Delivery Fees**: Category-based base delivery fees + distance-based pricing
+  - **Fixed base fees by category**:
+    - Locations (rentals): 70€ base
+    - Accessoires personnalisés (purchases): 15€ base
+    - Henné (prestations): 20€ base
+  - **Distance-based fees**: 1€ per kilometer from shop (100 Boulevard de Saint-Loup, 13010 Marseille)
+  - **Total delivery cost** = Base fee (category) + (Distance in km × 1€)
 
 ### Components
 
@@ -293,7 +295,8 @@ Products can have optional features and financial requirements:
 4. **`/api/calculate-delivery`** (POST):
    - Calculates delivery distance and fees using Google Routes API
    - Shop address: 100 Boulevard de Saint-Loup, 13010 Marseille, France
-   - Pricing: 1€ per kilometer + base delivery fees
+   - Pricing: Fixed base fee (category-dependent: 70€ rentals, 15€ purchases, 20€ prestations) + 1€ per kilometer
+   - Returns total delivery fee for the specified category
 
 5. **`/api/autocomplete-address`** (GET):
    - Google Places autocomplete for address suggestions
@@ -314,6 +317,38 @@ Products can have optional features and financial requirements:
    - Admin API to view and update individual reservations
    - Supports status updates and modifications
    - Requires authentication
+
+10. **`/api/admin/products/create`** (POST):
+   - Admin API to create new products
+   - Validates all required fields
+   - Inserts product into database with all columns
+   - Requires authentication
+
+### Admin Product Management
+
+**Product Creation** (`/admin/products/new`):
+- Full interface for adding new products with all fields from products table
+- **Image Upload Flow**:
+  1. User selects images from local filesystem
+  2. Images are previewed in the browser
+  3. On form submit, images are uploaded to Supabase Storage bucket `chb-creations-products`
+  4. Images are organized into subfolders by subcategory (e.g., `art-de-table/`, `deco-et-accessoires/`)
+  5. Public URLs are generated for each uploaded image using `getPublicUrl()`
+  6. URLs are stored in the `images` column (array of strings) in products table
+- **Storage Configuration**:
+  - Bucket name: `chb-creations-products` (no spaces)
+  - Folder structure: `{subcategory}/{timestamp}-{random}.{ext}` (e.g., `art-de-table/1234567890-abc123.jpg`)
+  - Bucket visibility: **Public** (must be set as public bucket in Supabase dashboard)
+  - Upload policy: Authenticated users only (via RLS policies)
+  - URLs: Public URLs (permanent, no expiry)
+- **Form Fields**:
+  - Basic: name, slug (auto-generated), price, new_price, category, subcategory, stock
+  - Content: description, personalizations (array)
+  - Images: Multiple upload with preview and upload status
+  - Options: Option groups with multiple options (name, description, additional_fee)
+  - FAQ: Question/answer pairs
+  - Flags: is_out_of_stock, installation_fees
+- **Navigation**: "Nouveau produit" button in admin dashboard header
 
 ### Email & PDF System
 

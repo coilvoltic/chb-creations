@@ -61,6 +61,8 @@ interface ReservationData {
   rentalDeliveryFees?: number
   purchaseDeliveryFees?: number
   prestationDeliveryFees?: number
+  deposit: number
+  caution: number
   promoCode?: string | null
   promoDiscount?: number | null
 }
@@ -495,8 +497,38 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
           </View>
         </View>
 
+        {/* Acompte et Caution */}
+        {(reservation.deposit > 0 || reservation.caution > 0) && (
+          <View style={[styles.section, { marginTop: 15, paddingTop: 15, borderTop: '1pt solid #e5e7eb' }]}>
+            {reservation.deposit > 0 && (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text style={{ fontSize: 11, color: '#2563eb', fontWeight: 'bold' }}>
+                  💳 Acompte :
+                </Text>
+                <Text style={{ fontSize: 11, color: '#2563eb', fontWeight: 'bold' }}>
+                  {reservation.deposit.toFixed(2)} €
+                </Text>
+              </View>
+            )}
+            {reservation.caution > 0 && (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text style={{ fontSize: 11, color: '#d97706', fontWeight: 'bold' }}>
+                  ⚠️ Caution :
+                </Text>
+                <Text style={{ fontSize: 11, color: '#d97706', fontWeight: 'bold' }}>
+                  {reservation.caution.toFixed(2)} €
+                </Text>
+              </View>
+            )}
+            <Text style={{ fontSize: 9, color: '#6b7280', fontStyle: 'italic', marginTop: 8 }}>
+              {reservation.deposit > 0 && "L'acompte est à payer pour valider la commande. "}
+              {reservation.caution > 0 && "La caution sera demandée à la récupération (non encaissée sauf dommage)."}
+            </Text>
+          </View>
+        )}
+
         {/* Informations importantes */}
-        <View style={[styles.section, { marginTop: 30 }]}>
+        <View style={[styles.section, { marginTop: 20 }]}>
           <Text style={styles.sectionTitle}>Informations importantes</Text>
           <Text style={styles.text}>
             • Les articles doivent être récupérés à la date convenue
@@ -535,6 +567,8 @@ export async function generateReservationPDF(params: GenerateReservationPDFParam
     customer_phone: params.customerInfo.phone,
     total_amount: params.totalPrice,
     created_at: new Date().toISOString(),
+    deposit: params.deposit,
+    caution: params.caution,
     rentalDeliveryAddress: params.rentalDeliveryOption === 'delivery' ? params.rentalDeliveryAddress : null,
     rentalDeliveryFees: params.rentalDeliveryFees,
     purchaseDeliveryAddress: params.purchaseDeliveryOption === 'delivery' ? params.purchaseDeliveryAddress : null,

@@ -1,0 +1,714 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import Loader from '@/components/Loader'
+import { ProductOptionGroup, FAQItem } from '@/lib/supabase'
+
+interface ImageUpload {
+  file: File
+  preview: string
+  uploading: boolean
+  url?: string
+}
+
+export default function NewProductPage() {
+  const router = useRouter()
+  const supabase = createClientComponentClient()
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  // Basic fields
+  const [name, setName] = useState('')
+  const [slug, setSlug] = useState('')
+  const [price, setPrice] = useState('')
+  const [newPrice, setNewPrice] = useState('')
+  const [description, setDescription] = useState('')
+  const [category, setCategory] = useState('')
+  const [subcategory, setSubcategory] = useState('')
+  const [stock, setStock] = useState('')
+  const [isOutOfStock, setIsOutOfStock] = useState(false)
+  const [installationFees, setInstallationFees] = useState('')
+
+  // Array fields
+  const [images, setImages] = useState<ImageUpload[]>([])
+  const [personalizations, setPersonalizations] = useState<string[]>([''])
+  const [faq, setFaq] = useState<FAQItem[]>([{ question: '', answer: '' }])
+  const [options, setOptions] = useState<ProductOptionGroup[]>([
+    { option_type_name: '', options: [{ name: '', description: '', additional_fee: 0 }] }
+  ])
+
+  // Categories configuration
+  const categories = [
+    { value: 'locations', label: 'Locations', subcategories: ['art-de-table', 'trones', 'tenues-homme', 'deco-et-accessoires'] },
+    { value: 'accessoires-personnalises', label: 'Accessoires Personnalisés', subcategories: ['bendir', 'bougies', 'certificats-mariage', 'coussins', 'faire-parts', 'oeufs', 'tableaux', 'textile'] },
+    { value: 'henne', label: 'Henné', subcategories: ['henne-seul', 'pack-henne'] }
+  ]
+
+  const [availableSubcategories, setAvailableSubcategories] = useState<string[]>([])
+
+  // Update available subcategories when category changes
+  useEffect(() => {
+    const selectedCategory = categories.find(c => c.value === category)
+    if (selectedCategory) {
+      setAvailableSubcategories(selectedCategory.subcategories)
+    } else {
+      setAvailableSubcategories([])
+    }
+  }, [category])
+
+  useEffect(() => {
+    checkAuth()
+  }, [])
+
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      router.push('/admin/login')
+      return
+    }
+    setLoading(false)
+  }
+
+  // Auto-generate slug from name
+  useEffect(() => {
+    if (name) {
+      const generatedSlug = name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Remove accents
+        .replace(/[^a-z0-9\s-]/g, '') // Remove special chars
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/-+/g, '-') // Replace multiple hyphens with single
+        .trim()
+      setSlug(generatedSlug)
+    }
+  }, [name])
+
+  // Image upload handlers
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+
+    const newImages: ImageUpload[] = Array.from(files).map(file => ({
+      file,
+      preview: URL.createObjectURL(file),
+      uploading: false
+    }))
+
+    setImages(prev => [...prev, ...newImages])
+  }
+
+  const removeImage = (index: number) => {
+    setImages(prev => {
+      const updated = [...prev]
+      URL.revokeObjectURL(updated[index].preview)
+      updated.splice(index, 1)
+      return updated
+    })
+  }
+
+  const uploadImages = async (): Promise<string[]> => {
+    if (!subcategory) {
+      throw new Error('Sous-catégorie requise pour l\'upload des images')
+    }
+
+    const uploadedUrls: string[] = []
+
+    for (let i = 0; i < images.length; i++) {
+      const image = images[i]
+      if (image.url) {
+        // Already uploaded
+        uploadedUrls.push(image.url)
+        continue
+      }
+
+      // Upload to Supabase Storage
+      setImages(prev => {
+        const updated = [...prev]
+        updated[i].uploading = true
+        return updated
+      })
+
+      // Add small delay to ensure unique timestamps between uploads
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 10))
+      }
+
+      const fileExt = image.file.name.split('.').pop()
+      // Generate unique filename with timestamp, random string, and index
+      const uniqueId = `${Date.now()}-${i}-${Math.random().toString(36).substring(2, 15)}`
+      const fileName = `${uniqueId}.${fileExt}`
+      // Upload to subcategory folder: subcategory/filename
+      const filePath = `${subcategory}/${fileName}`
+
+      const { data, error: uploadError } = await supabase.storage
+        .from('chb-creations-products')
+        .upload(filePath, image.file, {
+          cacheControl: '315360000', // 10 years
+          upsert: true // Allow overwrite in case of collision
+        })
+
+      if (uploadError) {
+        throw new Error(`Erreur upload image: ${uploadError.message}`)
+      }
+
+      // Get public URL (bucket must be public)
+      const { data: urlData } = supabase.storage
+        .from('chb-creations-products')
+        .getPublicUrl(filePath)
+
+      if (!urlData?.publicUrl) {
+        throw new Error('Impossible de générer l\'URL de l\'image')
+      }
+
+      uploadedUrls.push(urlData.publicUrl)
+
+      setImages(prev => {
+        const updated = [...prev]
+        updated[i].uploading = false
+        updated[i].url = urlData.publicUrl
+        return updated
+      })
+    }
+
+    return uploadedUrls
+  }
+
+  // Array field handlers
+  const addPersonalization = () => setPersonalizations([...personalizations, ''])
+  const removePersonalization = (index: number) => setPersonalizations(personalizations.filter((_, i) => i !== index))
+  const updatePersonalization = (index: number, value: string) => {
+    const updated = [...personalizations]
+    updated[index] = value
+    setPersonalizations(updated)
+  }
+
+  const addFAQ = () => setFaq([...faq, { question: '', answer: '' }])
+  const removeFAQ = (index: number) => setFaq(faq.filter((_, i) => i !== index))
+  const updateFAQ = (index: number, field: 'question' | 'answer', value: string) => {
+    const updated = [...faq]
+    updated[index][field] = value
+    setFaq(updated)
+  }
+
+  const addOptionGroup = () => {
+    setOptions([...options, { option_type_name: '', options: [{ name: '', description: '', additional_fee: 0 }] }])
+  }
+  const removeOptionGroup = (index: number) => setOptions(options.filter((_, i) => i !== index))
+  const updateOptionGroupName = (index: number, value: string) => {
+    const updated = [...options]
+    updated[index].option_type_name = value
+    setOptions(updated)
+  }
+
+  const addOption = (groupIndex: number) => {
+    const updated = [...options]
+    updated[groupIndex].options.push({ name: '', description: '', additional_fee: 0 })
+    setOptions(updated)
+  }
+  const removeOption = (groupIndex: number, optionIndex: number) => {
+    const updated = [...options]
+    updated[groupIndex].options.splice(optionIndex, 1)
+    setOptions(updated)
+  }
+  const updateOption = (groupIndex: number, optionIndex: number, field: 'name' | 'description' | 'additional_fee', value: string | number) => {
+    const updated = [...options]
+    updated[groupIndex].options[optionIndex][field] = value as never
+    setOptions(updated)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setSaving(true)
+
+    try {
+      // Validate required fields
+      if (!name || !slug || !price || !category || !subcategory || !stock) {
+        throw new Error('Veuillez remplir tous les champs obligatoires')
+      }
+
+      if (images.length === 0) {
+        throw new Error('Veuillez ajouter au moins une image')
+      }
+
+      // Upload images
+      const imageUrls = await uploadImages()
+
+      // Clean up array fields (remove empty entries)
+      const cleanedPersonalizations = personalizations.filter(p => p.trim() !== '')
+      const cleanedFaq = faq.filter(f => f.question.trim() !== '' && f.answer.trim() !== '')
+      const cleanedOptions = options
+        .filter(og => og.option_type_name.trim() !== '')
+        .map(og => ({
+          ...og,
+          options: og.options.filter(o => o.name.trim() !== '')
+        }))
+        .filter(og => og.options.length > 0)
+
+      // Create product object
+      const productData = {
+        name,
+        slug,
+        price: parseFloat(price),
+        new_price: newPrice ? parseFloat(newPrice) : null,
+        description: description || null,
+        category,
+        subcategory,
+        stock: parseInt(stock),
+        is_out_of_stock: isOutOfStock,
+        installation_fees: installationFees ? parseFloat(installationFees) : null,
+        images: imageUrls,
+        personalizations: cleanedPersonalizations.length > 0 ? cleanedPersonalizations : null,
+        faq: cleanedFaq.length > 0 ? cleanedFaq : null,
+        options: cleanedOptions.length > 0 ? cleanedOptions : null,
+      }
+
+      // Insert product via API
+      const response = await fetch('/api/admin/products/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(productData)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erreur lors de la création du produit')
+      }
+
+      const { product } = await response.json()
+
+      // Redirect to product page or dashboard
+      router.push(`/admin/dashboard`)
+    } catch (err) {
+      console.error('Erreur:', err)
+      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return <Loader />
+  }
+
+  return (
+    <div className="min-h-screen bg-stone-50">
+      {/* Header */}
+      <header className="bg-white border-b border-stone-200 sticky top-0 z-10">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-black mb-1 md:mb-2">Nouveau Produit</h1>
+              <p className="text-sm text-stone-600">Ajouter un nouveau produit au catalogue</p>
+            </div>
+            <button
+              onClick={() => router.push('/admin/dashboard')}
+              className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
+            >
+              ← Retour
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-6 py-8">
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600">{error}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Basic Information */}
+          <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6">
+            <h2 className="text-xl font-semibold text-black mb-6">Informations de base</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  Nom du produit <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  Slug (URL) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={slug}
+                  onChange={(e) => setSlug(e.target.value)}
+                  className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  placeholder="auto-généré depuis le nom"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  Prix (€) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  Prix promotionnel (€)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={newPrice}
+                  onChange={(e) => setNewPrice(e.target.value)}
+                  className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  placeholder="Optionnel"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  Catégorie <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => {
+                    setCategory(e.target.value)
+                    setSubcategory('')
+                  }}
+                  className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  required
+                >
+                  <option value="">Sélectionner...</option>
+                  {categories.map(cat => (
+                    <option key={cat.value} value={cat.value}>{cat.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  Sous-catégorie <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={subcategory}
+                  onChange={(e) => setSubcategory(e.target.value)}
+                  className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  disabled={!category}
+                  required
+                >
+                  <option value="">Sélectionner...</option>
+                  {availableSubcategories.map(sub => (
+                    <option key={sub} value={sub}>{sub}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  Stock <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  value={stock}
+                  onChange={(e) => setStock(e.target.value)}
+                  className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  Frais d'installation (€)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={installationFees}
+                  onChange={(e) => setInstallationFees(e.target.value)}
+                  className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  placeholder="Optionnel"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={isOutOfStock}
+                  onChange={(e) => setIsOutOfStock(e.target.checked)}
+                  className="w-4 h-4 rounded border-stone-300 text-black focus:ring-black"
+                />
+                <span className="text-sm text-stone-700">Produit en rupture de stock (masqué du public)</span>
+              </label>
+            </div>
+
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-stone-700 mb-2">
+                Description
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={4}
+                className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                placeholder="Description du produit..."
+              />
+            </div>
+          </div>
+
+          {/* Images */}
+          <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6">
+            <h2 className="text-xl font-semibold text-black mb-6">Images <span className="text-red-500">*</span></h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block w-full px-4 py-8 border-2 border-dashed border-stone-300 rounded-lg text-center cursor-pointer hover:border-stone-400 transition-colors">
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
+                  <div className="text-stone-600">
+                    <p className="font-medium">Cliquez pour ajouter des images</p>
+                    <p className="text-sm text-stone-500 mt-1">ou glissez-déposez</p>
+                  </div>
+                </label>
+              </div>
+
+              {images.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {images.map((image, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={image.preview}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg border border-stone-200"
+                      />
+                      {image.uploading && (
+                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
+                          <div className="text-white text-sm">Upload...</div>
+                        </div>
+                      )}
+                      {image.url && (
+                        <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                          ✓
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Personalizations */}
+          <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6">
+            <h2 className="text-xl font-semibold text-black mb-6">Champs de personnalisation</h2>
+            <p className="text-sm text-stone-600 mb-4">Champs texte que le client peut remplir (ex: Prénom, Date)</p>
+
+            <div className="space-y-3">
+              {personalizations.map((field, index) => (
+                <div key={index} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={field}
+                    onChange={(e) => updatePersonalization(index, e.target.value)}
+                    placeholder="Ex: Prénom de l'enfant"
+                    className="flex-1 px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removePersonalization(index)}
+                    className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={addPersonalization}
+              className="mt-4 px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
+            >
+              + Ajouter un champ
+            </button>
+          </div>
+
+          {/* Options */}
+          <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6">
+            <h2 className="text-xl font-semibold text-black mb-6">Options</h2>
+            <p className="text-sm text-stone-600 mb-4">Groupes d'options avec frais supplémentaires (ex: Couleur, Installation)</p>
+
+            <div className="space-y-6">
+              {options.map((optionGroup, groupIndex) => (
+                <div key={groupIndex} className="border border-stone-200 rounded-lg p-4">
+                  <div className="flex gap-2 mb-4">
+                    <input
+                      type="text"
+                      value={optionGroup.option_type_name}
+                      onChange={(e) => updateOptionGroupName(groupIndex, e.target.value)}
+                      placeholder="Nom du groupe (ex: Couleur)"
+                      className="flex-1 px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-medium"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeOptionGroup(groupIndex)}
+                      className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                    >
+                      Supprimer groupe
+                    </button>
+                  </div>
+
+                  <div className="space-y-3 ml-4">
+                    {optionGroup.options.map((option, optionIndex) => (
+                      <div key={optionIndex} className="flex gap-2">
+                        <input
+                          type="text"
+                          value={option.name}
+                          onChange={(e) => updateOption(groupIndex, optionIndex, 'name', e.target.value)}
+                          placeholder="Nom option"
+                          className="flex-1 px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-sm"
+                        />
+                        <input
+                          type="text"
+                          value={option.description || ''}
+                          onChange={(e) => updateOption(groupIndex, optionIndex, 'description', e.target.value)}
+                          placeholder="Description (opt)"
+                          className="flex-1 px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-sm"
+                        />
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={option.additional_fee}
+                          onChange={(e) => updateOption(groupIndex, optionIndex, 'additional_fee', parseFloat(e.target.value) || 0)}
+                          placeholder="Frais (€)"
+                          className="w-24 px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeOption(groupIndex, optionIndex)}
+                          className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => addOption(groupIndex)}
+                    className="mt-3 ml-4 px-3 py-1 bg-stone-50 hover:bg-stone-100 text-stone-600 rounded-lg transition-colors text-sm"
+                  >
+                    + Ajouter option
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={addOptionGroup}
+              className="mt-4 px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
+            >
+              + Ajouter un groupe d'options
+            </button>
+          </div>
+
+          {/* FAQ */}
+          <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6">
+            <h2 className="text-xl font-semibold text-black mb-6">FAQ</h2>
+
+            <div className="space-y-4">
+              {faq.map((item, index) => (
+                <div key={index} className="border border-stone-200 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <label className="text-sm font-medium text-stone-700">Question {index + 1}</label>
+                    <button
+                      type="button"
+                      onClick={() => removeFAQ(index)}
+                      className="text-red-600 hover:text-red-700 text-sm"
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={item.question}
+                    onChange={(e) => updateFAQ(index, 'question', e.target.value)}
+                    placeholder="Question..."
+                    className="w-full px-3 py-2 mb-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  />
+                  <textarea
+                    value={item.answer}
+                    onChange={(e) => updateFAQ(index, 'answer', e.target.value)}
+                    placeholder="Réponse..."
+                    rows={3}
+                    className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  />
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={addFAQ}
+              className="mt-4 px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
+            >
+              + Ajouter une question
+            </button>
+          </div>
+
+          {/* Submit */}
+          <div className="flex gap-4">
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 px-6 py-3 bg-black text-white rounded-lg hover:bg-stone-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            >
+              {saving ? 'Création en cours...' : 'Créer le produit'}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push('/admin/dashboard')}
+              className="px-6 py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
+            >
+              Annuler
+            </button>
+          </div>
+        </form>
+      </main>
+    </div>
+  )
+}

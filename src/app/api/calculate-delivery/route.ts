@@ -3,18 +3,36 @@ import { NextRequest, NextResponse } from 'next/server'
 const SHOP_ADDRESS = '100 Boulevard de Saint-Loup, 13010 Marseille, France'
 const COST_PER_KM = 1 // 1€ par km
 
+// Fixed base delivery fees by category
+const BASE_DELIVERY_FEES = {
+  locations: 70, // Rentals
+  'accessoires-personnalises': 15, // Purchases
+  henne: 20, // Prestations
+} as const
+
+type DeliveryCategory = keyof typeof BASE_DELIVERY_FEES
+
 export async function POST(request: NextRequest) {
   try {
-    const { deliveryAddress, baseDeliveryFees } = await request.json()
+    const { deliveryAddress, category } = await request.json()
 
-    console.log('Calcul livraison - Adresse:', deliveryAddress, 'Base fees:', baseDeliveryFees)
+    console.log('Calcul livraison - Adresse:', deliveryAddress, 'Catégorie:', category)
 
-    if (!deliveryAddress || baseDeliveryFees === undefined) {
+    if (!deliveryAddress || !category) {
       return NextResponse.json(
-        { error: 'Adresse de livraison et frais de base requis' },
+        { error: 'Adresse de livraison et catégorie requises' },
         { status: 400 }
       )
     }
+
+    if (!(category in BASE_DELIVERY_FEES)) {
+      return NextResponse.json(
+        { error: 'Catégorie invalide' },
+        { status: 400 }
+      )
+    }
+
+    const baseDeliveryFees = BASE_DELIVERY_FEES[category as DeliveryCategory]
 
     const apiKey = process.env.GOOGLE_PLACES_API_KEY
 

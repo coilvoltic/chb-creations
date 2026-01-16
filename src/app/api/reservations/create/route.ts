@@ -3,7 +3,6 @@ import { createClient } from '@supabase/supabase-js'
 import type { CustomerInfo, ReservationStatus, TimeSlot } from '@/lib/supabase'
 import { sendReservationConfirmation } from '@/lib/email'
 import { generateReservationCode } from '@/lib/reservation-code'
-import { format } from 'date-fns'
 
 interface SelectedOption {
   option_type_name: string
@@ -318,18 +317,12 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Formater la date de prestation (DATE seulement, pas de timestamp)
-        let prestationDateFormatted: string | null = null
-        if (item.prestationDate) {
-          const date = new Date(item.prestationDate)
-          prestationDateFormatted = format(date, 'yyyy-MM-dd')
-        }
-
+        // La date de prestation est déjà au format YYYY-MM-DD depuis le panier
         return {
           prestation_reservation_id: prestationReservationId,
           product_id: item.productId,
           quantity: item.quantity,
-          prestation_date: prestationDateFormatted,
+          prestation_date: item.prestationDate || null,
           time_slot: item.prestationTimeSlot || null,
           options: optionsData,
           personalizations: item.personalizations || null,

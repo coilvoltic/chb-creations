@@ -18,9 +18,6 @@ export interface CartItem {
   pricePerUnit: number
   selectedOptions?: SelectedOption[] // Array of selected options (one per option group)
   personalizations?: { [key: string]: string } // Map of personalization field name to user value
-  depositPercentage?: number
-  cautionPerUnit?: number // Security deposit per unit (not charged unless damage/loss)
-  baseDeliveryFees?: number // Base delivery fees for this product
   installationFees?: number // Installation fees per unit
   needsInstallation?: boolean // True if customer wants installation service
   rentalPeriod: {

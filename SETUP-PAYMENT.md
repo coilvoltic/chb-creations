@@ -140,17 +140,23 @@ GOOGLE_PLACES_API_KEY=votre_cle_api_google
 5. **Google Routes API** calcule automatiquement:
    - Distance en km
    - Durée estimée
-   - Frais de livraison = Frais de base + (Distance × 1€/km)
+   - Frais de livraison = Frais de base (par catégorie) + (Distance × 1€/km)
 
 ### Configuration des frais de base
 
-Les frais de base sont configurés dans le produit (colonne `base_delivery_fees`).
+Les frais de base sont fixés par catégorie dans l'API:
 
-Pour modifier le coût par km, éditez:
 ```typescript
 // src/app/api/calculate-delivery/route.ts
+const BASE_DELIVERY_FEES = {
+  locations: 70, // Locations (rentals)
+  'accessoires-personnalises': 15, // Achats (purchases)
+  henne: 20, // Prestations henné
+}
 const COST_PER_KM = 1 // 1€ par km
 ```
+
+Pour modifier les frais de base ou le coût par km, éditez ce fichier.
 
 ## 6. Tests
 
@@ -169,10 +175,13 @@ Tapez une adresse réelle en France dans le champ "Adresse de livraison".
 
 ### Tester le calcul des frais
 
-1. Ajoutez un produit au panier qui a `base_delivery_fees > 0`
+1. Ajoutez un produit au panier (locations, achats, ou prestations)
 2. Choisissez "Livraison à domicile"
 3. Sélectionnez une adresse dans l'autocomplete
-4. Les frais se calculent automatiquement
+4. Les frais se calculent automatiquement selon la catégorie:
+   - Locations: 70€ base + distance
+   - Accessoires personnalisés: 15€ base + distance
+   - Prestations henné: 20€ base + distance
 
 ## 7. Passage en production
 
