@@ -102,7 +102,7 @@ export default function ReservationCalendar({ orders, onOrderClick }: Reservatio
             onClick={goToToday}
             className="px-3 py-2 text-sm bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
           >
-            Aujourd'hui
+            Aujourd&apos;hui
           </button>
           <button
             onClick={previousMonth}
