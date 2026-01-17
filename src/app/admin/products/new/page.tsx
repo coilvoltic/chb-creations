@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import Loader from '@/components/Loader'
@@ -40,12 +40,12 @@ export default function NewProductPage() {
     { option_type_name: '', options: [{ name: '', description: '', additional_fee: 0 }] }
   ])
 
-  // Categories configuration
-  const categories = [
+  // Categories configuration (memoized to prevent infinite loop)
+  const categories = useMemo(() => [
     { value: 'locations', label: 'Locations', subcategories: ['art-de-table', 'trones', 'tenues-homme', 'deco-et-accessoires'] },
     { value: 'accessoires-personnalises', label: 'Accessoires Personnalisés', subcategories: ['bendir', 'bougies', 'certificats-mariage', 'coussins', 'faire-parts', 'oeufs', 'tableaux', 'textile'] },
     { value: 'henne', label: 'Henné', subcategories: ['henne-seul', 'pack-henne'] }
-  ]
+  ], [])
 
   const [availableSubcategories, setAvailableSubcategories] = useState<string[]>([])
 
@@ -57,10 +57,11 @@ export default function NewProductPage() {
     } else {
       setAvailableSubcategories([])
     }
-  }, [category])
+  }, [category, categories])
 
   useEffect(() => {
     checkAuth()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const checkAuth = async () => {
@@ -144,7 +145,7 @@ export default function NewProductPage() {
       // Upload to subcategory folder: subcategory/filename
       const filePath = `${subcategory}/${fileName}`
 
-      const { data, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('chb-creations-products')
         .upload(filePath, image.file, {
           cacheControl: '315360000', // 10 years
@@ -279,7 +280,7 @@ export default function NewProductPage() {
         throw new Error(errorData.error || 'Erreur lors de la création du produit')
       }
 
-      const { product } = await response.json()
+      await response.json()
 
       // Redirect to product page or dashboard
       router.push(`/admin/dashboard`)
@@ -437,7 +438,7 @@ export default function NewProductPage() {
 
               <div>
                 <label className="block text-sm font-medium text-stone-700 mb-2">
-                  Frais d'installation (€)
+                  Frais d&apos;installation (€)
                 </label>
                 <input
                   type="number"
@@ -501,6 +502,7 @@ export default function NewProductPage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {images.map((image, index) => (
                     <div key={index} className="relative group">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={image.preview}
                         alt={`Preview ${index + 1}`}
@@ -548,9 +550,9 @@ export default function NewProductPage() {
                   <button
                     type="button"
                     onClick={() => removePersonalization(index)}
-                    className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                    className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium"
                   >
-                    ×
+                    Supprimer
                   </button>
                 </div>
               ))}
@@ -568,7 +570,7 @@ export default function NewProductPage() {
           {/* Options */}
           <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6">
             <h2 className="text-xl font-semibold text-black mb-6">Options</h2>
-            <p className="text-sm text-stone-600 mb-4">Groupes d'options avec frais supplémentaires (ex: Couleur, Installation)</p>
+            <p className="text-sm text-stone-600 mb-4">Groupes d&apos;options avec frais supplémentaires (ex: Couleur, Installation)</p>
 
             <div className="space-y-6">
               {options.map((optionGroup, groupIndex) => (
@@ -590,9 +592,9 @@ export default function NewProductPage() {
                     </button>
                   </div>
 
-                  <div className="space-y-3 ml-4">
+                  <div className="space-y-3 ml-0 md:ml-4">
                     {optionGroup.options.map((option, optionIndex) => (
-                      <div key={optionIndex} className="flex gap-2">
+                      <div key={optionIndex} className="flex flex-col md:flex-row gap-2">
                         <input
                           type="text"
                           value={option.name}
@@ -613,14 +615,14 @@ export default function NewProductPage() {
                           value={option.additional_fee}
                           onChange={(e) => updateOption(groupIndex, optionIndex, 'additional_fee', parseFloat(e.target.value) || 0)}
                           placeholder="Frais (€)"
-                          className="w-24 px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-sm"
+                          className="w-full md:w-24 px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-sm"
                         />
                         <button
                           type="button"
                           onClick={() => removeOption(groupIndex, optionIndex)}
-                          className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm"
+                          className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
                         >
-                          ×
+                          Supprimer
                         </button>
                       </div>
                     ))}
@@ -629,7 +631,7 @@ export default function NewProductPage() {
                   <button
                     type="button"
                     onClick={() => addOption(groupIndex)}
-                    className="mt-3 ml-4 px-3 py-1 bg-stone-50 hover:bg-stone-100 text-stone-600 rounded-lg transition-colors text-sm"
+                    className="mt-3 ml-0 md:ml-4 px-4 py-2 bg-stone-50 hover:bg-stone-100 text-stone-600 rounded-lg transition-colors text-sm"
                   >
                     + Ajouter option
                   </button>
@@ -642,7 +644,7 @@ export default function NewProductPage() {
               onClick={addOptionGroup}
               className="mt-4 px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
             >
-              + Ajouter un groupe d'options
+              + Ajouter un groupe d&apos;options
             </button>
           </div>
 
@@ -658,7 +660,7 @@ export default function NewProductPage() {
                     <button
                       type="button"
                       onClick={() => removeFAQ(index)}
-                      className="text-red-600 hover:text-red-700 text-sm"
+                      className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
                     >
                       Supprimer
                     </button>
