@@ -101,6 +101,12 @@ export default function AdminDashboardPage() {
             </div>
             <div className="flex gap-3">
               <button
+                onClick={() => router.push('/admin/products')}
+                className="px-4 py-2 bg-stone-700 hover:bg-stone-600 text-white rounded-lg transition-colors"
+              >
+                Gérer les produits
+              </button>
+              <button
                 onClick={() => router.push('/admin/products/new')}
                 className="px-4 py-2 bg-black hover:bg-stone-800 text-white rounded-lg transition-colors"
               >

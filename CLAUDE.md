@@ -175,7 +175,6 @@ Required in `.env.local`:
 1. **Locations** (`/services/locations`) - Product rentals
    - Art de table (`/services/locations/art-de-table`)
    - Trônes (`/services/locations/trones`)
-   - Tenues homme (`/services/locations/tenues-homme`)
    - Déco et accessoires (`/services/locations/deco-et-accessoires`)
 
 2. **Accessoires Personnalisés** (`/services/accessoires-personnalises`) - Custom product purchases
@@ -433,7 +432,7 @@ Product pages (art-de-table, trônes, deco-et-accessoires, etc.) share identical
 - When adding new categories, copy existing product page structure
 - Server actions in `src/actions/products.ts` follow pattern: `get[Subcategory]Products()`
 - All subcategories have corresponding server actions:
-  - Locations: `getArtDeTableProducts()`, `getTronesProducts()`, `getTenuesHommeProducts()`, `getDecoEtAccessoiresProducts()`
+  - Locations: `getArtDeTableProducts()`, `getTronesProducts()`, `getDecoEtAccessoiresProducts()`
   - Accessoires: `getBougiesProducts()`, `getCertificatsMariageProducts()`, `getCoussinsProducts()`, `getTableauxProducts()`, `getTextileProducts()`, `getBendirProducts()`, `getFairePartsProducts()`, `getOeufsProducts()`
   - Henné: `getHenneSeulProducts()`, `getPackHenneProducts()`
 - Common function: `getProductBySlug(slug)` returns product with unavailabilities attached

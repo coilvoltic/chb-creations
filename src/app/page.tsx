@@ -96,7 +96,7 @@ export default function Home() {
                     <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 lg:p-10 text-white">
                       <h2 className="text-4xl md:text-5xl font-bold mb-3 font-satisfy">Locations</h2>
                       <p className="text-base md:text-lg text-white/80 mb-4 md:mb-5">
-                        Art de table, trônes, décoration et tenues
+                        Art de table, trônes et décoration
                       </p>
                       <span className="inline-flex items-center gap-2 text-base md:text-lg font-medium text-white/90">
                         Découvrir

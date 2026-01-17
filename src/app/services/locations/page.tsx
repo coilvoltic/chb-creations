@@ -20,12 +20,6 @@ export default function LocationsPage() {
       href: '/services/locations/deco-et-accessoires',
       image: '/imgs/locations/decoAccessoiresMain.png',
       description: 'Décoration et accessoires de table'
-    },
-    {
-      title: 'Tenues Homme',
-      href: '/services/locations/tenues-homme',
-      image: '/imgs/locations/tenueHommeMain.png',
-      description: 'Tenues traditionnelles et modernes'
     }
   ]
 

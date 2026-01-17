@@ -54,7 +54,7 @@ const fallbackReviews: Review[] = [
     name: "Rachid A.",
     rating: 5,
     date: "Il y a 3 semaines",
-    comment: "Excellent rapport qualité-prix. Les tenues homme étaient élégantes et bien entretenues. Je recommande sans hésitation !"
+    comment: "Excellent rapport qualité-prix. Le service était impeccable et professionnel. Je recommande sans hésitation !"
   }
 ]
 

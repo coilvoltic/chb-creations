@@ -9,7 +9,7 @@ import { useState, useEffect, use } from 'react'
 import { getProductBySlug } from '@/actions/products'
 import type { Product, TimeSlot } from '@/lib/supabase'
 import { notFound, useRouter } from 'next/navigation'
-import ReactMarkdown from 'react-markdown'
+import { parseSimpleMarkdown } from '@/lib/markdown'
 import type { DateRange } from 'react-day-picker'
 import { useCart } from '@/contexts/CartContext'
 import Link from 'next/link'
@@ -352,9 +352,10 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                         {product.description && (
                           <div className="mb-6">
                             <h2 className="text-xl font-semibold mb-3">Description</h2>
-                            <div className="text-stone-700 leading-relaxed prose prose-stone max-w-none">
-                              <ReactMarkdown>{product.description}</ReactMarkdown>
-                            </div>
+                            <div
+                              className="text-stone-700 leading-relaxed"
+                              dangerouslySetInnerHTML={{ __html: parseSimpleMarkdown(product.description) }}
+                            />
                           </div>
                         )}
 

@@ -52,7 +52,6 @@ Structure prévue:
 chb-creations-products/
 ├── art-de-table/
 ├── trones/
-├── tenues-homme/
 ├── deco-et-accessoires/
 ├── bendir/
 ├── bougies/

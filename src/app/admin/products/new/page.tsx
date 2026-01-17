@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import Loader from '@/components/Loader'
 import { ProductOptionGroup, FAQItem } from '@/lib/supabase'
+import { parseSimpleMarkdown } from '@/lib/markdown'
 
 interface ImageUpload {
   file: File
@@ -32,6 +33,94 @@ export default function NewProductPage() {
   const [isOutOfStock, setIsOutOfStock] = useState(false)
   const [installationFees, setInstallationFees] = useState('')
 
+  // Description formatting state
+  const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Apply formatting to selected text
+  const applyFormatting = (formatType: 'bold' | 'italic') => {
+    const textarea = descriptionTextareaRef.current
+    if (!textarea) return
+
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const selectedText = description.substring(start, end)
+
+    if (!selectedText) return
+
+    let formattedText = ''
+    let newStart = start
+
+    if (formatType === 'bold') {
+      // Check for ***text*** (bold + italic)
+      if (selectedText.startsWith('***') && selectedText.endsWith('***') && selectedText.length > 6) {
+        // Remove bold, keep italic: ***text*** -> *text*
+        formattedText = selectedText.slice(2, -2)
+      }
+      // Check for **text** (bold only)
+      else if (selectedText.startsWith('**') && selectedText.endsWith('**') && selectedText.length > 4) {
+        // Remove bold: **text** -> text
+        formattedText = selectedText.slice(2, -2)
+      }
+      // Check for *text* (italic only)
+      else if (selectedText.startsWith('*') && selectedText.endsWith('*') && selectedText.length > 2) {
+        // Add bold to italic: *text* -> ***text***
+        formattedText = `**${selectedText}**`
+      }
+      // Plain text
+      else {
+        // Add bold: text -> **text**
+        formattedText = `**${selectedText}**`
+      }
+    } else if (formatType === 'italic') {
+      // Check for ***text*** (bold + italic)
+      if (selectedText.startsWith('***') && selectedText.endsWith('***') && selectedText.length > 6) {
+        // Remove italic, keep bold: ***text*** -> **text**
+        formattedText = selectedText.slice(1, -1)
+      }
+      // Check for **text** (bold only)
+      else if (selectedText.startsWith('**') && selectedText.endsWith('**') && selectedText.length > 4) {
+        // Add italic to bold: **text** -> ***text***
+        formattedText = `*${selectedText}*`
+      }
+      // Check for *text* (italic only)
+      else if (selectedText.startsWith('*') && selectedText.endsWith('*') && selectedText.length > 2) {
+        // Remove italic: *text* -> text
+        formattedText = selectedText.slice(1, -1)
+      }
+      // Plain text
+      else {
+        // Add italic: text -> *text*
+        formattedText = `*${selectedText}*`
+      }
+    }
+
+    const newDescription =
+      description.substring(0, start) +
+      formattedText +
+      description.substring(end)
+
+    setDescription(newDescription)
+
+    // Restore focus and selection
+    setTimeout(() => {
+      textarea.focus()
+      textarea.setSelectionRange(newStart, newStart + formattedText.length)
+    }, 0)
+  }
+
+  // Keyboard shortcuts
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === 'b') {
+        e.preventDefault()
+        applyFormatting('bold')
+      } else if (e.key === 'i') {
+        e.preventDefault()
+        applyFormatting('italic')
+      }
+    }
+  }
+
   // Array fields
   const [images, setImages] = useState<ImageUpload[]>([])
   const [personalizations, setPersonalizations] = useState<string[]>([''])
@@ -42,7 +131,7 @@ export default function NewProductPage() {
 
   // Categories configuration (memoized to prevent infinite loop)
   const categories = useMemo(() => [
-    { value: 'locations', label: 'Locations', subcategories: ['art-de-table', 'trones', 'tenues-homme', 'deco-et-accessoires'] },
+    { value: 'locations', label: 'Locations', subcategories: ['art-de-table', 'trones', 'deco-et-accessoires'] },
     { value: 'accessoires-personnalises', label: 'Accessoires Personnalisés', subcategories: ['bendir', 'bougies', 'certificats-mariage', 'coussins', 'faire-parts', 'oeufs', 'tableaux', 'textile'] },
     { value: 'henne', label: 'Henné', subcategories: ['henne-seul', 'pack-henne'] }
   ], [])
@@ -138,10 +227,12 @@ export default function NewProductPage() {
         await new Promise(resolve => setTimeout(resolve, 10))
       }
 
+      // Extract original filename without extension
+      const originalName = image.file.name.substring(0, image.file.name.lastIndexOf('.'))
       const fileExt = image.file.name.split('.').pop()
-      // Generate unique filename with timestamp, random string, and index
-      const uniqueId = `${Date.now()}-${i}-${Math.random().toString(36).substring(2, 15)}`
-      const fileName = `${uniqueId}.${fileExt}`
+      // Generate filename with timestamp and original name: timestamp_originalname.ext
+      const timestamp = Date.now()
+      const fileName = `${timestamp}_${originalName}.${fileExt}`
       // Upload to subcategory folder: subcategory/filename
       const filePath = `${subcategory}/${fileName}`
 
@@ -467,13 +558,50 @@ export default function NewProductPage() {
               <label className="block text-sm font-medium text-stone-700 mb-2">
                 Description
               </label>
+
+              {/* Toolbar de formatage */}
+              <div className="flex gap-2 mb-2">
+                <button
+                  type="button"
+                  onClick={() => applyFormatting('bold')}
+                  className="px-3 py-1.5 bg-white border border-stone-300 rounded-lg hover:bg-stone-50 transition-colors text-sm font-bold"
+                  title="Gras (Ctrl+B)"
+                >
+                  B
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyFormatting('italic')}
+                  className="px-3 py-1.5 bg-white border border-stone-300 rounded-lg hover:bg-stone-50 transition-colors text-sm italic"
+                  title="Italique (Ctrl+I)"
+                >
+                  I
+                </button>
+                <div className="flex-1" />
+                <span className="text-xs text-stone-500 self-center">
+                  Sélectionnez du texte puis cliquez sur B (gras) ou I (italique)
+                </span>
+              </div>
+
               <textarea
+                ref={descriptionTextareaRef}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                rows={4}
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                placeholder="Description du produit..."
+                onKeyDown={handleKeyDown}
+                rows={6}
+                className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-sm"
+                placeholder="Décrivez votre produit ici..."
               />
+
+              {description && (
+                <div className="mt-2 p-4 bg-stone-50 border border-stone-200 rounded-lg">
+                  <p className="text-xs font-medium text-stone-600 mb-2">Aperçu :</p>
+                  <div
+                    className="text-stone-700"
+                    dangerouslySetInnerHTML={{ __html: parseSimpleMarkdown(description) }}
+                  />
+                </div>
+              )}
             </div>
           </div>
 
