@@ -1,5 +1,6 @@
 import ProductListingPage from '@/components/ProductListingPage'
 import { getHenneSeulProducts } from '@/actions/products'
+export const dynamic = 'force-dynamic'
 
 export default async function HenneSeulPage() {
   const henneSeulData = await getHenneSeulProducts()

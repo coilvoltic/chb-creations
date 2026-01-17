@@ -1,5 +1,6 @@
 import ProductListingPage from '@/components/ProductListingPage'
 import { getBendirProducts } from '@/actions/products'
+export const dynamic = 'force-dynamic'
 
 export default async function BendirPage() {
   const bendirData = await getBendirProducts()

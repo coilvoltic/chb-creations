@@ -1,5 +1,6 @@
 import ProductListingPage from '@/components/ProductListingPage'
 import { getCoussinsProducts } from '@/actions/products'
+export const dynamic = 'force-dynamic'
 
 export default async function CoussinsPage() {
   const coussinsData = await getCoussinsProducts()

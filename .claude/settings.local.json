@@ -15,7 +15,8 @@
       "Bash(xargs kill:*)",
       "Bash(npx tsc --noEmit --pretty)",
       "Bash(npx eslint:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
