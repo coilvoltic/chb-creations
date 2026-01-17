@@ -9,7 +9,7 @@ Contient le catalogue statique des produits.
 
 **Colonnes importantes :**
 - `id` (int8, primary key)
-- `name`, `slug`, `price`, `images`, `description`, `features`
+- `name`, `slug`, `price`, `images`, `description`
 - `category`, `subcategory`
 - `stock` (int) - Stock total disponible
 - ❌ Plus de colonne `unavailabilities` - calculée dynamiquement

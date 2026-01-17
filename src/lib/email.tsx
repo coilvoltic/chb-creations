@@ -64,6 +64,8 @@ interface ReservationData {
   rentalDeliveryFees?: number
   purchaseDeliveryFees?: number
   prestationDeliveryFees?: number
+  deposit: number
+  caution: number
   promoCode?: string | null
   promoDiscount?: number | null
 }
