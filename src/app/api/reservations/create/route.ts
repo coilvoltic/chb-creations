@@ -404,6 +404,8 @@ export async function POST(request: NextRequest) {
         purchaseDeliveryFees: purchaseDelivery?.fees || 0,
         prestationDeliveryAddress: prestationDelivery?.option === 'delivery' ? prestationDelivery.address : null,
         prestationDeliveryFees: prestationDelivery?.fees || 0,
+        deposit: deposit,
+        caution: caution,
         promoCode: promoCode?.code || null,
         promoDiscount: promoCode?.discount || null,
       }
