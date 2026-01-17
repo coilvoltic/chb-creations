@@ -138,7 +138,7 @@ export default function ManageProductsPage() {
               <div className="col-span-2">Sous-catégorie</div>
               <div className="col-span-1">Prix</div>
               <div className="col-span-1">Stock</div>
-              <div className="col-span-2 text-right">Actions</div>
+              <div className="col-span-2">Actions</div>
             </div>
 
             {/* Product List */}
@@ -169,10 +169,22 @@ export default function ManageProductsPage() {
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => setDeleteConfirm(product.id)}
-                        className="flex-1 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium"
+                        onClick={() => router.push(`/admin/products/edit/${product.id}`)}
+                        className="flex-1 p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                        title="Modifier"
                       >
-                        Supprimer
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm(product.id)}
+                        className="flex-1 p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                        title="Supprimer"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
                       </button>
                     </div>
                   </div>
@@ -217,12 +229,24 @@ export default function ManageProductsPage() {
                         </span>
                       )}
                     </div>
-                    <div className="col-span-2 flex gap-2 justify-end">
+                    <div className="col-span-2 flex gap-2">
+                      <button
+                        onClick={() => router.push(`/admin/products/edit/${product.id}`)}
+                        className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                        title="Modifier"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
                       <button
                         onClick={() => setDeleteConfirm(product.id)}
-                        className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium text-sm"
+                        className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                        title="Supprimer"
                       >
-                        Supprimer
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
                       </button>
                     </div>
                   </div>

@@ -19,7 +19,10 @@
       "Bash(git add:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\nForce dynamic rendering for product listing pages\n\n- Add ''export const dynamic = force-dynamic'' to all subcategory pages\n- Ensures product lists are always fresh from database\n- Fixes issue where new products don''t appear on Vercel without redeploy\n- Affects: locations, accessoires-personnalises, henne subcategories\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git push)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

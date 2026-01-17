@@ -77,28 +77,75 @@ export async function GET() {
     }
 
     // Pour chaque commande, récupérer ses rental_reservations, purchase_reservations ET prestation_reservations
+    // AVEC leurs items imbriqués pour le calendrier
     const ordersWithReservations = await Promise.all(
       (orders || []).map(async (order) => {
+        // Récupérer rental_reservations avec rental_items
         const { data: rentalReservations } = await supabase
           .from('rental_reservations')
           .select('*')
           .eq('customer_order_id', order.id)
 
+        // Pour chaque rental_reservation, récupérer ses rental_items
+        const rentalReservationsWithItems = await Promise.all(
+          (rentalReservations || []).map(async (rental) => {
+            const { data: rentalItems } = await supabase
+              .from('rental_items')
+              .select('*')
+              .eq('rental_reservation_id', rental.id)
+
+            return {
+              ...rental,
+              rental_items: rentalItems || []
+            }
+          })
+        )
+
+        // Récupérer purchase_reservations avec purchase_items
         const { data: purchaseReservations } = await supabase
           .from('purchase_reservations')
           .select('*')
           .eq('customer_order_id', order.id)
 
+        const purchaseReservationsWithItems = await Promise.all(
+          (purchaseReservations || []).map(async (purchase) => {
+            const { data: purchaseItems } = await supabase
+              .from('purchase_items')
+              .select('*')
+              .eq('purchase_reservation_id', purchase.id)
+
+            return {
+              ...purchase,
+              purchase_items: purchaseItems || []
+            }
+          })
+        )
+
+        // Récupérer prestation_reservations avec prestation_items
         const { data: prestationReservations } = await supabase
           .from('prestation_reservations')
           .select('*')
           .eq('customer_order_id', order.id)
 
+        const prestationReservationsWithItems = await Promise.all(
+          (prestationReservations || []).map(async (prestation) => {
+            const { data: prestationItems } = await supabase
+              .from('prestation_items')
+              .select('*')
+              .eq('prestation_reservation_id', prestation.id)
+
+            return {
+              ...prestation,
+              prestation_items: prestationItems || []
+            }
+          })
+        )
+
         return {
           ...order,
-          rental_reservations: rentalReservations || [],
-          purchase_reservations: purchaseReservations || [],
-          prestation_reservations: prestationReservations || [],
+          rental_reservations: rentalReservationsWithItems,
+          purchase_reservations: purchaseReservationsWithItems,
+          prestation_reservations: prestationReservationsWithItems,
         }
       })
     )

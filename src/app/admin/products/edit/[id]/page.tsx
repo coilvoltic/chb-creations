@@ -14,12 +14,17 @@ interface ImageUpload {
   url?: string
 }
 
-export default function NewProductPage() {
+interface EditProductPageProps {
+  params: Promise<{ id: string }>
+}
+
+export default function EditProductPage({ params }: EditProductPageProps) {
   const router = useRouter()
   const supabase = createClientComponentClient()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [productId, setProductId] = useState<string>('')
 
   // Basic fields
   const [name, setName] = useState('')
@@ -130,7 +135,7 @@ export default function NewProductPage() {
 
   // Categories configuration (memoized to prevent infinite loop)
   const categories = useMemo(() => [
-    { value: 'locations', label: 'Locations', subcategories: ['art-de-table', 'trones', 'deco-et-accessoires'] },
+    { value: 'locations', label: 'Locations', subcategories: ['art-de-table', 'trones', 'tenues-homme', 'deco-et-accessoires'] },
     { value: 'accessoires-personnalises', label: 'Accessoires Personnalisés', subcategories: ['bendir', 'bougies', 'certificats-mariage', 'coussins', 'faire-parts', 'oeufs', 'tableaux', 'textile'] },
     { value: 'henne', label: 'Henné', subcategories: ['henne-seul', 'pack-henne'] }
   ], [])
@@ -148,7 +153,13 @@ export default function NewProductPage() {
   }, [category, categories])
 
   useEffect(() => {
-    checkAuth()
+    const initPage = async () => {
+      await checkAuth()
+      const resolvedParams = await params
+      setProductId(resolvedParams.id)
+      await loadProduct(resolvedParams.id)
+    }
+    initPage()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -158,7 +169,68 @@ export default function NewProductPage() {
       router.push('/admin/login')
       return
     }
-    setLoading(false)
+  }
+
+  const loadProduct = async (id: string) => {
+    try {
+      const { data: product, error: fetchError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      if (fetchError) {
+        throw new Error(`Erreur lors du chargement du produit: ${fetchError.message}`)
+      }
+
+      if (!product) {
+        throw new Error('Produit introuvable')
+      }
+
+      // Populate form fields with product data
+      setName(product.name || '')
+      setSlug(product.slug || '')
+      setPrice(product.price ? product.price.toString() : '')
+      setNewPrice(product.new_price ? product.new_price.toString() : '')
+      setDescription(product.description || '')
+      setCategory(product.category || '')
+      setSubcategory(product.subcategory || '')
+      setStock(product.stock ? product.stock.toString() : '')
+      setIsOutOfStock(product.is_out_of_stock || false)
+      setInstallationFees(product.installation_fees ? product.installation_fees.toString() : '')
+
+      // Load existing images as already-uploaded
+      if (product.images && Array.isArray(product.images)) {
+        const existingImages: ImageUpload[] = product.images.map(url => ({
+          file: null as unknown as File,
+          preview: url,
+          uploading: false,
+          url: url
+        }))
+        setImages(existingImages)
+      }
+
+      // Load personalizations
+      if (product.personalizations && Array.isArray(product.personalizations)) {
+        setPersonalizations(product.personalizations.length > 0 ? product.personalizations : [''])
+      }
+
+      // Load FAQ
+      if (product.faq && Array.isArray(product.faq)) {
+        setFaq(product.faq.length > 0 ? product.faq : [{ question: '', answer: '' }])
+      }
+
+      // Load options
+      if (product.options && Array.isArray(product.options)) {
+        setOptions(product.options.length > 0 ? product.options : [{ option_type_name: '', options: [{ name: '', description: '', additional_fee: 0 }] }])
+      }
+
+      setLoading(false)
+    } catch (err) {
+      console.error('Erreur:', err)
+      setError(err instanceof Error ? err.message : 'Erreur lors du chargement du produit')
+      setLoading(false)
+    }
   }
 
   // Auto-generate slug from name
@@ -193,7 +265,10 @@ export default function NewProductPage() {
   const removeImage = (index: number) => {
     setImages(prev => {
       const updated = [...prev]
-      URL.revokeObjectURL(updated[index].preview)
+      // Only revoke object URLs for newly uploaded images (not existing URLs)
+      if (updated[index].preview.startsWith('blob:')) {
+        URL.revokeObjectURL(updated[index].preview)
+      }
       updated.splice(index, 1)
       return updated
     })
@@ -342,6 +417,7 @@ export default function NewProductPage() {
 
       // Create product object
       const productData = {
+        id: productId,
         name,
         slug,
         price: parseFloat(price),
@@ -358,8 +434,8 @@ export default function NewProductPage() {
         options: cleanedOptions.length > 0 ? cleanedOptions : null,
       }
 
-      // Insert product via API
-      const response = await fetch('/api/admin/products/create', {
+      // Update product via API
+      const response = await fetch('/api/admin/products/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(productData)
@@ -367,13 +443,13 @@ export default function NewProductPage() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Erreur lors de la création du produit')
+        throw new Error(errorData.error || 'Erreur lors de la mise à jour du produit')
       }
 
       await response.json()
 
-      // Redirect to product page or dashboard
-      router.push(`/admin/dashboard`)
+      // Redirect to products page
+      router.push(`/admin/products`)
     } catch (err) {
       console.error('Erreur:', err)
       setError(err instanceof Error ? err.message : 'Erreur inconnue')
@@ -386,6 +462,23 @@ export default function NewProductPage() {
     return <Loader />
   }
 
+  if (error && !productId) {
+    return (
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
+        <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-8 max-w-md">
+          <h2 className="text-xl font-semibold text-red-600 mb-4">Erreur</h2>
+          <p className="text-stone-700 mb-4">{error}</p>
+          <button
+            onClick={() => router.push('/admin/products')}
+            className="w-full px-4 py-2 bg-black text-white rounded-lg hover:bg-stone-800 transition-colors"
+          >
+            Retour aux produits
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-stone-50">
       {/* Header */}
@@ -393,11 +486,11 @@ export default function NewProductPage() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-black mb-1 md:mb-2">Nouveau Produit</h1>
-              <p className="text-sm text-stone-600">Ajouter un nouveau produit au catalogue</p>
+              <h1 className="text-2xl font-bold text-black mb-1 md:mb-2">Modifier le Produit</h1>
+              <p className="text-sm text-stone-600">Modifier les informations du produit</p>
             </div>
             <button
-              onClick={() => router.push('/admin/dashboard')}
+              onClick={() => router.push('/admin/products')}
               className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
               title="Retour"
             >
@@ -841,11 +934,11 @@ export default function NewProductPage() {
               disabled={saving}
               className="flex-1 px-6 py-3 bg-black text-white rounded-lg hover:bg-stone-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
-              {saving ? 'Création en cours...' : 'Créer le produit'}
+              {saving ? 'Enregistrement en cours...' : 'Enregistrer les modifications'}
             </button>
             <button
               type="button"
-              onClick={() => router.push('/admin/dashboard')}
+              onClick={() => router.push('/admin/products')}
               className="px-6 py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
             >
               Annuler

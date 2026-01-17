@@ -26,7 +26,14 @@ export default function AdminLoginPage() {
 
       if (authError) {
         console.error('Erreur auth:', authError)
-        setError(`Email ou mot de passe incorrect (${authError.message})`)
+
+        // Message personnalisé pour rate limit
+        if (authError.message.includes('rate limit') || authError.message.includes('too many requests')) {
+          setError('Trop de tentatives de connexion. Veuillez attendre 5 minutes avant de réessayer.')
+        } else {
+          setError(`Email ou mot de passe incorrect (${authError.message})`)
+        }
+
         setLoading(false)
         return
       }

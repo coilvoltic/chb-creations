@@ -5,6 +5,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
 import type { CustomerOrder, RentalReservation, PurchaseReservation, PrestationReservation } from '@/lib/supabase'
 import Loader from '@/components/Loader'
+import ReservationCalendar from '@/components/ReservationCalendar'
 
 interface OrderWithReservations extends CustomerOrder {
   rental_reservations: RentalReservation[]
@@ -16,6 +17,7 @@ export default function AdminDashboardPage() {
   const [orders, setOrders] = useState<OrderWithReservations[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
   const router = useRouter()
   const supabase = createClientComponentClient()
 
@@ -132,21 +134,61 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
-          <div className="p-6 border-b border-stone-200">
-            <h2 className="text-xl font-semibold text-black">
-              Commandes ({orders.length})
-            </h2>
-            <p className="text-sm text-stone-600 mt-1">
-              Triées par date de création (plus récentes en premier)
-            </p>
-          </div>
-
-          {orders.length === 0 ? (
-            <div className="p-12 text-center">
-              <p className="text-stone-500">Aucune commande pour le moment</p>
+        {/* Header avec bouton de bascule */}
+        <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold text-black">
+                Commandes ({orders.length})
+              </h2>
+              <p className="text-sm text-stone-600 mt-1">
+                {viewMode === 'list'
+                  ? 'Triées par date de création (plus récentes en premier)'
+                  : 'Vue calendrier des réservations'}
+              </p>
             </div>
-          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                  viewMode === 'list'
+                    ? 'bg-black text-white'
+                    : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+                <span className="hidden sm:inline">Liste</span>
+              </button>
+              <button
+                onClick={() => setViewMode('calendar')}
+                className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                  viewMode === 'calendar'
+                    ? 'bg-black text-white'
+                    : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="hidden sm:inline">Calendrier</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {orders.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-12 text-center">
+            <p className="text-stone-500">Aucune commande pour le moment</p>
+          </div>
+        ) : viewMode === 'calendar' ? (
+          <ReservationCalendar
+            orders={orders}
+            onOrderClick={(orderId) => router.push(`/admin/reservations/${orderId}`)}
+          />
+        ) : (
+          <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
             <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full">
                 <thead className="bg-stone-50">
@@ -254,8 +296,8 @@ export default function AdminDashboardPage() {
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </main>
 
       {/* Styles pour scrollbar réduite */}
