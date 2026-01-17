@@ -3,14 +3,27 @@
 import { useEffect, useState } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
-import type { CustomerOrder, RentalReservation, PurchaseReservation, PrestationReservation } from '@/lib/supabase'
+import type { CustomerOrder, RentalReservation, PurchaseReservation, PrestationReservation, RentalItem, PurchaseItem, PrestationItem } from '@/lib/supabase'
 import Loader from '@/components/Loader'
 import ReservationCalendar from '@/components/ReservationCalendar'
 
+// Extended interfaces to include nested items (matching API response structure)
+interface RentalReservationWithItems extends RentalReservation {
+  rental_items: RentalItem[]
+}
+
+interface PurchaseReservationWithItems extends PurchaseReservation {
+  purchase_items: PurchaseItem[]
+}
+
+interface PrestationReservationWithItems extends PrestationReservation {
+  prestation_items: PrestationItem[]
+}
+
 interface OrderWithReservations extends CustomerOrder {
-  rental_reservations: RentalReservation[]
-  purchase_reservations: PurchaseReservation[]
-  prestation_reservations: PrestationReservation[]
+  rental_reservations: RentalReservationWithItems[]
+  purchase_reservations: PurchaseReservationWithItems[]
+  prestation_reservations: PrestationReservationWithItems[]
 }
 
 export default function AdminDashboardPage() {
