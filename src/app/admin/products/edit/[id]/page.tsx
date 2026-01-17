@@ -201,7 +201,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
 
       // Load existing images as already-uploaded
       if (product.images && Array.isArray(product.images)) {
-        const existingImages: ImageUpload[] = product.images.map(url => ({
+        const existingImages: ImageUpload[] = product.images.map((url: string) => ({
           file: null as unknown as File,
           preview: url,
           uploading: false,
