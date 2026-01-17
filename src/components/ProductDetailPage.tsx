@@ -358,17 +358,6 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                             />
                           </div>
                         )}
-
-                        {product.features && product.features.length > 0 && (
-                          <div className={product.description ? 'border-t border-stone-200 pt-6' : ''}>
-                            <h2 className="text-xl font-semibold mb-3">Informations</h2>
-                            <ul className="space-y-2 text-stone-700">
-                              {product.features.map((feature, index) => (
-                                <li key={index}>• {feature}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
                       </>
                     )}
 
