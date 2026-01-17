@@ -398,9 +398,12 @@ export default function NewProductPage() {
             </div>
             <button
               onClick={() => router.push('/admin/dashboard')}
-              className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
+              className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
+              title="Retour"
             >
-              ← Retour
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
             </button>
           </div>
         </div>
@@ -705,18 +708,18 @@ export default function NewProductPage() {
             <div className="space-y-6">
               {options.map((optionGroup, groupIndex) => (
                 <div key={groupIndex} className="border border-stone-200 rounded-lg p-4">
-                  <div className="flex gap-2 mb-4">
+                  <div className="flex gap-2 mb-4 items-center">
                     <input
                       type="text"
                       value={optionGroup.option_type_name}
                       onChange={(e) => updateOptionGroupName(groupIndex, e.target.value)}
                       placeholder="Nom du groupe (ex: Couleur)"
-                      className="flex-1 px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-medium"
+                      className="flex-1 min-w-0 px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-medium"
                     />
                     <button
                       type="button"
                       onClick={() => removeOptionGroup(groupIndex)}
-                      className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                      className="flex-shrink-0 p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
                       title="Supprimer le groupe"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -753,7 +756,7 @@ export default function NewProductPage() {
                         <button
                           type="button"
                           onClick={() => removeOption(groupIndex, optionIndex)}
-                          className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                          className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center"
                           title="Supprimer l'option"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -791,7 +794,7 @@ export default function NewProductPage() {
             <div className="space-y-4">
               {faq.map((item, index) => (
                 <div key={index} className="border border-stone-200 rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-2">
+                  <div className="flex justify-between items-center mb-2">
                     <label className="text-sm font-medium text-stone-700">Question {index + 1}</label>
                     <button
                       type="button"
