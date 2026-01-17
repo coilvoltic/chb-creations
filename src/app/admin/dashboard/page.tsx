@@ -100,24 +100,24 @@ export default function AdminDashboardPage() {
               <h1 className="text-2xl font-bold text-black mb-1 md:mb-2">Administration</h1>
               <p className="text-sm text-stone-600 font-satisfy">CHB Créations<span className="text-sm text-stone-600 font-sans"> - Gestion des réservations</span></p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2 md:gap-3">
               <button
                 onClick={() => router.push('/admin/products')}
-                className="px-4 py-2 bg-stone-700 hover:bg-stone-600 text-white rounded-lg transition-colors"
+                className="p-2 bg-stone-700 hover:bg-stone-600 text-white rounded-lg transition-colors"
+                title="Gérer les produits"
               >
-                Gérer les produits
-              </button>
-              <button
-                onClick={() => router.push('/admin/products/new')}
-                className="px-4 py-2 bg-black hover:bg-stone-800 text-white rounded-lg transition-colors"
-              >
-                + Nouveau produit
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
               </button>
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
+                className="p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors"
+                title="Déconnexion"
               >
-                Déconnexion
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
               </button>
             </div>
           </div>

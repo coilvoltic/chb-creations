@@ -208,9 +208,12 @@ export default function ReservationDetailPage() {
           <p className="text-red-600 mb-4">{error || 'Commande non trouvée'}</p>
           <button
             onClick={() => router.push('/admin/dashboard')}
-            className="px-4 py-2 bg-black text-white rounded-lg hover:bg-stone-800"
+            className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
+            title="Retour au dashboard"
           >
-            Retour au dashboard
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
           </button>
         </div>
       </div>
@@ -241,12 +244,15 @@ export default function ReservationDetailPage() {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => router.push('/admin/dashboard')}
-                className="text-stone-600 hover:text-black transition-colors"
+                className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
+                title="Retour"
               >
-                ← Retour
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
               </button>
               <div>
-                <h1 className="text-xl md:text-2xl font-bold text-black tracking-wide">Réservation n° {order.order_number}</h1>
+                <h1 className="text-xl md:text-2xl font-bold text-black tracking-wide">{order.order_number}</h1>
                 <p className="text-sm text-stone-600">Créée le {formatDate(order.created_at)}</p>
               </div>
             </div>
