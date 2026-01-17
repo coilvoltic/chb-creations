@@ -60,7 +60,7 @@ export default function AdminLoginPage() {
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-black mb-2">Administration</h1>
-          <p className="text-stone-600 font-satisfy">CHB Créations</p>
+          <p className="text-stone-600 font-cinzel">CHB Créations</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">

@@ -44,7 +44,7 @@ export default function ProductListingPage({
         <div className="relative h-full flex items-center justify-center">
           <div className="container mx-auto px-6 md:px-12 lg:px-16">
             <div className="max-w-3xl mx-auto text-center">
-              <h1 className="text-4xl md:text-5xl font-semibold text-white animate-fade-in-up font-satisfy">
+              <h1 className="text-4xl md:text-5xl font-semibold text-white animate-fade-in-up font-cinzel">
                 {title}
               </h1>
               <div className="text-center max-w-3xl mx-auto">

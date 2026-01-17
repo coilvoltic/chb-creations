@@ -98,7 +98,7 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-black mb-1 md:mb-2">Administration</h1>
-              <p className="text-sm text-stone-600 font-satisfy">CHB Créations<span className="text-sm text-stone-600 font-sans"> - Gestion des réservations</span></p>
+              <p className="text-sm text-stone-600 font-cinzel">CHB Créations<span className="text-sm text-stone-600 font-sans"> - Gestion des réservations</span></p>
             </div>
             <div className="flex gap-2 md:gap-3">
               <button

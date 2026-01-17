@@ -45,9 +45,9 @@ export default function Home() {
             <div className="w-full">
               {/* Keywords aligned left */}
               <div className="text-left mb-8 md:mb-12 animate-fade-in-up">
-                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-satisfy mb-1 md:mb-1.5">Louez</p>
-                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-satisfy mb-1 md:mb-1.5">Décorez</p>
-                <p className="text-3xl md:text-4xl lg:text-5xl text-white font-satisfy">Personnalisez</p>
+                <p className="text-2xl md:text-3xl lg:text-4xl text-white font-cinzel font-semibold mb-1 md:mb-1.5">Louez</p>
+                <p className="text-2xl md:text-3xl lg:text-4xl text-white font-cinzel font-semibold mb-1 md:mb-1.5">Décorez</p>
+                <p className="text-2xl md:text-3xl lg:text-4xl text-white font-cinzel font-semibold">Personnalisez</p>
               </div>
 
               {/* Existing content centered */}
@@ -68,7 +68,7 @@ export default function Home() {
           <div className="container mx-auto px-6 md:px-8 lg:px-12">
             {/* Section Title - on white background */}
             <div className="text-center">
-              <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-4 font-satisfy">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-black mb-4 font-cinzel">
                 Tous nos services
               </h2>
               <p className="text-s md:text-xl text-gray-600 max-w-2xl mx-auto">
@@ -94,7 +94,7 @@ export default function Home() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 lg:p-10 text-white">
-                      <h2 className="text-4xl md:text-5xl font-bold mb-3 font-satisfy">Locations</h2>
+                      <h2 className="text-3xl md:text-4xl font-bold mb-3 font-cinzel">Locations</h2>
                       <p className="text-base md:text-lg text-white/80 mb-4 md:mb-5">
                         Art de table, trônes et décoration
                       </p>
@@ -120,7 +120,7 @@ export default function Home() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 lg:p-10 text-white">
-                      <h2 className="text-4xl md:text-5xl font-bold mb-3 font-satisfy">Accessoires</h2>
+                      <h2 className="text-3xl md:text-4xl font-bold mb-3 font-cinzel">Accessoires</h2>
                       <p className="text-base md:text-lg text-white/80 mb-4 md:mb-5">
                         Créations uniques et personnalisées
                       </p>
@@ -146,7 +146,7 @@ export default function Home() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 lg:p-10 text-white">
-                      <h2 className="text-4xl md:text-5xl font-bold mb-3 font-satisfy">Henné</h2>
+                      <h2 className="text-3xl md:text-4xl font-bold mb-3 font-cinzel">Henné</h2>
                       <p className="text-base md:text-lg text-white/80 mb-4 md:mb-5">
                         Art traditionnel et contemporain
                       </p>

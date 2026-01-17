@@ -45,7 +45,7 @@ The app uses four Google Fonts configured in [src/app/layout.tsx](src/app/layout
 - **Inter**: Primary font (variable: `--font-inter`)
 - **Outfit**: Secondary font (variable: `--font-outfit`)
 - **Frank Ruhl Libre**: Alternative display font (variable: `--font-frank-ruhl-libre`)
-- **Satisfy**: Script font for decorative titles (variable: `--font-satisfy`)
+- **Cinzel**: Serif font for decorative titles (variable: `--font-cinzel`)
 - Loaded with appropriate weights for each font family
 
 ## Database Architecture (Supabase)

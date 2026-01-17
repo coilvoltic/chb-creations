@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Outfit, Frank_Ruhl_Libre, Satisfy } from "next/font/google";
+import { Inter, Outfit, Frank_Ruhl_Libre, Cinzel } from "next/font/google";
 import "./globals.css";
 import Footer from "@/components/Footer";
 import { CartProvider } from "@/contexts/CartContext";
@@ -22,10 +22,10 @@ const frankRuhlLibre = Frank_Ruhl_Libre({
   weight: ["300", "400", "500", "700", "900"],
 });
 
-const satisfy = Satisfy({
-  variable: "--font-satisfy",
+const cinzel = Cinzel({
+  variable: "--font-cinzel",
   subsets: ["latin"],
-  weight: ["400"],
+  weight: ["400", "500", "600", "700", "800", "900"],
 });
 
 export const metadata: Metadata = {
@@ -41,7 +41,7 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body
-        className={`${inter.variable} ${outfit.variable} ${frankRuhlLibre.variable} ${satisfy.variable} font-inter antialiased`}
+        className={`${inter.variable} ${outfit.variable} ${frankRuhlLibre.variable} ${cinzel.variable} font-inter antialiased`}
       >
         <CartProvider>
           {children}
