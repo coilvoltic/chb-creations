@@ -2,7 +2,7 @@ import { Resend } from 'resend'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { ReservationPDF } from './pdf-generator'
 import React from 'react'
-import { TimeSlot, TIME_SLOT_LABELS } from './supabase'
+import type { TimeSlot } from './supabase'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 

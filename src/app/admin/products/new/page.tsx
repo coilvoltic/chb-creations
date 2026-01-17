@@ -48,7 +48,6 @@ export default function NewProductPage() {
     if (!selectedText) return
 
     let formattedText = ''
-    let newStart = start
 
     if (formatType === 'bold') {
       // Check for ***text*** (bold + italic)
@@ -104,7 +103,7 @@ export default function NewProductPage() {
     // Restore focus and selection
     setTimeout(() => {
       textarea.focus()
-      textarea.setSelectionRange(newStart, newStart + formattedText.length)
+      textarea.setSelectionRange(start, start + formattedText.length)
     }, 0)
   }
 

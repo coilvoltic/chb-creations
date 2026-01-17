@@ -40,7 +40,7 @@ export default function Contact() {
       } else {
         setSubmitStatus('error')
       }
-    } catch (_error) {
+    } catch {
       setSubmitStatus('error')
     } finally {
       setIsSubmitting(false)

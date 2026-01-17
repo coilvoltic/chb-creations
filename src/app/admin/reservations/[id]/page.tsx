@@ -117,6 +117,7 @@ export default function ReservationDetailPage() {
     if (id) {
       loadOrderDetail()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   const loadOrderDetail = async () => {

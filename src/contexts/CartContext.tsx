@@ -122,7 +122,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return cart.items.filter(item => item.category === 'henne')
   }
 
-  const calculateTotals = (items: CartItem[], rentalDelivery: DeliveryInfo, purchaseDelivery: DeliveryInfo, prestationDelivery: DeliveryInfo) => {
+  const calculateTotals = (items: CartItem[], _rentalDelivery: DeliveryInfo, _purchaseDelivery: DeliveryInfo, _prestationDelivery: DeliveryInfo) => {
     const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
     const totalPrice = items.reduce((sum, item) => {
       const basePrice = item.pricePerUnit

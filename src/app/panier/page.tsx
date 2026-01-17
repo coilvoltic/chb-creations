@@ -394,7 +394,6 @@ export default function CartPage() {
         ...prestationItems.map((item) => {
           const unitPrice = item.pricePerUnit + getItemOptionsFees(item)
           // Utiliser des dates dummy pour rentalStart/rentalEnd (requis par l'API)
-          const now = new Date()
           return {
             productId: item.productId,
             productName: item.productName,
