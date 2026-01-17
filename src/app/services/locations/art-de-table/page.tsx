@@ -1,7 +1,7 @@
 import ProductListingPage from '@/components/ProductListingPage'
 import { getArtDeTableProducts } from '@/actions/products'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 60
 
 export default async function ArtDeTablePage() {
   const artDeTableData = await getArtDeTableProducts()

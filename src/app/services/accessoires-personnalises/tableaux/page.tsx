@@ -1,6 +1,6 @@
 import ProductListingPage from '@/components/ProductListingPage'
 import { getTableauxProducts } from '@/actions/products'
-export const dynamic = 'force-dynamic'
+export const revalidate = 60
 
 export default async function TableauxPage() {
   const tableauxData = await getTableauxProducts()
