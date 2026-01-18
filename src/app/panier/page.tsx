@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useCart } from '@/contexts/CartContext'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { CustomerInfo } from '@/lib/supabase'
 import { TIME_SLOT_LABELS } from '@/lib/supabase'
 import type { CartItem } from '@/lib/cart-types'
@@ -36,6 +37,7 @@ export default function CartPage() {
   } = useCart()
 
   const router = useRouter()
+  const supabase = createClientComponentClient()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCheckoutForm, setShowCheckoutForm] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -43,6 +45,7 @@ export default function CartPage() {
   const [reservationCode, setReservationCode] = useState<string | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'online' | 'cash'>('cash')
+  const [currentUser, setCurrentUser] = useState<any>(null)
 
   // Séparer les items par catégorie
   const rentalItems = getRentalItems()
@@ -86,17 +89,37 @@ export default function CartPage() {
     phone: '',
   })
 
-  // Load saved addresses from cart context on mount
+  // Load user info and saved addresses from cart context on mount
   useEffect(() => {
-    if (cart.rentalDelivery.address) {
-      setRentalAddressInput(cart.rentalDelivery.address)
+    const loadUserAndAddresses = async () => {
+      // Check if user is logged in with Google
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        setCurrentUser(session.user)
+
+        // Pre-fill customer info from Google account
+        const metadata = session.user.user_metadata
+        setCustomerInfo({
+          firstName: metadata?.given_name || metadata?.full_name?.split(' ')[0] || '',
+          lastName: metadata?.family_name || metadata?.full_name?.split(' ').slice(1).join(' ') || '',
+          email: session.user.email || '',
+          phone: metadata?.phone || '',
+        })
+      }
+
+      // Load saved addresses
+      if (cart.rentalDelivery.address) {
+        setRentalAddressInput(cart.rentalDelivery.address)
+      }
+      if (cart.purchaseDelivery.address) {
+        setPurchaseAddressInput(cart.purchaseDelivery.address)
+      }
+      if (cart.prestationDelivery.address) {
+        setPrestationAddressInput(cart.prestationDelivery.address)
+      }
     }
-    if (cart.purchaseDelivery.address) {
-      setPurchaseAddressInput(cart.purchaseDelivery.address)
-    }
-    if (cart.prestationDelivery.address) {
-      setPrestationAddressInput(cart.prestationDelivery.address)
-    }
+
+    loadUserAndAddresses()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Run only once on mount - cart is intentionally not in deps
 
@@ -425,6 +448,7 @@ export default function CartPage() {
         totalPrice: getFinalTotal(), // Use final total with promo discount
         promoCode: cart.promoCode, // Include promo code if applied
         paymentMethod,
+        userId: currentUser?.id, // Include user ID if logged in with Google
       }
 
       // Créer la réservation

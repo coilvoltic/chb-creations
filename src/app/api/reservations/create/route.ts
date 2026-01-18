@@ -55,6 +55,7 @@ interface CreateReservationPayload {
   totalPrice: number
   promoCode?: PromoCodePayload // Promotional code if applied
   paymentMethod?: 'online' | 'cash' | null
+  userId?: string // Optional: Supabase Auth user ID if logged in with Google
 }
 
 export async function POST(request: NextRequest) {
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { customerInfo, items, deposit, caution, rentalDelivery, purchaseDelivery, prestationDelivery, totalPrice, promoCode, paymentMethod } = payload
+    const { customerInfo, items, deposit, caution, rentalDelivery, purchaseDelivery, prestationDelivery, totalPrice, promoCode, paymentMethod, userId } = payload
 
     // Create Supabase client with service_role key (bypasses RLS)
     // This is safe because:
@@ -124,6 +125,7 @@ export async function POST(request: NextRequest) {
         customer_infos: customerInfo,
         total_price: totalPrice,
         order_number: reservationCode,
+        user_id: userId || null, // Link to Google account if user is logged in
         promotional_code_id: promoCodeId,
         promotional_code_name: promoCode?.code || null,
         promotional_code_discount: promoCode?.discount || null,

@@ -1,9 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { useCart } from '@/contexts/CartContext'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { getPromotionalMessages, type PromotionalMessage } from '@/lib/supabase'
 
 export default function Navbar() {
@@ -12,9 +14,11 @@ export default function Navbar() {
   const [isHovered, setIsHovered] = useState(false)
   const [promotionalMessages, setPromotionalMessages] = useState<PromotionalMessage[]>([])
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0)
+  const [user, setUser] = useState<any>(null)
   const pathname = usePathname()
   const isHomePage = pathname === '/'
   const { cart } = useCart()
+  const supabase = createClientComponentClient()
 
   // Message statique local (toujours présent)
   const localMessage = "Délais de confection : 30 jours"
@@ -24,6 +28,24 @@ export default function Navbar() {
     { id: -1, msg: localMessage }, // Message local avec id négatif
     ...promotionalMessages
   ]
+
+  // Check user authentication
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      setUser(session?.user || null)
+    }
+    checkUser()
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [supabase])
 
   // Fetch promotional messages
   useEffect(() => {
@@ -155,18 +177,33 @@ export default function Navbar() {
               )}
             </Link>
 
-            {/* Account Button - Desktop / Icon - Mobile */}
-            <Link href="/suivi" className="cursor-pointer">
-              {/* Desktop: Button with text */}
-              <span className={`hidden md:inline-block ${shouldBeTransparent ? 'bg-white text-black hover:bg-gray-200' : 'bg-black text-white hover:bg-gray-800'} px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg`}>
-                Mon espace
-              </span>
-              {/* Mobile: Icon only */}
-              <button className={`md:hidden p-1 rounded-full ${shouldBeTransparent ? 'hover:bg-white/20' : 'hover:bg-gray-100'} transition-colors duration-200`}>
-                <svg className={`w-5 h-5 md:w-6 md:h-6 ${textColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </button>
+            {/* Account Button/Avatar - Desktop & Mobile */}
+            <Link href="/compte" className="cursor-pointer">
+              {user?.user_metadata?.avatar_url ? (
+                /* Logged in: Show avatar */
+                <div className="w-10 h-10 rounded-full overflow-hidden relative border-2 border-white shadow-md hover:shadow-lg transition-all duration-200">
+                  <Image
+                    src={user.user_metadata.avatar_url}
+                    alt="Avatar"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                /* Not logged in: Show button/icon */
+                <>
+                  {/* Desktop: Button with text */}
+                  <span className={`hidden md:inline-block ${shouldBeTransparent ? 'bg-white text-black hover:bg-gray-200' : 'bg-black text-white hover:bg-gray-800'} px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg`}>
+                    Mon compte
+                  </span>
+                  {/* Mobile: Icon only */}
+                  <button className={`md:hidden p-1 rounded-full ${shouldBeTransparent ? 'hover:bg-white/20' : 'hover:bg-gray-100'} transition-colors duration-200`}>
+                    <svg className={`w-5 h-5 md:w-6 md:h-6 ${textColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </button>
+                </>
+              )}
             </Link>
           </div>
         </div>
