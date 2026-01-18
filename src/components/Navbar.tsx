@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
+import type { User } from '@supabase/supabase-js'
 import { useCart } from '@/contexts/CartContext'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { getPromotionalMessages, type PromotionalMessage } from '@/lib/supabase'
@@ -14,7 +15,7 @@ export default function Navbar() {
   const [isHovered, setIsHovered] = useState(false)
   const [promotionalMessages, setPromotionalMessages] = useState<PromotionalMessage[]>([])
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const pathname = usePathname()
   const isHomePage = pathname === '/'
   const { cart } = useCart()

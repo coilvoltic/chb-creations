@@ -6,6 +6,7 @@ import { useCart } from '@/contexts/CartContext'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import type { User } from '@supabase/supabase-js'
 import type { CustomerInfo } from '@/lib/supabase'
 import { TIME_SLOT_LABELS } from '@/lib/supabase'
 import type { CartItem } from '@/lib/cart-types'
@@ -45,7 +46,7 @@ export default function CartPage() {
   const [reservationCode, setReservationCode] = useState<string | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'online' | 'cash'>('cash')
-  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
 
   // Séparer les items par catégorie
   const rentalItems = getRentalItems()

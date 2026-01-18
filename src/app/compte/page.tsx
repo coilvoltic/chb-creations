@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
+import type { User } from '@supabase/supabase-js'
 import Navbar from '@/components/Navbar'
 import Loader from '@/components/Loader'
 import { ChevronDown, ChevronUp, Package, Calendar, MapPin, CheckCircle, Clock, XCircle } from 'lucide-react'
@@ -83,11 +84,6 @@ function OrderCard({
   onToggle: () => void
   getStatusDisplay: (status: ReservationStatus) => React.ReactElement
 }) {
-  const totalReservations =
-    (order.rental_reservations?.length || 0) +
-    (order.purchase_reservations?.length || 0) +
-    (order.prestation_reservations?.length || 0)
-
   const getOrderTypeLabel = () => {
     const types = []
     if ((order.rental_reservations?.length || 0) > 0) types.push('Location')
@@ -354,7 +350,7 @@ function OrderCard({
 }
 
 export default function ComptePage() {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [orders, setOrders] = useState<UserOrder[]>([])
   const [expandedOrderIds, setExpandedOrderIds] = useState<Set<number>>(new Set())
