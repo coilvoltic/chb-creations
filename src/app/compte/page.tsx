@@ -355,6 +355,7 @@ export default function ComptePage() {
   const [orders, setOrders] = useState<UserOrder[]>([])
   const [expandedOrderIds, setExpandedOrderIds] = useState<Set<number>>(new Set())
   const [trackingNumber, setTrackingNumber] = useState('')
+  const [trackingEmail, setTrackingEmail] = useState('')
   const [trackingError, setTrackingError] = useState('')
   const router = useRouter()
   const supabase = createClientComponentClient()
@@ -429,13 +430,52 @@ export default function ComptePage() {
     }
   }
 
-  const handleTrackOrder = () => {
+  const handleTrackOrder = async () => {
     setTrackingError('')
+
+    // Validation
     if (!trackingNumber.trim()) {
       setTrackingError('Veuillez entrer un numéro de commande')
       return
     }
-    router.push(`/suivi/${trackingNumber.trim()}`)
+    if (!trackingEmail.trim()) {
+      setTrackingError('Veuillez entrer votre adresse email')
+      return
+    }
+
+    // Vérifier que l'email est valide
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(trackingEmail.trim())) {
+      setTrackingError('Veuillez entrer une adresse email valide')
+      return
+    }
+
+    try {
+      // Appeler l'API pour vérifier la commande
+      const response = await fetch('/api/track-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderNumber: trackingNumber.trim(),
+          email: trackingEmail.trim().toLowerCase(),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.order) {
+        // Afficher la commande dans la liste
+        setOrders([data.order])
+        setExpandedOrderIds(new Set([data.order.id]))
+        setTrackingNumber('')
+        setTrackingEmail('')
+      } else {
+        setTrackingError(data.error || 'Commande introuvable. Vérifiez le numéro et l\'email.')
+      }
+    } catch (error) {
+      console.error('Error tracking order:', error)
+      setTrackingError('Une erreur est survenue. Veuillez réessayer.')
+    }
   }
 
   const getStatusDisplay = (status: ReservationStatus) => {
@@ -484,7 +524,7 @@ export default function ComptePage() {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen bg-stone-50 pt-24 pb-16">
+      <div className="min-h-screen bg-stone-50 pt-12 md:pt-24 pb-16">
         <div className="container mx-auto px-4 md:px-6 lg:px-8">
           {/* Page Header */}
           <div className="text-center mb-12">
@@ -498,25 +538,22 @@ export default function ComptePage() {
             </p>
           </div>
 
-          {!user ? (
-            <div className="max-w-2xl mx-auto space-y-8">
-              {/* Section principale : Connexion Google */}
+          {!user && orders.length === 0 ? (
+            <div className="max-w-2xl mx-auto">
+              {/* Bloc unique avec connexion Google et suivi sans compte */}
               <div className="bg-white rounded-2xl shadow-lg border border-stone-200 p-8 md:p-12">
+                {/* Section connexion Google */}
                 <div className="text-center mb-8">
-                  <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-stone-200 shadow-sm">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-8 w-8 text-white"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+                      viewBox="0 0 48 48"
+                      className="h-8 w-8"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
+                      <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+                      <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+                      <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+                      <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
                     </svg>
                   </div>
                   <h2 className="text-2xl font-bold text-black mb-2">
@@ -555,83 +592,118 @@ export default function ComptePage() {
                 <div className="mt-6 text-center text-sm text-stone-500">
                   Vos informations sont sécurisées et ne seront jamais partagées
                 </div>
-              </div>
 
-              {/* Section secondaire : Suivi sans compte */}
-              <div className="bg-stone-100 rounded-2xl border border-stone-200 p-6 md:p-8">
-                <div className="text-center mb-6">
-                  <h3 className="text-lg font-semibold text-black mb-2">
-                    Suivre une commande sans compte
-                  </h3>
-                  <p className="text-sm text-stone-600">
-                    Entrez votre numéro de commande pour consulter son statut
-                  </p>
+                {/* Trait horizontal séparateur */}
+                <div className="relative my-8">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-stone-300"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="bg-white px-4 text-stone-500">ou</span>
+                  </div>
                 </div>
 
-                <div className="space-y-4">
-                  <input
-                    type="text"
-                    value={trackingNumber}
-                    onChange={(e) => setTrackingNumber(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleTrackOrder()}
-                    placeholder="Numéro de commande (ex: CHB-2024-0001)"
-                    className="w-full px-4 py-3 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                  />
-                  {trackingError && (
-                    <p className="text-sm text-red-600">{trackingError}</p>
-                  )}
-                  <button
-                    onClick={handleTrackOrder}
-                    className="w-full bg-stone-700 hover:bg-stone-800 text-white font-medium py-3 px-6 rounded-lg transition-colors"
-                  >
-                    Suivre ma commande
-                  </button>
+                {/* Section suivi sans compte */}
+                <div>
+                  <div className="text-center mb-6">
+                    <h3 className="text-lg font-semibold text-black mb-2">
+                      Suivre une commande sans compte
+                    </h3>
+                    <p className="text-sm text-stone-600">
+                      Entrez votre numéro de commande et votre adresse email
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <input
+                      type="text"
+                      value={trackingNumber}
+                      onChange={(e) => setTrackingNumber(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleTrackOrder()}
+                      placeholder="Numéro de commande (ex: 1234567890)"
+                      className="w-full px-4 py-3 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                    />
+                    <input
+                      type="email"
+                      value={trackingEmail}
+                      onChange={(e) => setTrackingEmail(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleTrackOrder()}
+                      placeholder="Adresse email"
+                      className="w-full px-4 py-3 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                    />
+                    {trackingError && (
+                      <p className="text-sm text-red-600">{trackingError}</p>
+                    )}
+                    <button
+                      onClick={handleTrackOrder}
+                      className="w-full bg-black hover:bg-stone-800 text-white font-medium py-3 px-6 rounded-lg transition-colors"
+                    >
+                      Suivre ma commande
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           ) : (
             <div className="max-w-4xl mx-auto">
-              {/* User Info Section */}
-              <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6 md:p-8 mb-8">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    {user.user_metadata?.avatar_url ? (
-                      <div className="w-16 h-16 rounded-full overflow-hidden relative">
-                        <Image
-                          src={user.user_metadata.avatar_url}
-                          alt="Avatar"
-                          fill
-                          className="object-cover"
-                        />
+              {/* User Info Section - Only show if user is logged in */}
+              {user && (
+                <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6 md:p-8 mb-8">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      {user.user_metadata?.avatar_url ? (
+                        <div className="w-16 h-16 rounded-full overflow-hidden relative">
+                          <Image
+                            src={user.user_metadata.avatar_url}
+                            alt="Avatar"
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center">
+                          <span className="text-white text-2xl font-bold">
+                            {user.user_metadata?.full_name?.[0] || user.email?.[0].toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <h2 className="text-xl font-bold text-black">
+                          {user.user_metadata?.full_name || 'Utilisateur'}
+                        </h2>
+                        <p className="text-stone-600">{user.email}</p>
                       </div>
-                    ) : (
-                      <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center">
-                        <span className="text-white text-2xl font-bold">
-                          {user.user_metadata?.full_name?.[0] || user.email?.[0].toUpperCase()}
-                        </span>
-                      </div>
-                    )}
-                    <div>
-                      <h2 className="text-xl font-bold text-black">
-                        {user.user_metadata?.full_name || 'Utilisateur'}
-                      </h2>
-                      <p className="text-stone-600">{user.email}</p>
                     </div>
+                    <button
+                      onClick={handleSignOut}
+                      className="px-6 py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium rounded-lg transition-colors"
+                    >
+                      Se déconnecter
+                    </button>
                   </div>
-                  <button
-                    onClick={handleSignOut}
-                    className="px-6 py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium rounded-lg transition-colors"
-                  >
-                    Se déconnecter
-                  </button>
                 </div>
-              </div>
+              )}
 
               {/* Orders Section */}
               <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6 md:p-8">
-                <h2 className="text-2xl font-bold text-black mb-6">
-                  Mes commandes ({orders.length})
-                </h2>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-black">
+                    {user ? 'Mes commandes' : 'Commande trouvée'} ({orders.length})
+                  </h2>
+                  {!user && orders.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setOrders([])
+                        setExpandedOrderIds(new Set())
+                        setTrackingNumber('')
+                        setTrackingEmail('')
+                      }}
+                      className="text-sm text-stone-600 hover:text-black transition-colors"
+                    >
+                      ← Rechercher une autre commande
+                    </button>
+                  )}
+                </div>
 
                 {orders.length === 0 ? (
                   <div className="text-center py-12">
