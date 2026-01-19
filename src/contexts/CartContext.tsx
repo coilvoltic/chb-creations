@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { CartItem, Cart, DeliveryOption, DeliveryInfo, PromoCode } from '@/lib/cart-types'
+import { CartItem, Cart, DeliveryOption, DeliveryInfo, PromoCode, RelayProvider, RelayPointInfo } from '@/lib/cart-types'
 
 interface CartContextType {
   cart: Cart
@@ -17,6 +17,7 @@ interface CartContextType {
   updateRentalDeliveryFees: (fees: number, distance: number) => void
   updatePurchaseDeliveryFees: (fees: number, distance: number) => void
   updatePrestationDeliveryFees: (fees: number, distance: number) => void
+  setPurchaseRelayPoint: (provider: RelayProvider, relayPoint: RelayPointInfo, fees: number) => void
   setPromoCode: (promoCode: PromoCode | undefined) => void
   clearCart: () => void
   getRentalItems: () => CartItem[]
@@ -295,6 +296,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }))
   }
 
+  const setPurchaseRelayPoint = (provider: RelayProvider, relayPoint: RelayPointInfo, fees: number) => {
+    setCart((prevCart) => ({
+      ...prevCart,
+      purchaseDelivery: {
+        ...prevCart.purchaseDelivery,
+        option: 'relay_point',
+        relayProvider: provider,
+        relayPoint,
+        fees,
+      }
+    }))
+  }
+
   const setPromoCode = (promoCode: PromoCode | undefined) => {
     setCart((prevCart) => ({
       ...prevCart,
@@ -359,6 +373,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         updateRentalDeliveryFees,
         updatePurchaseDeliveryFees,
         updatePrestationDeliveryFees,
+        setPurchaseRelayPoint,
         setPromoCode,
         clearCart,
         getRentalItems,

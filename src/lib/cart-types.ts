@@ -34,11 +34,24 @@ export interface CartItem {
 
 export type DeliveryOption = 'pickup' | 'delivery' | 'relay_point'
 
+export type RelayProvider = 'chronopost' | 'mondialrelay'
+
+export interface RelayPointInfo {
+  id: string
+  name: string
+  address: string
+  distance: number // en km
+  provider: RelayProvider
+}
+
 export interface DeliveryInfo {
   option: DeliveryOption
-  address?: string
+  address?: string // Adresse de livraison à domicile OU adresse client pour recherche de points relais
   fees: number
   distance?: number
+  // Pour les points relais uniquement
+  relayProvider?: RelayProvider
+  relayPoint?: RelayPointInfo
 }
 
 export interface PromoCode {

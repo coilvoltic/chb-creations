@@ -14,6 +14,8 @@ import SuccessModal from '@/components/SuccessModal'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
 import PaymentSimulationModal from '@/components/PaymentSimulationModal'
 import PromoCodeInput from '@/components/PromoCodeInput'
+import RelayPointSelector from '@/components/RelayPointSelector'
+import type { RelayProvider, RelayPointInfo } from '@/lib/cart-types'
 
 export default function CartPage() {
   const {
@@ -29,6 +31,7 @@ export default function CartPage() {
     updateRentalDeliveryFees,
     updatePurchaseDeliveryFees,
     updatePrestationDeliveryFees,
+    setPurchaseRelayPoint,
     getRentalItems,
     getPurchaseItems,
     getPrestationItems,
@@ -76,6 +79,11 @@ export default function CartPage() {
   const [isCalculatingPurchaseFees, setIsCalculatingPurchaseFees] = useState(false)
   const [purchaseDeliveryInfo, setPurchaseDeliveryInfo] = useState<DeliveryCalculationInfo | null>(null)
   const [useSameAddress, setUseSameAddress] = useState(false)
+
+  // États pour les points relais (achats uniquement)
+  const [relayCustomerAddress, setRelayCustomerAddress] = useState('')
+  const [selectedRelayProvider, setSelectedRelayProvider] = useState<RelayProvider | null>(null)
+  const [selectedRelayPoint, setSelectedRelayPoint] = useState<RelayPointInfo | null>(null)
 
   // États pour la livraison des prestations
   const [prestationAddressInput, setPrestationAddressInput] = useState('')
@@ -267,6 +275,33 @@ export default function CartPage() {
     }
   }
 
+  // Handlers pour les points relais
+  const handleRelayProviderSelect = (provider: RelayProvider) => {
+    setSelectedRelayProvider(provider)
+    setSelectedRelayPoint(null)
+    // Reset delivery option in cart when changing provider
+    setPurchaseDeliveryOption('relay_point')
+
+    // Mettre à jour les frais immédiatement selon le transporteur sélectionné
+    const fees = provider === 'chronopost' ? 18.99 : 9.99
+    // Créer un point relais temporaire pour stocker les frais (sera remplacé par le vrai point relais)
+    const tempRelayPoint: RelayPointInfo = {
+      id: 'temp',
+      name: `${provider === 'chronopost' ? 'Chronopost' : 'Mondial Relay'} - Point relais à sélectionner`,
+      address: '',
+      distance: 0,
+      provider
+    }
+    setPurchaseRelayPoint(provider, tempRelayPoint, fees)
+  }
+
+  const handleRelayPointSelect = (relayPoint: RelayPointInfo) => {
+    setSelectedRelayPoint(relayPoint)
+    // Déterminer les frais selon le transporteur
+    const fees = relayPoint.provider === 'chronopost' ? 18.99 : 9.99
+    setPurchaseRelayPoint(relayPoint.provider, relayPoint, fees)
+  }
+
   // Calculate total options fees for an item
   const getItemOptionsFees = (item: CartItem) => {
     if (!item.selectedOptions || item.selectedOptions.length === 0) return 0
@@ -331,8 +366,14 @@ export default function CartPage() {
       return false
     }
     // Si achats avec livraison, vérifier l'adresse
-    if (hasPurchases && cart.purchaseDelivery.option !== 'pickup' && !cart.purchaseDelivery.address) {
+    if (hasPurchases && cart.purchaseDelivery.option === 'delivery' && !cart.purchaseDelivery.address) {
       return false
+    }
+    // Si achats avec point relais, vérifier qu'un vrai point relais est sélectionné (pas le temporaire)
+    if (hasPurchases && cart.purchaseDelivery.option === 'relay_point') {
+      if (!cart.purchaseDelivery.relayPoint || cart.purchaseDelivery.relayPoint.id === 'temp') {
+        return false
+      }
     }
     // Si prestations avec livraison, vérifier l'adresse
     if (hasPrestations && cart.prestationDelivery.option === 'delivery' && !cart.prestationDelivery.address) {
@@ -808,7 +849,7 @@ export default function CartPage() {
                         )}
                       </div>
                     </label>
-                    <label className="flex items-center cursor-pointer">
+                    <label className="flex items-start cursor-pointer">
                       <input
                         type="radio"
                         name="purchaseDeliveryOption"
@@ -820,11 +861,24 @@ export default function CartPage() {
                           setPurchaseDeliveryInfo(null)
                           setUseSameAddress(false)
                         }}
-                        className="mr-3 w-5 h-5 cursor-pointer"
+                        className="mr-3 w-5 h-5 cursor-pointer mt-1"
                       />
                       <div className="flex-1">
                         <span className="font-medium">Point relais</span>
-                        <p className="text-xs text-stone-600">À venir - Service non disponible pour le moment</p>
+                        <p className="text-xs text-stone-600 mb-2">Chronopost ou Mondial Relay</p>
+
+                        {cart.purchaseDelivery.option === 'relay_point' && (
+                          <div className="mt-2">
+                            <RelayPointSelector
+                              customerAddress={relayCustomerAddress}
+                              onAddressChange={setRelayCustomerAddress}
+                              selectedProvider={selectedRelayProvider}
+                              onProviderSelect={handleRelayProviderSelect}
+                              selectedRelayPoint={selectedRelayPoint}
+                              onRelayPointSelect={handleRelayPointSelect}
+                            />
+                          </div>
+                        )}
                       </div>
                     </label>
                   </div>
@@ -957,9 +1011,17 @@ export default function CartPage() {
                       <span className="text-sm md:text-base break-words">Achats ({purchaseItems.length} article{purchaseItems.length > 1 ? 's' : ''})</span>
                       <span className="text-sm md:text-base flex-shrink-0">{calculatePurchaseSubtotal().toFixed(2)} €</span>
                     </div>
-                    {cart.purchaseDelivery.option !== 'pickup' && cart.purchaseDelivery.address && (
+                    {cart.purchaseDelivery.option === 'delivery' && cart.purchaseDelivery.address && (
                       <div className="flex justify-between text-xs md:text-sm text-stone-600 mt-1 gap-2">
                         <span className="break-words">Frais de livraison</span>
+                        <span className="flex-shrink-0">{cart.purchaseDelivery.fees.toFixed(2)} €</span>
+                      </div>
+                    )}
+                    {cart.purchaseDelivery.option === 'relay_point' && cart.purchaseDelivery.relayPoint && (
+                      <div className="flex justify-between text-xs md:text-sm text-stone-600 mt-1 gap-2">
+                        <span className="break-words">
+                          Point relais {cart.purchaseDelivery.relayProvider === 'chronopost' ? 'Chronopost' : 'Mondial Relay'}
+                        </span>
                         <span className="flex-shrink-0">{cart.purchaseDelivery.fees.toFixed(2)} €</span>
                       </div>
                     )}

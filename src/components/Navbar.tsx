@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 import { useCart } from '@/contexts/CartContext'
@@ -20,6 +20,7 @@ export default function Navbar() {
   const isHomePage = pathname === '/'
   const { cart } = useCart()
   const supabase = createClientComponentClient()
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Message statique local (toujours présent)
   const localMessage = "Délais de confection : 30 jours"
@@ -79,6 +80,20 @@ export default function Navbar() {
     }
   }, [isHomePage])
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setActiveDropdown(null)
+      }
+    }
+
+    if (activeDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [activeDropdown])
+
   const shouldBeTransparent = isHomePage && !isScrolled && !isHovered
   const navbarBg = shouldBeTransparent ? 'bg-transparent' : 'bg-white shadow-sm'
   const textColor = shouldBeTransparent ? 'text-white' : 'text-gray-900'
@@ -86,11 +101,21 @@ export default function Navbar() {
   const bannerBg = shouldBeTransparent ? 'bg-black/50' : 'bg-black'
 
   return (
-    <header
-      className={`sticky top-0 z-50 w-full transition-all duration-300 ${navbarBg}`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+    <>
+      {/* Overlay backdrop when menu is open */}
+      {activeDropdown === 'services' && (
+        <div
+          className="fixed inset-0 bg-black/30 z-40 transition-opacity duration-300"
+          onClick={() => setActiveDropdown(null)}
+        />
+      )}
+
+      <header
+        ref={dropdownRef}
+        className={`sticky top-0 z-50 w-full transition-all duration-300 ${navbarBg}`}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
       <div className="mx-auto max-w-screen-2xl">
         {/* Top banner - Promotional messages carousel */}
         <div className={`${bannerBg} text-white py-2 px-4 text-center transition-all duration-300 overflow-hidden`}>
@@ -285,5 +310,6 @@ export default function Navbar() {
           </div>
       </div>
     </header>
+    </>
   )
 }

@@ -32,11 +32,22 @@ interface ReservationItemOptions {
   installationFees?: number
 }
 
+interface RelayPointInfo {
+  id: string
+  name: string
+  address: string
+  distance: number
+  provider: 'chronopost' | 'mondialrelay'
+}
+
 interface DeliveryInfo {
   option: 'pickup' | 'delivery' | 'relay_point'
-  address?: string
+  address?: string // Delivery address OR customer address for relay point search
   fees: number
   distance?: number
+  // Pour les points relais uniquement
+  relayProvider?: 'chronopost' | 'mondialrelay'
+  relayPoint?: RelayPointInfo
 }
 
 interface PromoCodePayload {
@@ -221,11 +232,20 @@ export async function POST(request: NextRequest) {
 
     // 3b. Créer purchase_reservation si nécessaire
     if (purchaseItems.length > 0) {
+      // Déterminer l'adresse de livraison selon le mode
+      let deliveryAddress: string | null = null
+      if (purchaseDelivery?.option === 'delivery') {
+        deliveryAddress = purchaseDelivery.address || null
+      } else if (purchaseDelivery?.option === 'relay_point' && purchaseDelivery.relayPoint) {
+        // Stocker les informations du point relais de manière structurée
+        deliveryAddress = `[Point Relais ${purchaseDelivery.relayProvider === 'chronopost' ? 'Chronopost' : 'Mondial Relay'}] ${purchaseDelivery.relayPoint.name} - ${purchaseDelivery.relayPoint.address}`
+      }
+
       const { data: purchaseReservation, error: purchaseError } = await supabase
         .from('purchase_reservations')
         .insert({
           customer_order_id: customerOrder.id,
-          delivery_address: purchaseDelivery?.option !== 'pickup' ? (purchaseDelivery?.address || null) : null,
+          delivery_address: deliveryAddress,
           delivery_fees: purchaseDelivery?.fees || 0,
           reservation_status: reservationStatus,
           total_price: purchaseItems.reduce((sum, item) => sum + (item.pricePerUnit * item.quantity), 0),
