@@ -196,7 +196,7 @@ export default function RelayPointSelector({
       {/* Message si aucun point relais trouvé */}
       {showRelayPoints && !isLoadingRelayPoints && relayPoints.length === 0 && !error && (
         <div className="text-sm text-stone-600 bg-stone-50 p-3 rounded-lg">
-          Aucun point relais trouvé pour cette adresse. Veuillez vérifier l'adresse saisie.
+          Aucun point relais trouvé pour cette adresse. Veuillez vérifier l&apos;adresse saisie.
         </div>
       )}
 
