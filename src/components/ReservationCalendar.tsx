@@ -27,76 +27,71 @@ interface ReservationCalendarProps {
   onOrderClick: (orderId: number) => void
 }
 
+// Types d'événements pour le calendrier
+type CalendarEventType = 'rental_pickup' | 'rental_return' | 'prestation' | 'purchase_delivery'
+
+interface CalendarEvent {
+  type: CalendarEventType
+  orderId: number
+  orderNumber: string
+  customerName: string
+  reservationId: number
+  reservationType: 'rental' | 'purchase' | 'prestation'
+  status: string
+  time?: string // Heure pour les prestations et locations
+}
+
 interface CalendarDay {
   date: Date
   isCurrentMonth: boolean
-  orders: OrderWithReservations[]
+  events: CalendarEvent[]
 }
 
 export default function ReservationCalendar({ orders, onOrderClick }: ReservationCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
 
-  const { calendarDays, monthYear } = useMemo(() => {
-    const year = currentDate.getFullYear()
-    const month = currentDate.getMonth()
+  const { calendarDays, weekRange } = useMemo(() => {
+    // Calculer le début de la semaine (lundi)
+    const startOfWeek = new Date(currentDate)
+    const day = startOfWeek.getDay()
+    const diff = day === 0 ? -6 : 1 - day // Ajuster pour que lundi soit le premier jour
+    startOfWeek.setDate(startOfWeek.getDate() + diff)
+    startOfWeek.setHours(0, 0, 0, 0)
 
-    // Premier jour du mois
-    const firstDay = new Date(year, month, 1)
-    // Dernier jour du mois
-    const lastDay = new Date(year, month + 1, 0)
-
-    // Jour de la semaine du premier jour (0 = dimanche, 1 = lundi, etc.)
-    const firstDayOfWeek = firstDay.getDay()
-    // Ajuster pour que lundi soit le premier jour (0)
-    const adjustedFirstDay = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1
-
-    // Créer le calendrier
+    // Créer les 7 jours de la semaine
     const days: CalendarDay[] = []
-
-    // Ajouter les jours du mois précédent
-    const prevMonthLastDay = new Date(year, month, 0).getDate()
-    for (let i = adjustedFirstDay - 1; i >= 0; i--) {
-      const date = new Date(year, month - 1, prevMonthLastDay - i)
-      days.push({
-        date,
-        isCurrentMonth: false,
-        orders: getOrdersForDate(date, orders)
-      })
-    }
-
-    // Ajouter les jours du mois actuel
-    for (let day = 1; day <= lastDay.getDate(); day++) {
-      const date = new Date(year, month, day)
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startOfWeek)
+      date.setDate(startOfWeek.getDate() + i)
       days.push({
         date,
         isCurrentMonth: true,
-        orders: getOrdersForDate(date, orders)
+        events: getEventsForDate(date, orders)
       })
     }
 
-    // Ajouter les jours du mois suivant pour compléter la grille
-    const remainingDays = 42 - days.length // 6 semaines x 7 jours
-    for (let day = 1; day <= remainingDays; day++) {
-      const date = new Date(year, month + 1, day)
-      days.push({
-        date,
-        isCurrentMonth: false,
-        orders: getOrdersForDate(date, orders)
-      })
-    }
+    // Calculer la fin de la semaine (dimanche)
+    const endOfWeek = new Date(startOfWeek)
+    endOfWeek.setDate(startOfWeek.getDate() + 6)
+
+    const weekRange = `${startOfWeek.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} - ${endOfWeek.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
 
     return {
       calendarDays: days,
-      monthYear: firstDay.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+      weekRange
     }
   }, [currentDate, orders])
 
-  const previousMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))
+  const previousWeek = () => {
+    const newDate = new Date(currentDate)
+    newDate.setDate(newDate.getDate() - 7)
+    setCurrentDate(newDate)
   }
 
-  const nextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))
+  const nextWeek = () => {
+    const newDate = new Date(currentDate)
+    newDate.setDate(newDate.getDate() + 7)
+    setCurrentDate(newDate)
   }
 
   const goToToday = () => {
@@ -108,7 +103,7 @@ export default function ReservationCalendar({ orders, onOrderClick }: Reservatio
       {/* En-tête du calendrier */}
       <div className="p-4 md:p-6 border-b border-stone-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <h2 className="text-xl font-semibold text-black capitalize">
-          {monthYear}
+          {weekRange}
         </h2>
         <div className="flex gap-2">
           <button
@@ -118,18 +113,18 @@ export default function ReservationCalendar({ orders, onOrderClick }: Reservatio
             Aujourd&apos;hui
           </button>
           <button
-            onClick={previousMonth}
+            onClick={previousWeek}
             className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
-            title="Mois précédent"
+            title="Semaine précédente"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <button
-            onClick={nextMonth}
+            onClick={nextWeek}
             className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
-            title="Mois suivant"
+            title="Semaine suivante"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -138,19 +133,10 @@ export default function ReservationCalendar({ orders, onOrderClick }: Reservatio
         </div>
       </div>
 
-      {/* Grille du calendrier */}
-      <div className="p-2 md:p-4">
-        {/* Jours de la semaine */}
-        <div className="grid grid-cols-7 gap-1 md:gap-2 mb-2">
-          {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((day) => (
-            <div key={day} className="text-center text-xs md:text-sm font-medium text-stone-500 py-2">
-              {day}
-            </div>
-          ))}
-        </div>
-
-        {/* Jours du mois */}
-        <div className="grid grid-cols-7 gap-1 md:gap-2">
+      {/* Vue par semaine */}
+      <div className="p-4 md:p-6">
+        {/* Jours de la semaine - Colonne verticale sur mobile/tablette, grille sur grand écran */}
+        <div className="flex flex-col gap-3 xl:grid xl:grid-cols-7 xl:gap-4">
           {calendarDays.map((day, index) => (
             <CalendarDayCell
               key={index}
@@ -172,97 +158,268 @@ interface CalendarDayCellProps {
 }
 
 function CalendarDayCell({ day, onOrderClick, isToday }: CalendarDayCellProps) {
-  const hasOrders = day.orders.length > 0
+  const hasEvents = day.events.length > 0
+  const dayName = day.date.toLocaleDateString('fr-FR', { weekday: 'long' })
+  const dayNumber = day.date.getDate()
+  const monthName = day.date.toLocaleDateString('fr-FR', { month: 'short' })
+
+  // Trier les événements par heure (ceux avec heure en premier, puis par ordre chronologique)
+  const sortedEvents = [...day.events].sort((a, b) => {
+    if (!a.time && !b.time) return 0
+    if (!a.time) return 1
+    if (!b.time) return -1
+    return a.time.localeCompare(b.time)
+  })
 
   return (
     <div
       className={`
-        min-h-[80px] md:min-h-[100px] p-1 md:p-2 border rounded-lg
-        ${day.isCurrentMonth ? 'bg-white border-stone-200' : 'bg-stone-50 border-stone-100'}
+        p-3 border rounded-xl
+        bg-white border-stone-200
+        xl:min-h-[400px]
         ${isToday ? 'ring-2 ring-black' : ''}
       `}
     >
-      <div className={`text-xs md:text-sm font-medium mb-1 ${day.isCurrentMonth ? 'text-black' : 'text-stone-400'}`}>
-        {day.date.getDate()}
+      {/* En-tête du jour */}
+      <div className="mb-3 pb-2 border-b border-stone-200">
+        <div className="text-xs text-stone-500 uppercase font-medium">
+          {dayName}
+        </div>
+        <div className="text-2xl font-bold text-black">
+          {dayNumber} {monthName}
+        </div>
       </div>
 
-      {hasOrders && (
-        <div className="space-y-1">
-          {day.orders.slice(0, 3).map((order) => {
-            // Récupérer la première réservation pour le statut
-            const firstReservation =
-              order.rental_reservations[0] ||
-              order.purchase_reservations[0] ||
-              order.prestation_reservations[0]
-
-            const statusColor = getStatusColor(firstReservation?.reservation_status)
-
-            return (
-              <button
-                key={order.id}
-                onClick={() => onOrderClick(order.id)}
-                className={`
-                  w-full text-left px-1 md:px-2 py-0.5 md:py-1 rounded text-xs
-                  ${statusColor}
-                  hover:opacity-80 transition-opacity
-                `}
-                title={`${order.order_number} - ${order.customer_infos.firstName} ${order.customer_infos.lastName}`}
-              >
-                <div className="truncate font-medium">
-                  {order.order_number}
-                </div>
-                <div className="truncate text-xs opacity-90">
-                  {order.customer_infos.firstName}
-                </div>
-              </button>
-            )
-          })}
-          {day.orders.length > 3 && (
-            <div className="text-xs text-stone-500 text-center">
-              +{day.orders.length - 3} autre{day.orders.length - 3 > 1 ? 's' : ''}
-            </div>
-          )}
+      {/* Événements */}
+      {hasEvents ? (
+        <div className="space-y-2">
+          {sortedEvents.map((event, index) => (
+            <EventCard
+              key={`${event.orderId}-${event.reservationId}-${event.type}-${index}`}
+              event={event}
+              onClick={() => onOrderClick(event.orderId)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-sm text-stone-400 italic">
+          Aucun événement
         </div>
       )}
     </div>
   )
 }
 
-// Fonction pour récupérer les commandes d'une date spécifique
-function getOrdersForDate(date: Date, orders: OrderWithReservations[]): OrderWithReservations[] {
+// Composant pour afficher une carte d'événement détaillée
+interface EventCardProps {
+  event: CalendarEvent
+  onClick: () => void
+}
+
+function EventCard({ event, onClick }: EventCardProps) {
+  const categoryColor = getCategoryColor(event.reservationType)
+  const icon = getEventIcon(event.type)
+
+  return (
+    <button
+      onClick={onClick}
+      className={`
+        w-full text-left p-2 rounded-lg border-l-4
+        ${categoryColor}
+        hover:shadow-md transition-shadow
+      `}
+    >
+      <div className="flex items-start gap-2">
+        {/* Icône */}
+        <div className="flex-shrink-0 mt-0.5">
+          {icon}
+        </div>
+
+        {/* Contenu */}
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-semibold text-stone-900 truncate">
+            #{event.orderNumber}
+          </div>
+          <div className="text-xs text-stone-700 truncate">
+            {event.customerName}
+          </div>
+          <div className="text-xs text-stone-500 mt-0.5">
+            {getEventLabel(event.type)}
+          </div>
+          {event.time && (
+            <div className="text-xs font-medium text-stone-600 mt-1">
+              {event.time}
+            </div>
+          )}
+        </div>
+      </div>
+    </button>
+  )
+}
+
+// Obtenir l'icône selon le type d'événement
+function getEventIcon(type: CalendarEventType) {
+  switch (type) {
+    case 'rental_pickup':
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+        </svg>
+      )
+    case 'rental_return':
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        </svg>
+      )
+    case 'prestation':
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      )
+    case 'purchase_delivery':
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+        </svg>
+      )
+  }
+}
+
+// Labels pour les types d'événements
+function getEventLabel(type: CalendarEventType): string {
+  switch (type) {
+    case 'rental_pickup':
+      return 'Récupération location'
+    case 'rental_return':
+      return 'Restitution location'
+    case 'prestation':
+      return 'Prestation henné'
+    case 'purchase_delivery':
+      return 'Livraison achat estimée'
+    default:
+      return ''
+  }
+}
+
+// Fonction pour récupérer les événements d'une date spécifique
+function getEventsForDate(date: Date, orders: OrderWithReservations[]): CalendarEvent[] {
   const dateStr = date.toISOString().split('T')[0]
+  const events: CalendarEvent[] = []
 
-  return orders.filter(order => {
-    // Vérifier les locations (rental_reservations)
-    const hasRentalOnDate = order.rental_reservations.some(rental =>
-      rental.rental_items?.some(item => {
-        if (!item.rental_start || !item.rental_end) return false
-        const startDate = new Date(item.rental_start).toISOString().split('T')[0]
-        const endDate = new Date(item.rental_end).toISOString().split('T')[0]
-        return dateStr >= startDate && dateStr <= endDate
+  orders.forEach(order => {
+    const customerName = `${order.customer_infos.firstName} ${order.customer_infos.lastName}`
+
+    // Traiter les locations (rental_reservations)
+    order.rental_reservations.forEach(rental => {
+      rental.rental_items?.forEach(item => {
+        if (!item.rental_start || !item.rental_end) return
+
+        const startDateTime = new Date(item.rental_start)
+        const endDateTime = new Date(item.rental_end)
+        const startDate = startDateTime.toISOString().split('T')[0]
+        const endDate = endDateTime.toISOString().split('T')[0]
+
+        // Extraire l'heure au format HH:MM
+        const startTime = startDateTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+        const endTime = endDateTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+
+        // Ajouter événement de récupération
+        if (dateStr === startDate) {
+          events.push({
+            type: 'rental_pickup',
+            orderId: order.id,
+            orderNumber: order.order_number,
+            customerName,
+            reservationId: rental.id,
+            reservationType: 'rental',
+            status: rental.reservation_status,
+            time: startTime
+          })
+        }
+
+        // Ajouter événement de restitution
+        if (dateStr === endDate) {
+          events.push({
+            type: 'rental_return',
+            orderId: order.id,
+            orderNumber: order.order_number,
+            customerName,
+            reservationId: rental.id,
+            reservationType: 'rental',
+            status: rental.reservation_status,
+            time: endTime
+          })
+        }
       })
-    )
+    })
 
-    // Vérifier les prestations (prestation_reservations)
-    const hasPrestationOnDate = order.prestation_reservations.some(prestation =>
-      prestation.prestation_items?.some(item => {
-        if (!item.prestation_date) return false
+    // Traiter les prestations (prestation_reservations)
+    order.prestation_reservations.forEach(prestation => {
+      prestation.prestation_items?.forEach(item => {
+        if (!item.prestation_date) return
+
         const prestationDate = new Date(item.prestation_date).toISOString().split('T')[0]
-        return dateStr === prestationDate
-      })
-    )
 
-    // Vérifier les achats (purchase_reservations) - utiliser la date de livraison estimée
-    const hasPurchaseOnDate = order.purchase_reservations.some(purchase =>
-      purchase.purchase_items?.some(item => {
-        if (!item.estimated_delivery_date) return false
-        const deliveryDate = new Date(item.estimated_delivery_date).toISOString().split('T')[0]
-        return dateStr === deliveryDate
-      })
-    )
+        if (dateStr === prestationDate) {
+          // Convertir le time_slot en plage horaire
+          const timeSlotLabel = getTimeSlotLabel(item.time_slot)
 
-    return hasRentalOnDate || hasPrestationOnDate || hasPurchaseOnDate
+          events.push({
+            type: 'prestation',
+            orderId: order.id,
+            orderNumber: order.order_number,
+            customerName,
+            reservationId: prestation.id,
+            reservationType: 'prestation',
+            status: prestation.reservation_status,
+            time: timeSlotLabel
+          })
+        }
+      })
+    })
+
+    // Traiter les achats (purchase_reservations) - t+5j depuis la création de la commande
+    order.purchase_reservations.forEach(purchase => {
+      if (purchase.purchase_items && purchase.purchase_items.length > 0) {
+        // Calculer t+5j depuis la date de création de la commande
+        const orderCreatedDate = new Date(order.created_at)
+        const deliveryDate = new Date(orderCreatedDate)
+        deliveryDate.setDate(deliveryDate.getDate() + 5)
+        const deliveryDateStr = deliveryDate.toISOString().split('T')[0]
+
+        if (dateStr === deliveryDateStr) {
+          events.push({
+            type: 'purchase_delivery',
+            orderId: order.id,
+            orderNumber: order.order_number,
+            customerName,
+            reservationId: purchase.id,
+            reservationType: 'purchase',
+            status: purchase.reservation_status
+            // Pas d'heure pour les achats
+          })
+        }
+      }
+    })
   })
+
+  return events
+}
+
+// Convertir le time_slot enum en label lisible
+function getTimeSlotLabel(timeSlot?: string): string {
+  switch (timeSlot) {
+    case 'LUNCH':
+      return '12h-15h30'
+    case 'AFTERNOON':
+      return '16h-20h'
+    case 'EVENING':
+      return '20h30-23h30'
+    default:
+      return ''
+  }
 }
 
 // Vérifier si une date est aujourd'hui
@@ -275,18 +432,16 @@ function isToday(date: Date): boolean {
   )
 }
 
-// Obtenir la couleur selon le statut
-function getStatusColor(status?: string): string {
-  switch (status) {
-    case 'CONFIRMED':
-      return 'bg-green-100 text-green-800'
-    case 'CONFIRMED_NO_DEPOSIT':
-      return 'bg-blue-100 text-blue-800'
-    case 'CANCELLED':
-      return 'bg-red-100 text-red-800'
-    case 'DONE':
-      return 'bg-gray-100 text-gray-800'
+// Obtenir la couleur selon la catégorie de réservation
+function getCategoryColor(reservationType: 'rental' | 'purchase' | 'prestation'): string {
+  switch (reservationType) {
+    case 'rental':
+      return 'bg-blue-50 border-blue-500 hover:bg-blue-100'
+    case 'purchase':
+      return 'bg-green-50 border-green-500 hover:bg-green-100'
+    case 'prestation':
+      return 'bg-purple-50 border-purple-500 hover:bg-purple-100'
     default:
-      return 'bg-stone-100 text-stone-800'
+      return 'bg-stone-50 border-stone-500 hover:bg-stone-100'
   }
 }

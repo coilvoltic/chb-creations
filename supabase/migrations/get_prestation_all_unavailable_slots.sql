@@ -1,50 +1,55 @@
--- =========================================
--- Fonction: get_prestation_all_unavailable_slots
--- =========================================
--- Retourne TOUS les créneaux horaires déjà réservés pour un produit
--- Utilisé pour charger les indisponibilités une seule fois (comme pour les locations)
--- Format: date (YYYY-MM-DD) et time_slot (LUNCH, AFTERNOON, EVENING)
+-- Fonction pour récupérer TOUS les créneaux de prestation indisponibles pour un produit
+-- Retourne tous les créneaux réservés (date + time_slot) pour faciliter l'affichage côté client
 
-CREATE OR REPLACE FUNCTION get_prestation_all_unavailable_slots(
-  product_id_param BIGINT
+-- Supprimer toutes les versions existantes de la fonction
+DROP FUNCTION IF EXISTS get_prestation_all_unavailable_slots(bigint);
+DROP FUNCTION IF EXISTS get_prestation_all_unavailable_slots(integer);
+DROP FUNCTION IF EXISTS get_prestation_all_unavailable_slots(INT8);
+
+-- Créer la nouvelle version
+CREATE OR REPLACE FUNCTION get_prestation_all_unavailable_slots(product_id_param INT8)
+RETURNS TABLE(
+  date TEXT,
+  time_slot TEXT
 )
-RETURNS TABLE(date TEXT, time_slot TEXT)
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
   RETURN QUERY
-  SELECT
-    TO_CHAR(pi.prestation_date, 'YYYY-MM-DD') AS date,
-    pi.time_slot::TEXT
+  SELECT DISTINCT
+    TO_CHAR(DATE(pi.prestation_date), 'YYYY-MM-DD') AS date,
+    pi.time_slot::TEXT AS time_slot
   FROM prestation_items pi
   JOIN prestation_reservations pr ON pi.prestation_reservation_id = pr.id
   WHERE pi.product_id = product_id_param
-    AND pi.prestation_date >= CURRENT_DATE  -- Seulement les dates futures
+    AND pi.prestation_date IS NOT NULL
     AND pi.time_slot IS NOT NULL
-    -- Exclure les réservations annulées
-    AND pr.reservation_status != 'CANCELLED'
-  ORDER BY pi.prestation_date, pi.time_slot::TEXT;
+    -- Exclure les réservations annulées et non confirmées
+    AND pr.reservation_status IN ('CONFIRMED', 'DONE')
+    -- Filtrer uniquement les dates futures
+    AND DATE(pi.prestation_date) >= (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date
+  ORDER BY date, time_slot;
 END;
 $$;
 
--- Grant execute permission to anon and authenticated users
-GRANT EXECUTE ON FUNCTION get_prestation_all_unavailable_slots(BIGINT) TO anon;
-GRANT EXECUTE ON FUNCTION get_prestation_all_unavailable_slots(BIGINT) TO authenticated;
+-- Accorder les permissions d'exécution à tous les rôles
+GRANT EXECUTE ON FUNCTION get_prestation_all_unavailable_slots(INT8) TO anon, authenticated, service_role;
 
--- Exemples d'utilisation :
+-- Exemple d'utilisation :
+-- SELECT * FROM get_prestation_all_unavailable_slots(5);
 --
--- Récupérer tous les créneaux réservés pour le produit 1
--- SELECT * FROM get_prestation_all_unavailable_slots(1);
---
--- Résultat possible :
+-- Résultat :
 -- date        | time_slot
--- ------------|----------
--- 2025-01-15  | AFTERNOON
--- 2025-01-15  | EVENING
--- 2025-01-16  | LUNCH
+-- ------------|------------
+-- 2025-01-20  | LUNCH
 -- 2025-01-20  | AFTERNOON
+-- 2025-01-21  | EVENING
+-- 2025-01-22  | LUNCH
 --
--- Cela permet de savoir d'avance quels créneaux sont indisponibles
--- sans avoir à faire une requête à chaque changement de date
+-- Explication :
+-- - Cette fonction retourne TOUS les créneaux occupés pour un produit donné
+-- - Seules les prestations avec statut CONFIRMED ou DONE sont comptées
+-- - Les dates passées sont automatiquement exclues
+-- - Utilisée pour afficher les disponibilités côté client

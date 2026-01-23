@@ -109,6 +109,7 @@ export default function ReservationDetailPage() {
   const [data, setData] = useState<OrderDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [isConfirmingPayment, setIsConfirmingPayment] = useState(false)
   const router = useRouter()
   const params = useParams()
   const id = params?.id
@@ -140,6 +141,44 @@ export default function ReservationDetailPage() {
       setError('Impossible de charger les détails de la commande')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleConfirmPayment = async () => {
+    if (!window.confirm('Confirmer le paiement de l\'acompte pour TOUTE la commande ?\n\nToutes les sous-réservations (locations, achats, prestations) seront marquées comme confirmées.')) {
+      return
+    }
+
+    setIsConfirmingPayment(true)
+    try {
+      const response = await fetch(`/api/admin/reservations/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          new_status: 'CONFIRMED'
+        })
+      })
+
+      if (response.status === 401) {
+        router.push('/admin/login')
+        return
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erreur lors de la mise à jour')
+      }
+
+      // Recharger les données
+      await loadOrderDetail()
+      alert('Statut mis à jour avec succès pour toute la commande !')
+    } catch (err) {
+      console.error('Erreur:', err)
+      alert('Erreur lors de la mise à jour du statut')
+    } finally {
+      setIsConfirmingPayment(false)
     }
   }
 
@@ -256,7 +295,22 @@ export default function ReservationDetailPage() {
                 <p className="text-sm text-stone-600">Créée le {formatDate(order.created_at)}</p>
               </div>
             </div>
-            {firstReservation && getStatusBadge(firstReservation.reservation_status)}
+            <div className="flex items-center gap-3">
+              {firstReservation && getStatusBadge(firstReservation.reservation_status)}
+              {firstReservation && firstReservation.reservation_status === 'CONFIRMED_NO_DEPOSIT' && (
+                <button
+                  onClick={handleConfirmPayment}
+                  disabled={isConfirmingPayment}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  title="Confirmer le paiement de l'acompte pour toute la commande"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {isConfirmingPayment ? 'Confirmation...' : 'Confirmer le paiement'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </header>

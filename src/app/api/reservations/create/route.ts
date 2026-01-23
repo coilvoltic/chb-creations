@@ -409,6 +409,15 @@ export async function POST(request: NextRequest) {
           personalizations: item.personalizations,
         }))
 
+      // Construire l'adresse d'achat pour le PDF (inclut les points relais)
+      let purchaseAddressForPDF: string | null = null
+      if (purchaseDelivery?.option === 'delivery') {
+        purchaseAddressForPDF = purchaseDelivery.address || null
+      } else if (purchaseDelivery?.option === 'relay_point' && purchaseDelivery.relayPoint) {
+        // Formater l'adresse du point relais pour le PDF
+        purchaseAddressForPDF = `[Point Relais ${purchaseDelivery.relayProvider === 'chronopost' ? 'Chronopost' : 'Mondial Relay'}] ${purchaseDelivery.relayPoint.name} - ${purchaseDelivery.relayPoint.address}`
+      }
+
       const emailData = {
         id: customerOrder.id, // Utiliser l'ID de la commande principale
         reservation_code: reservationCode,
@@ -422,7 +431,7 @@ export async function POST(request: NextRequest) {
         prestationItems: prestationItemsEmail.length > 0 ? prestationItemsEmail : undefined,
         rentalDeliveryAddress: rentalDelivery?.option === 'delivery' ? rentalDelivery.address : null,
         rentalDeliveryFees: rentalDelivery?.fees || 0,
-        purchaseDeliveryAddress: purchaseDelivery?.option === 'delivery' ? purchaseDelivery.address : null,
+        purchaseDeliveryAddress: purchaseAddressForPDF,
         purchaseDeliveryFees: purchaseDelivery?.fees || 0,
         prestationDeliveryAddress: prestationDelivery?.option === 'delivery' ? prestationDelivery.address : null,
         prestationDeliveryFees: prestationDelivery?.fees || 0,

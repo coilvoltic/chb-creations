@@ -22,8 +22,8 @@ BEGIN
   WHERE pi.product_id = product_id_param
     AND pi.prestation_date = date_param
     AND pi.time_slot IS NOT NULL
-    -- Exclure les réservations annulées
-    AND pr.reservation_status != 'CANCELLED'
+    -- Exclure les réservations annulées et non confirmées
+    AND pr.reservation_status IN ('CONFIRMED', 'DONE')
   ORDER BY pi.time_slot::TEXT;
 END;
 $$;

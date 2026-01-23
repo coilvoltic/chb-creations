@@ -345,10 +345,24 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
               </Text>
               {reservation.purchaseDeliveryAddress ? (
                 <>
-                  <Text style={styles.text}>Mode: Livraison à domicile</Text>
-                  <Text style={styles.text}>Adresse: {reservation.purchaseDeliveryAddress}</Text>
-                  {reservation.purchaseDeliveryFees && reservation.purchaseDeliveryFees > 0 && (
-                    <Text style={styles.text}>Frais de livraison: {reservation.purchaseDeliveryFees.toFixed(2)} €</Text>
+                  {reservation.purchaseDeliveryAddress.startsWith('[Point Relais') ? (
+                    <>
+                      <Text style={styles.text}>Mode: Point Relais</Text>
+                      <Text style={styles.text}>
+                        {reservation.purchaseDeliveryAddress.replace(/^\[Point Relais [^\]]+\]\s*/, '')}
+                      </Text>
+                      {reservation.purchaseDeliveryFees && reservation.purchaseDeliveryFees > 0 && (
+                        <Text style={styles.text}>Frais de livraison: {reservation.purchaseDeliveryFees.toFixed(2)} €</Text>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.text}>Mode: Livraison à domicile</Text>
+                      <Text style={styles.text}>Adresse: {reservation.purchaseDeliveryAddress}</Text>
+                      {reservation.purchaseDeliveryFees && reservation.purchaseDeliveryFees > 0 && (
+                        <Text style={styles.text}>Frais de livraison: {reservation.purchaseDeliveryFees.toFixed(2)} €</Text>
+                      )}
+                    </>
                   )}
                 </>
               ) : (

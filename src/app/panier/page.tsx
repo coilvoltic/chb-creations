@@ -278,28 +278,25 @@ export default function CartPage() {
   // Handlers pour les points relais
   const handleRelayProviderSelect = (provider: RelayProvider) => {
     setSelectedRelayProvider(provider)
-    setSelectedRelayPoint(null)
     // Reset delivery option in cart when changing provider
     setPurchaseDeliveryOption('relay_point')
 
     // Mettre à jour les frais immédiatement selon le transporteur sélectionné
     const fees = provider === 'chronopost' ? 18.99 : 9.99
-    // Créer un point relais temporaire pour stocker les frais (sera remplacé par le vrai point relais)
-    const tempRelayPoint: RelayPointInfo = {
-      id: 'temp',
-      name: `${provider === 'chronopost' ? 'Chronopost' : 'Mondial Relay'} - Point relais à sélectionner`,
-      address: '',
+    // Créer un point relais fictif pour stocker le transporteur et les frais
+    const relayPoint: RelayPointInfo = {
+      id: 'to-be-determined',
+      name: `${provider === 'chronopost' ? 'Chronopost' : 'Mondial Relay'} - Point relais le plus proche`,
+      address: relayCustomerAddress || 'À déterminer',
       distance: 0,
       provider
     }
-    setPurchaseRelayPoint(provider, tempRelayPoint, fees)
+    setPurchaseRelayPoint(provider, relayPoint, fees)
   }
 
   const handleRelayPointSelect = (relayPoint: RelayPointInfo) => {
+    // Cette fonction n'est plus utilisée mais gardée pour la compatibilité
     setSelectedRelayPoint(relayPoint)
-    // Déterminer les frais selon le transporteur
-    const fees = relayPoint.provider === 'chronopost' ? 18.99 : 9.99
-    setPurchaseRelayPoint(relayPoint.provider, relayPoint, fees)
   }
 
   // Calculate total options fees for an item
@@ -369,9 +366,9 @@ export default function CartPage() {
     if (hasPurchases && cart.purchaseDelivery.option === 'delivery' && !cart.purchaseDelivery.address) {
       return false
     }
-    // Si achats avec point relais, vérifier qu'un vrai point relais est sélectionné (pas le temporaire)
+    // Si achats avec point relais, vérifier qu'une adresse et un transporteur sont sélectionnés
     if (hasPurchases && cart.purchaseDelivery.option === 'relay_point') {
-      if (!cart.purchaseDelivery.relayPoint || cart.purchaseDelivery.relayPoint.id === 'temp') {
+      if (!relayCustomerAddress || !selectedRelayProvider) {
         return false
       }
     }
@@ -383,6 +380,27 @@ export default function CartPage() {
   }
 
   const handleValidateOrder = async () => {
+    // Vérifier que tous les champs sont remplis
+    if (!customerInfo.firstName.trim()) {
+      setError('Le prénom est obligatoire')
+      return
+    }
+    if (!customerInfo.lastName.trim()) {
+      setError('Le nom est obligatoire')
+      return
+    }
+    if (!customerInfo.email.trim()) {
+      setError('L\'email est obligatoire')
+      return
+    }
+    if (!customerInfo.phone.trim()) {
+      setError('Le téléphone est obligatoire')
+      return
+    }
+
+    // Réinitialiser l'erreur
+    setError(null)
+
     // Si paiement en ligne et qu'il y a un acompte, ouvrir la modale de paiement
     if (selectedPaymentMethod === 'online' && depositAmount > 0) {
       setShowPaymentModal(true)
@@ -1118,43 +1136,63 @@ export default function CartPage() {
                 </>
               ) : (
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Vos informations</h3>
+                  <h3 className="font-semibold text-lg">Vos informations <span className="text-red-600 text-sm">* Tous les champs sont obligatoires</span></h3>
 
-                  <input
-                    type="text"
-                    placeholder="Prénom"
-                    value={customerInfo.firstName}
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, firstName: e.target.value })}
-                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                    required
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-stone-700 mb-1">
+                      Prénom <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Prénom"
+                      value={customerInfo.firstName}
+                      onChange={(e) => setCustomerInfo({ ...customerInfo, firstName: e.target.value })}
+                      className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                      required
+                    />
+                  </div>
 
-                  <input
-                    type="text"
-                    placeholder="Nom"
-                    value={customerInfo.lastName}
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, lastName: e.target.value })}
-                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                    required
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-stone-700 mb-1">
+                      Nom <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Nom"
+                      value={customerInfo.lastName}
+                      onChange={(e) => setCustomerInfo({ ...customerInfo, lastName: e.target.value })}
+                      className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                      required
+                    />
+                  </div>
 
-                  <input
-                    type="email"
-                    placeholder="Email"
-                    value={customerInfo.email}
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
-                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                    required
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-stone-700 mb-1">
+                      Email <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="Email"
+                      value={customerInfo.email}
+                      onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
+                      className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                      required
+                    />
+                  </div>
 
-                  <input
-                    type="tel"
-                    placeholder="Téléphone"
-                    value={customerInfo.phone}
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
-                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                    required
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-stone-700 mb-1">
+                      Téléphone <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="Téléphone"
+                      value={customerInfo.phone}
+                      onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
+                      className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                      required
+                    />
+                  </div>
 
                   {/* Mode de paiement de l'acompte (si acompte requis) */}
                   {depositAmount > 0 && (
