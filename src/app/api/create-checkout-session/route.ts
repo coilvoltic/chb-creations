@@ -59,8 +59,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: session.url })
   } catch (error) {
     console.error('Erreur création session Stripe:', error)
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      raw: error
+    })
     return NextResponse.json(
-      { error: 'Erreur lors de la création de la session de paiement' },
+      {
+        error: 'Erreur lors de la création de la session de paiement',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }
