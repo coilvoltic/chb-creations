@@ -12,7 +12,6 @@ import { TIME_SLOT_LABELS } from '@/lib/supabase'
 import type { CartItem } from '@/lib/cart-types'
 import SuccessModal from '@/components/SuccessModal'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
-import PaymentSimulationModal from '@/components/PaymentSimulationModal'
 import PromoCodeInput from '@/components/PromoCodeInput'
 import RelayPointSelector from '@/components/RelayPointSelector'
 import type { RelayProvider, RelayPointInfo } from '@/lib/cart-types'
@@ -47,8 +46,8 @@ export default function CartPage() {
   const [error, setError] = useState<string | null>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [reservationCode, setReservationCode] = useState<string | null>(null)
-  const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'online' | 'cash'>('cash')
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
 
   // Séparer les items par catégorie
@@ -407,9 +406,9 @@ export default function CartPage() {
     // Réinitialiser l'erreur
     setError(null)
 
-    // Si paiement en ligne et qu'il y a un acompte, ouvrir la modale de paiement
+    // Si paiement en ligne et qu'il y a un acompte, rediriger vers Stripe Checkout
     if (selectedPaymentMethod === 'online' && depositAmount > 0) {
-      setShowPaymentModal(true)
+      await handleStripeCheckout()
       return
     }
 
@@ -417,9 +416,108 @@ export default function CartPage() {
     await createReservation('cash')
   }
 
-  const handlePaymentConfirmed = async () => {
-    setShowPaymentModal(false)
-    await createReservation('online')
+  const handleStripeCheckout = async () => {
+    setIsProcessingPayment(true)
+    setError(null)
+
+    try {
+      // Construire les données de réservation
+      const allItems = [
+        ...rentalItems.map((item) => {
+          const unitPrice = item.pricePerUnit + getItemOptionsFees(item)
+          return {
+            productId: item.productId,
+            productName: item.productName,
+            category: item.category,
+            quantity: item.quantity,
+            pricePerUnit: unitPrice,
+            selectedOptions: item.selectedOptions,
+            personalizations: item.personalizations,
+            needsInstallation: item.needsInstallation,
+            installationFees: item.installationFees,
+            rentalStart: new Date(
+              item.rentalPeriod.from.toISOString().split('T')[0] + 'T' + item.startTime
+            ).toISOString(),
+            rentalEnd: new Date(
+              item.rentalPeriod.to.toISOString().split('T')[0] + 'T' + item.endTime
+            ).toISOString(),
+          }
+        }),
+        ...purchaseItems.map((item) => {
+          const unitPrice = item.pricePerUnit + getItemOptionsFees(item)
+          const now = new Date()
+          return {
+            productId: item.productId,
+            productName: item.productName,
+            category: item.category,
+            quantity: item.quantity,
+            pricePerUnit: unitPrice,
+            selectedOptions: item.selectedOptions,
+            personalizations: item.personalizations,
+            needsInstallation: item.needsInstallation,
+            installationFees: item.installationFees,
+            rentalStart: now.toISOString(),
+            rentalEnd: now.toISOString(),
+          }
+        }),
+        ...prestationItems.map((item) => {
+          const unitPrice = item.pricePerUnit + getItemOptionsFees(item)
+          return {
+            productId: item.productId,
+            productName: item.productName,
+            category: item.category,
+            quantity: item.quantity,
+            pricePerUnit: unitPrice,
+            selectedOptions: item.selectedOptions,
+            personalizations: item.personalizations,
+            prestationDate: item.prestationDate ? (() => {
+              const year = item.prestationDate.getFullYear()
+              const month = String(item.prestationDate.getMonth() + 1).padStart(2, '0')
+              const day = String(item.prestationDate.getDate()).padStart(2, '0')
+              return `${year}-${month}-${day}`
+            })() : undefined,
+            prestationTimeSlot: item.prestationTimeSlot,
+          }
+        }),
+      ]
+
+      const reservationData = {
+        customerInfo,
+        items: allItems,
+        deposit: depositAmount,
+        caution: cautionAmount,
+        rentalDelivery: cart.rentalDelivery,
+        purchaseDelivery: cart.purchaseDelivery,
+        prestationDelivery: cart.prestationDelivery,
+        totalPrice: getFinalTotal(),
+        promoCode: cart.promoCode,
+        paymentMethod: 'online',
+        userId: currentUser?.id,
+      }
+
+      // Créer la session Stripe Checkout
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: depositAmount,
+          reservationData,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de la création de la session de paiement')
+      }
+
+      // Rediriger vers Stripe Checkout
+      window.location.href = data.url
+    } catch (err) {
+      console.error('Erreur création session Stripe:', err)
+      setError(err instanceof Error ? err.message : 'Erreur lors de la création de la session de paiement')
+      setIsProcessingPayment(false)
+    }
   }
 
   const createReservation = async (paymentMethod: 'online' | 'cash') => {
@@ -1249,10 +1347,15 @@ export default function CartPage() {
 
                   <button
                     onClick={handleValidateOrder}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isProcessingPayment}
                     className="w-full bg-black text-white px-6 py-4 rounded-lg hover:bg-stone-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isSubmitting ? 'Validation en cours...' : (
+                    {isSubmitting || isProcessingPayment ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        {isProcessingPayment ? 'Redirection vers le paiement...' : 'Validation en cours...'}
+                      </span>
+                    ) : (
                       selectedPaymentMethod === 'online' && depositAmount > 0
                         ? `Payer l'acompte (${depositAmount.toFixed(2)} €)`
                         : 'Confirmer la commande'
@@ -1285,13 +1388,6 @@ export default function CartPage() {
         />
       )}
 
-      {/* Payment Simulation Modal */}
-      <PaymentSimulationModal
-        isOpen={showPaymentModal}
-        depositAmount={depositAmount}
-        onConfirm={handlePaymentConfirmed}
-        onCancel={() => setShowPaymentModal(false)}
-      />
     </div>
   )
 }

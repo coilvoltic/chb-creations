@@ -22,7 +22,8 @@
       "Bash(find:*)",
       "Bash(ls:*)",
       "Bash(wc:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": []
