@@ -3,10 +3,12 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import { useCart } from '@/contexts/CartContext'
 
 function PaymentSuccessContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { clearCart } = useCart()
   const [isProcessing, setIsProcessing] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [reservationId, setReservationId] = useState<number | null>(null)
@@ -39,8 +41,8 @@ function PaymentSuccessContent() {
         setReservationCode(data.reservationCode)
         setIsProcessing(false)
 
-        // Vider le panier du localStorage
-        localStorage.removeItem('chb-cart')
+        // Vider le panier (localStorage + context)
+        clearCart()
       } catch (err) {
         console.error('Erreur traitement paiement:', err)
         setError(err instanceof Error ? err.message : 'Erreur lors du traitement du paiement')
