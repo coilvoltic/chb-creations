@@ -181,10 +181,9 @@ export async function POST(request: NextRequest) {
       try {
         const deposit = rentalRes?.deposit || 0
 
-        // TEST: Envoyer d'abord SANS PDF pour voir si c'est le PDF le problème
-        console.log('Attempting to send email WITHOUT PDF first...')
+        console.log('Sending confirmation email with PDF attachment...')
         const emailResult = await resend.emails.send({
-          from: 'CHB Créations <noreply@chb-creations.fr>',
+          from: 'CHB Créations <onboarding@resend.dev>',
           to: emailTo,
           subject: `Confirmation de réservation ${customerOrder.order_number} - Paiement confirmé`,
           html: `
@@ -194,14 +193,13 @@ export async function POST(request: NextRequest) {
             <p><strong>Montant de l'acompte payé :</strong> ${deposit.toFixed(2)} €</p>
             <p><strong>Solde restant :</strong> ${(customerOrder.total_price - deposit).toFixed(2)} €</p>
             <p>Le solde sera à régler lors de la récupération ou livraison.</p>
-            <p><strong>Note temporaire:</strong> Le PDF de confirmation sera envoyé séparément.</p>
+            <p>Vous trouverez tous les détails de votre réservation en pièce jointe.</p>
             <p>À très bientôt !</p>
             <p>L'équipe CHB Créations</p>
           `,
-          // Temporairement désactivé pour tester
-          // attachments: [{ filename: `reservation-${customerOrder.order_number}.pdf`, content: pdfBuffer }],
+          attachments: [{ filename: `reservation-${customerOrder.order_number}.pdf`, content: pdfBuffer }],
         })
-        console.log('Email sent successfully (without PDF):', emailResult.data?.id || 'No ID returned')
+        console.log('Email sent successfully with PDF:', emailResult.data?.id || 'No ID returned')
 
         if (emailResult.error) {
           console.error('Resend returned error:', emailResult.error)
