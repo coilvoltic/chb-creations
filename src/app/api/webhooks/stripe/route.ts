@@ -175,12 +175,17 @@ export async function POST(request: NextRequest) {
       console.log('PDF generated successfully')
 
       // Envoyer email
-      console.log('Sending confirmation email to:', customerOrder.customer_infos.email)
+      const emailTo = process.env.RESEND_TEST_EMAIL || customerOrder.customer_infos.email
+      console.log('Sending confirmation email to:', emailTo)
+      console.log('Customer email:', customerOrder.customer_infos.email)
       try {
         const deposit = rentalRes?.deposit || 0
+
+        // TEST: Envoyer d'abord SANS PDF pour voir si c'est le PDF le problème
+        console.log('Attempting to send email WITHOUT PDF first...')
         const emailResult = await resend.emails.send({
           from: 'CHB Créations <noreply@chb-creations.fr>',
-          to: customerOrder.customer_infos.email,
+          to: emailTo,
           subject: `Confirmation de réservation ${customerOrder.order_number} - Paiement confirmé`,
           html: `
             <h1>Réservation confirmée !</h1>
@@ -189,16 +194,24 @@ export async function POST(request: NextRequest) {
             <p><strong>Montant de l'acompte payé :</strong> ${deposit.toFixed(2)} €</p>
             <p><strong>Solde restant :</strong> ${(customerOrder.total_price - deposit).toFixed(2)} €</p>
             <p>Le solde sera à régler lors de la récupération ou livraison.</p>
-            <p>Vous trouverez tous les détails de votre réservation en pièce jointe.</p>
+            <p><strong>Note temporaire:</strong> Le PDF de confirmation sera envoyé séparément.</p>
             <p>À très bientôt !</p>
             <p>L'équipe CHB Créations</p>
           `,
-          attachments: [{ filename: `reservation-${customerOrder.order_number}.pdf`, content: pdfBuffer }],
+          // Temporairement désactivé pour tester
+          // attachments: [{ filename: `reservation-${customerOrder.order_number}.pdf`, content: pdfBuffer }],
         })
-        console.log('Email sent successfully:', emailResult.data?.id || 'No ID returned')
+        console.log('Email sent successfully (without PDF):', emailResult.data?.id || 'No ID returned')
+
+        if (emailResult.error) {
+          console.error('Resend returned error:', emailResult.error)
+        }
       } catch (emailError) {
         console.error('Erreur envoi email:', emailError)
         console.error('Email error details:', emailError instanceof Error ? emailError.message : 'Unknown error')
+        if (emailError instanceof Error && emailError.stack) {
+          console.error('Stack trace:', emailError.stack)
+        }
       }
 
       console.log(`Réservation ${customerOrder.order_number} confirmée via webhook`)
