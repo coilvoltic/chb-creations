@@ -270,10 +270,10 @@ function getPaymentStatusBadge(status: string) {
       </span>
     )
   }
-  if (status === 'CONFIRMED_NO_DEPOSIT') {
+  if (status === 'PENDING') {
     return (
       <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 whitespace-nowrap">
-        Non payé
+        En attente
       </span>
     )
   }

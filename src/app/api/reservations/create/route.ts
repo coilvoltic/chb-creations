@@ -106,13 +106,13 @@ export async function POST(request: NextRequest) {
       reservationStatus = 'CONFIRMED'
     } else if (paymentMethod === 'cash' && deposit > 0) {
       // Réservation avec acompte non payé (à payer en espèces en boutique)
-      reservationStatus = 'CONFIRMED_NO_DEPOSIT'
+      reservationStatus = 'PENDING'
     } else if (deposit === 0) {
       // Pas d'acompte requis
-      reservationStatus = 'CONFIRMED_NO_DEPOSIT'
+      reservationStatus = 'PENDING'
     } else {
       // Par défaut
-      reservationStatus = 'CONFIRMED_NO_DEPOSIT'
+      reservationStatus = 'PENDING'
     }
 
     // 1. Créer la commande client (customer_order)

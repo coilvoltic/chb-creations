@@ -87,7 +87,7 @@ export default function AdminDashboardPage() {
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       CONFIRMED: { label: 'Confirmée', color: 'bg-green-100 text-green-800' },
-      CONFIRMED_NO_DEPOSIT: { label: 'Confirmée (sans acompte)', color: 'bg-blue-100 text-blue-800' },
+      PENDING: { label: 'En attente de paiement', color: 'bg-amber-100 text-amber-800' },
       CANCELLED: { label: 'Annulée', color: 'bg-red-100 text-red-800' },
       DONE: { label: 'Terminée', color: 'bg-gray-100 text-gray-800' },
     }

@@ -486,8 +486,8 @@ export default function ComptePage() {
         color: 'text-green-600',
         bg: 'bg-green-50',
       },
-      CONFIRMED_NO_DEPOSIT: {
-        label: 'En attente d\'acompte',
+      PENDING: {
+        label: 'En attente de paiement',
         icon: Clock,
         color: 'text-amber-600',
         bg: 'bg-amber-50',

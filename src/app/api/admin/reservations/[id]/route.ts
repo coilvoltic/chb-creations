@@ -232,7 +232,7 @@ export async function PATCH(
     const { new_status } = body
 
     // Valider le statut
-    const validStatuses = ['CONFIRMED', 'CONFIRMED_NO_DEPOSIT', 'DONE', 'CANCELLED']
+    const validStatuses = ['CONFIRMED', 'PENDING', 'DONE', 'CANCELLED']
     if (!validStatuses.includes(new_status)) {
       return NextResponse.json({
         error: `new_status invalide. Valeurs acceptées: ${validStatuses.join(', ')}`

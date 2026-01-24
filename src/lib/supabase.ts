@@ -60,7 +60,7 @@ export interface Product {
 }
 
 // Enum for reservation status matching Supabase
-export type ReservationStatus = 'DONE' | 'CANCELLED' | 'CONFIRMED' | 'CONFIRMED_NO_DEPOSIT'
+export type ReservationStatus = 'DONE' | 'CANCELLED' | 'CONFIRMED' | 'PENDING'
 
 export interface CustomerInfo {
   firstName: string

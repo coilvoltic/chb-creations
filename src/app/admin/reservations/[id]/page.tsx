@@ -222,7 +222,7 @@ export default function ReservationDetailPage() {
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       CONFIRMED: { label: 'Confirmée', color: 'bg-green-100 text-green-800 border-green-200' },
-      CONFIRMED_NO_DEPOSIT: { label: 'Confirmée (sans acompte)', color: 'bg-blue-100 text-blue-800 border-blue-200' },
+      PENDING: { label: 'En attente de paiement', color: 'bg-amber-100 text-amber-800 border-amber-200' },
       CANCELLED: { label: 'Annulée', color: 'bg-red-100 text-red-800 border-red-200' },
       DONE: { label: 'Terminée', color: 'bg-gray-100 text-gray-800 border-gray-200' },
     }
@@ -297,7 +297,7 @@ export default function ReservationDetailPage() {
             </div>
             <div className="flex items-center gap-3">
               {firstReservation && getStatusBadge(firstReservation.reservation_status)}
-              {firstReservation && firstReservation.reservation_status === 'CONFIRMED_NO_DEPOSIT' && (
+              {firstReservation && firstReservation.reservation_status === 'PENDING' && (
                 <button
                   onClick={handleConfirmPayment}
                   disabled={isConfirmingPayment}
