@@ -36,7 +36,12 @@ export async function POST(request: NextRequest) {
   try {
     const { amount, reservationData } = await request.json()
 
+    console.log('=== CREATE CHECKOUT SESSION ===')
+    console.log('Amount:', amount)
+    console.log('ReservationData:', JSON.stringify(reservationData, null, 2))
+
     if (!amount || !reservationData) {
+      console.error('Missing amount or reservationData')
       return NextResponse.json(
         { error: 'Montant et données de réservation requis' },
         { status: 400 }
@@ -87,6 +92,8 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
+
+    console.log('✅ Customer order created:', customerOrder.id, 'Code:', reservationCode)
 
     // 2. Séparer les items par type
     const rentalItems = (reservationData.items as CartItemPayload[]).filter((item: CartItemPayload) => item.category === 'locations')
@@ -266,6 +273,9 @@ export async function POST(request: NextRequest) {
         customerEmail: reservationData.customerInfo.email,
       },
     })
+
+    console.log('✅ Stripe session created:', session.id)
+    console.log('✅ Redirecting to:', session.url)
 
     return NextResponse.json({ url: session.url })
   } catch (error) {
