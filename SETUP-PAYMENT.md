@@ -127,7 +127,7 @@ GOOGLE_PLACES_API_KEY=votre_cle_api_google
 5. **Pas de redirection Stripe**
 6. L'API `/api/reservations/create` crée la réservation
 7. Email de confirmation envoyé
-8. Statut: `CONFIRMED_NO_DEPOSIT` (à payer en espèces)
+8. Statut: `PENDING` (à payer en espèces ou en ligne plus tard)
 
 ## 5. Calcul des frais de livraison
 

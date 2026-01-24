@@ -23,7 +23,7 @@ Contient les informations de chaque réservation client.
 - `customer_infos` (jsonb) - Contient: `{ firstName, lastName, email, phone }`
 - `deposit` (float4) - Acompte payé (50% par défaut)
 - `caution` (float4) - Montant de la caution
-- `reservation_status` (enum) - `DONE`, `CANCELLED`, `CONFIRMED`, `CONFIRMED_NO_DEPOSIT`
+- `reservation_status` (enum) - `DONE`, `CANCELLED`, `CONFIRMED`, `PENDING`
 - `total_price` (float4) - Prix total de la réservation
 
 #### 3. `reservation_items`
@@ -158,7 +158,7 @@ Le fichier `/src/actions/products.ts` contient la fonction `getProductBySlug()` 
 ### Nouveaux types ajoutés :
 
 ```typescript
-export type ReservationStatus = 'DONE' | 'CANCELLED' | 'CONFIRMED' | 'CONFIRMED_NO_DEPOSIT'
+export type ReservationStatus = 'DONE' | 'CANCELLED' | 'CONFIRMED' | 'PENDING'
 
 export interface CustomerInfo {
   firstName: string

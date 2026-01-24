@@ -83,7 +83,7 @@ This structure allows a single customer order to contain multiple types of reser
    - `total_price` (real): Subtotal for this rental reservation
    - `delivery_address` (text, nullable): Delivery address or null for pickup
    - `delivery_fees` (real): Delivery cost
-   - `reservation_status`: 'DONE' | 'CANCELLED' | 'CONFIRMED' | 'CONFIRMED_NO_DEPOSIT'
+   - `reservation_status`: 'DONE' | 'CANCELLED' | 'CONFIRMED' | 'PENDING'
    - **Note**: No longer contains `customer_infos` (moved to parent)
 
 3. **rental_items**: Individual products in a rental reservation
@@ -403,9 +403,9 @@ All product pages are client components (`'use client'`) to enable interactivity
    - Payment method selection: cash (pay in-store) or online (Stripe)
 
 2. **Payment processing**:
-   - Cash payment: Creates reservation with status 'CONFIRMED_NO_DEPOSIT', customer pays in-store
-   - Online payment: Redirects to Stripe Checkout for deposit payment
-   - After successful Stripe payment: Creates reservation with status 'CONFIRMED'
+   - Cash payment: Creates reservation with status 'PENDING', customer pays in-store
+   - Online payment: Creates reservation with status 'PENDING', then redirects to Stripe Checkout
+   - After successful Stripe payment: Webhook updates reservation status to 'CONFIRMED'
 
 3. **Success page** (`/panier/success`):
    - Displays reservation confirmation
