@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     const stripe = new Stripe(stripeSecretKey, {
-      // @ts-ignore - Match webhook API version
+      // @ts-expect-error - Match webhook API version
       apiVersion: '2023-10-16',
     })
 

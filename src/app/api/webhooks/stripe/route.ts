@@ -6,7 +6,7 @@ import { generateReservationPDF } from '@/lib/pdf-generator'
 import { generateReservationCode } from '@/lib/reservation-code'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  // @ts-ignore - Match webhook API version configured in Stripe Dashboard
+  // @ts-expect-error - Match webhook API version configured in Stripe Dashboard
   apiVersion: '2023-10-16',
 })
 
