@@ -23,7 +23,8 @@ export async function POST(request: NextRequest) {
     }
 
     const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2025-10-29.clover',
+      // @ts-ignore - Match webhook API version
+      apiVersion: '2023-10-16',
     })
 
     // Créer une session Stripe Checkout
