@@ -17,7 +17,7 @@ interface RelayPointSelectorProps {
   customerAddress: string
   onAddressChange: (address: string) => void
   selectedProvider: RelayProvider | null
-  onProviderSelect: (provider: RelayProvider) => void
+  onProviderSelect: (provider: RelayProvider | null) => void
   selectedRelayPoint: RelayPoint | null
   onRelayPointSelect: (relayPoint: RelayPoint) => void
 }
@@ -42,7 +42,7 @@ export default function RelayPointSelector({
       setIsAddressValidated(false)
       // Réinitialiser le transporteur si l'adresse change
       if (selectedProvider) {
-        onProviderSelect(null as any)
+        onProviderSelect(null)
       }
     }
   }

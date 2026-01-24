@@ -219,6 +219,7 @@ interface EventCardProps {
 function EventCard({ event, onClick }: EventCardProps) {
   const categoryColor = getCategoryColor(event.reservationType)
   const icon = getEventIcon(event.type)
+  const paymentBadge = getPaymentStatusBadge(event.status)
 
   return (
     <button
@@ -237,8 +238,11 @@ function EventCard({ event, onClick }: EventCardProps) {
 
         {/* Contenu */}
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-semibold text-stone-900 truncate">
-            #{event.orderNumber}
+          <div className="flex items-center gap-1.5">
+            <div className="text-xs font-semibold text-stone-900 truncate">
+              #{event.orderNumber}
+            </div>
+            {paymentBadge}
           </div>
           <div className="text-xs text-stone-700 truncate">
             {event.customerName}
@@ -255,6 +259,32 @@ function EventCard({ event, onClick }: EventCardProps) {
       </div>
     </button>
   )
+}
+
+// Obtenir le badge de statut de paiement
+function getPaymentStatusBadge(status: string) {
+  if (status === 'CONFIRMED' || status === 'DONE') {
+    return (
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800 whitespace-nowrap">
+        Payé
+      </span>
+    )
+  }
+  if (status === 'CONFIRMED_NO_DEPOSIT') {
+    return (
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 whitespace-nowrap">
+        Non payé
+      </span>
+    )
+  }
+  if (status === 'CANCELLED') {
+    return (
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-800 whitespace-nowrap">
+        Annulé
+      </span>
+    )
+  }
+  return null
 }
 
 // Obtenir l'icône selon le type d'événement

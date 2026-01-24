@@ -276,8 +276,14 @@ export default function CartPage() {
   }
 
   // Handlers pour les points relais
-  const handleRelayProviderSelect = (provider: RelayProvider) => {
+  const handleRelayProviderSelect = (provider: RelayProvider | null) => {
     setSelectedRelayProvider(provider)
+
+    // Si null, on réinitialise
+    if (!provider) {
+      return
+    }
+
     // Reset delivery option in cart when changing provider
     setPurchaseDeliveryOption('relay_point')
 
