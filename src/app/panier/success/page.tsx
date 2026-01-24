@@ -10,6 +10,7 @@ function PaymentSuccessContent() {
   const [isProcessing, setIsProcessing] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [reservationId, setReservationId] = useState<number | null>(null)
+  const [reservationCode, setReservationCode] = useState<string | null>(null)
 
   useEffect(() => {
     const sessionId = searchParams.get('session_id')
@@ -34,7 +35,8 @@ function PaymentSuccessContent() {
           throw new Error(data.error || 'Erreur lors du traitement du paiement')
         }
 
-        setReservationId(data.reservationId)
+        setReservationId(data.orderId)
+        setReservationCode(data.reservationCode)
         setIsProcessing(false)
 
         // Vider le panier du localStorage
@@ -102,7 +104,7 @@ function PaymentSuccessContent() {
           <h1 className="text-3xl font-bold mb-4">Paiement confirmé !</h1>
           <p className="text-stone-700 mb-2">Votre réservation a été confirmée avec succès.</p>
           <p className="text-lg font-semibold text-stone-900 mb-6">
-            Numéro de réservation : <span className="text-black">#{reservationId}</span>
+            Numéro de réservation : <span className="text-black">#{reservationCode}</span>
           </p>
           <div className="bg-stone-50 border border-stone-200 rounded-lg p-6 mb-6 text-left">
             <h2 className="font-semibold mb-3">Prochaines étapes :</h2>
