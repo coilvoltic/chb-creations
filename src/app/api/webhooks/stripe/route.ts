@@ -56,17 +56,23 @@ export async function POST(request: NextRequest) {
   }
 
   if (event.type === 'checkout.session.completed') {
+    console.log('=== WEBHOOK: checkout.session.completed ===')
     const session = event.data.object as Stripe.Checkout.Session
+    console.log('Session ID:', session.id)
+    console.log('Payment status:', session.payment_status)
 
     if (session.payment_status !== 'paid') {
+      console.error('Payment not confirmed:', session.payment_status)
       return NextResponse.json({ error: 'Paiement non confirmé' }, { status: 400 })
     }
 
     try {
       const customerOrderId = session.client_reference_id
+      console.log('Customer Order ID:', customerOrderId)
       if (!customerOrderId) throw new Error('ID de commande manquant')
 
       // Récupérer la commande avec toutes ses réservations
+      console.log('Fetching customer order...')
       const { data: customerOrder, error: orderError } = await supabase
         .from('customer_orders')
         .select(`
@@ -78,9 +84,14 @@ export async function POST(request: NextRequest) {
         .eq('id', parseInt(customerOrderId))
         .single()
 
-      if (orderError || !customerOrder) throw new Error('Commande introuvable')
+      if (orderError || !customerOrder) {
+        console.error('Order fetch error:', orderError)
+        throw new Error('Commande introuvable')
+      }
+      console.log('Order fetched successfully:', customerOrder.order_number)
 
       // Mettre à jour tous les statuts à CONFIRMED
+      console.log('Updating reservation statuses to CONFIRMED...')
       const updates = []
       if (customerOrder.rental_reservations) {
         for (const r of customerOrder.rental_reservations) {
@@ -98,6 +109,7 @@ export async function POST(request: NextRequest) {
         }
       }
       await Promise.all(updates)
+      console.log(`Updated ${updates.length} reservations to CONFIRMED`)
 
       // Préparer données PDF
       const rentalRes = customerOrder.rental_reservations?.[0]
@@ -139,6 +151,7 @@ export async function POST(request: NextRequest) {
       }))
 
       // Générer PDF
+      console.log('Generating PDF...')
       const pdfBuffer = await generateReservationPDF({
         reservationId: customerOrder.id,
         reservationCode: customerOrder.order_number,
@@ -159,11 +172,13 @@ export async function POST(request: NextRequest) {
         prestationDeliveryAddress: prestationRes?.delivery_address,
         prestationDeliveryFees: prestationRes?.delivery_fees || 0,
       })
+      console.log('PDF generated successfully')
 
       // Envoyer email
+      console.log('Sending confirmation email to:', customerOrder.customer_infos.email)
       try {
         const deposit = rentalRes?.deposit || 0
-        await resend.emails.send({
+        const emailResult = await resend.emails.send({
           from: 'CHB Créations <noreply@chb-creations.fr>',
           to: customerOrder.customer_infos.email,
           subject: `Confirmation de réservation ${customerOrder.order_number} - Paiement confirmé`,
@@ -180,8 +195,10 @@ export async function POST(request: NextRequest) {
           `,
           attachments: [{ filename: `reservation-${customerOrder.order_number}.pdf`, content: pdfBuffer }],
         })
+        console.log('Email sent successfully:', emailResult.data?.id || 'No ID returned')
       } catch (emailError) {
         console.error('Erreur envoi email:', emailError)
+        console.error('Email error details:', emailError instanceof Error ? emailError.message : 'Unknown error')
       }
 
       console.log(`Réservation ${customerOrder.order_number} confirmée via webhook`)
