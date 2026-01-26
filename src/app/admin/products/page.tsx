@@ -14,6 +14,7 @@ export default function ManageProductsPage() {
   const [error, setError] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     checkAuthAndLoadProducts()
@@ -74,6 +75,11 @@ export default function ManageProductsPage() {
     }
   }
 
+  // Filter products based on search query
+  const filteredProducts = products.filter((product) =>
+    product.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
   if (loading) {
     return <Loader />
   }
@@ -83,10 +89,13 @@ export default function ManageProductsPage() {
       {/* Header */}
       <header className="bg-white border-b border-stone-200 sticky top-0 z-10">
         <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-2xl font-bold text-black mb-1">Gestion des Produits</h1>
-              <p className="text-sm text-stone-600">{products.length} produit{products.length > 1 ? 's' : ''}</p>
+              <p className="text-sm text-stone-600">
+                {filteredProducts.length} produit{filteredProducts.length > 1 ? 's' : ''}
+                {searchQuery && ` (${products.length} au total)`}
+              </p>
             </div>
             <div className="flex gap-2 md:gap-3">
               <button
@@ -107,6 +116,33 @@ export default function ManageProductsPage() {
               </button>
             </div>
           </div>
+
+          {/* Search Bar */}
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              placeholder="Rechercher un produit par nom..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-stone-400 hover:text-stone-600"
+                title="Effacer"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -118,15 +154,19 @@ export default function ManageProductsPage() {
           </div>
         )}
 
-        {products.length === 0 ? (
+        {filteredProducts.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-12 text-center">
-            <p className="text-stone-600 mb-4">Aucun produit trouvé</p>
-            <button
-              onClick={() => router.push('/admin/products/new')}
-              className="px-4 py-2 bg-black hover:bg-stone-800 text-white rounded-lg transition-colors"
-            >
-              Créer le premier produit
-            </button>
+            <p className="text-stone-600 mb-4">
+              {searchQuery ? `Aucun produit trouvé pour "${searchQuery}"` : 'Aucun produit trouvé'}
+            </p>
+            {!searchQuery && (
+              <button
+                onClick={() => router.push('/admin/products/new')}
+                className="px-4 py-2 bg-black hover:bg-stone-800 text-white rounded-lg transition-colors"
+              >
+                Créer le premier produit
+              </button>
+            )}
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
@@ -143,7 +183,7 @@ export default function ManageProductsPage() {
 
             {/* Product List */}
             <div className="divide-y divide-stone-200">
-              {products.map((product) => (
+              {filteredProducts.map((product) => (
                 <div key={product.id} className="px-6 py-4 hover:bg-stone-50 transition-colors">
                   {/* Mobile Layout */}
                   <div className="md:hidden space-y-3">
