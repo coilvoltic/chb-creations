@@ -14,7 +14,7 @@ interface SelectedOption {
 interface CartItemPayload {
   productId: number
   productName: string
-  category: string // 'locations', 'accessoires-personnalises', or 'henne'
+  category: string // 'locations', 'accessoires-personnalises', or 'prestations'
   quantity: number
   pricePerUnit: number
   rentalStart: string // ISO timestamp (dummy for purchase/prestation items)
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
     // 2. Séparer les items par type (rental vs purchase vs prestation)
     const rentalItems = items.filter(item => item.category === 'locations')
     const purchaseItems = items.filter(item => item.category === 'accessoires-personnalises')
-    const prestationItems = items.filter(item => item.category === 'henne')
+    const prestationItems = items.filter(item => item.category === 'prestations')
 
     let rentalReservationId: number | null = null
     let purchaseReservationId: number | null = null
@@ -397,7 +397,7 @@ export async function POST(request: NextRequest) {
         }))
 
       const prestationItemsEmail = items
-        .filter((item) => item.category === 'henne')
+        .filter((item) => item.category === 'prestations')
         .map((item) => ({
           product_name: item.productName,
           quantity: item.quantity,

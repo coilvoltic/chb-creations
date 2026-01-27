@@ -288,7 +288,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
     product.unavailabilities = unavailabilities || []
 
     // For prestation products (henne), fetch unavailable time slots
-    if (product.category === 'henne') {
+    if (product.category === 'prestations') {
       const { data: prestationSlots, error: slotsError } = await supabase.rpc(
         'get_prestation_all_unavailable_slots',
         { product_id_param: product.id }
@@ -309,24 +309,24 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   }
 }
 
-export async function getHenneSeulProducts(): Promise<Product[]> {
+export async function getHenneProducts(): Promise<Product[]> {
   try {
     const supabase = getSupabaseClient()
 
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .eq('subcategory', 'henne-seul')
+      .eq('subcategory', 'henne')
       .order('created_at', { ascending: true })
 
     if (error) {
-      console.error('Error fetching henne seul products:', error.message)
+      console.error('Error fetching henne products:', error.message)
       return []
     }
 
     return (data as Product[]) || []
   } catch (err) {
-    console.error('Exception fetching henne seul products:', err)
+    console.error('Exception fetching henne products:', err)
     return []
   }
 }

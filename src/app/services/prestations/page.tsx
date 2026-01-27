@@ -4,17 +4,11 @@ import Link from 'next/link'
 export default function HennePage() {
   const categories = [
     {
-      title: 'Henné seul',
-      href: '/services/henne/henne-seul',
-      image: '/imgs/henne/henneSeulMain.jpeg',
+      title: 'Henné',
+      href: '/services/prestations/henne',
+      image: '/imgs/prestations/henneMain.jpeg',
       description: 'Prestations de henné traditionnel pour vos événements'
     },
-    {
-      title: 'Pack henné',
-      href: '/services/henne/pack-henne',
-      image: '/imgs/henne/packHenneMain.png',
-      description: 'Packs complets incluant henné et prestations associées'
-    }
   ]
 
   return (
@@ -25,7 +19,7 @@ export default function HennePage() {
       <section className="relative w-full h-[60vh] overflow-hidden">
         <div className="absolute inset-0">
           <img
-            src="/imgs/henne/henneMain.jpeg"
+            src="/imgs/prestations/prestationsMain.jpeg"
             alt="Henné"
             className="w-full h-full object-cover"
           />
@@ -37,7 +31,7 @@ export default function HennePage() {
               <h1
                 className="text-5xl md:text-6xl font-semibold text-white animate-fade-in-up font-cinzel"
               >
-                Henné.
+                Prestations.
               </h1>
               <div className="text-center max-w-3xl mx-auto">
                 <p className="text-s md:text-xl text-white/90 font-semibold tracking-wide mt-4 md:mt-6 animate-fade-in-up delay-200">

@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     // 2. Séparer les items par type
     const rentalItems = (reservationData.items as CartItemPayload[]).filter((item: CartItemPayload) => item.category === 'locations')
     const purchaseItems = (reservationData.items as CartItemPayload[]).filter((item: CartItemPayload) => item.category === 'accessoires-personnalises')
-    const prestationItems = (reservationData.items as CartItemPayload[]).filter((item: CartItemPayload) => item.category === 'henne')
+    const prestationItems = (reservationData.items as CartItemPayload[]).filter((item: CartItemPayload) => item.category === 'prestations')
 
     // 2a. Créer rental_reservation si nécessaire
     if (rentalItems.length > 0) {

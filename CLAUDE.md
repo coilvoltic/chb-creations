@@ -187,9 +187,9 @@ Required in `.env.local`:
    - Tableaux (`/services/accessoires-personnalises/tableaux`)
    - Textile (`/services/accessoires-personnalises/textile`)
 
-3. **Henné** (`/services/henne`) - Henné services
-   - Henné seul (`/services/henne/henne-seul`)
-   - Pack henné (`/services/henne/pack-henne`)
+3. **Henné** (`/services/prestations`) - Henné services
+   - Henné seul (`/services/prestations/henne-seul`)
+   - Pack henné (`/services/prestations/pack-henne`)
 
 **Individual products** follow pattern: `/services/[category]/[subcategory]/[product-slug]`
 
@@ -434,7 +434,7 @@ Product pages (art-de-table, trônes, deco-et-accessoires, etc.) share identical
 - All subcategories have corresponding server actions:
   - Locations: `getArtDeTableProducts()`, `getTronesProducts()`, `getDecoEtAccessoiresProducts()`
   - Accessoires: `getBougiesProducts()`, `getCertificatsMariageProducts()`, `getCoussinsProducts()`, `getTableauxProducts()`, `getTextileProducts()`, `getBendirProducts()`, `getFairePartsProducts()`, `getOeufsProducts()`
-  - Henné: `getHenneSeulProducts()`, `getPackHenneProducts()`
+  - Henné: `getHenneProducts()`, `getPackHenneProducts()`
 - Common function: `getProductBySlug(slug)` returns product with unavailabilities attached
 
 ## shadcn/ui Integration

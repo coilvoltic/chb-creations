@@ -58,6 +58,21 @@ export default function CartPage() {
   const hasPurchases = purchaseItems.length > 0
   const hasPrestations = prestationItems.length > 0
 
+  // Détection des produits henné spécifiques
+  const hasHenneBoutique = prestationItems.some(item =>
+    item.productName.toLowerCase().includes('henné en boutique') ||
+    item.productSlug.includes('henne-en-boutique')
+  )
+  const hasHenneDomicile = prestationItems.some(item =>
+    item.productName.toLowerCase().includes('henné à domicile') ||
+    item.productSlug.includes('henne-a-domicile')
+  )
+
+  // Si henné en boutique uniquement, forcer pickup
+  const forcePrestationPickup = hasHenneBoutique && !hasHenneDomicile
+  // Si henné à domicile uniquement, forcer delivery
+  const forcePrestationDelivery = hasHenneDomicile && !hasHenneBoutique
+
   // Interface for delivery calculation response
   interface DeliveryCalculationInfo {
     distance: number
@@ -130,6 +145,19 @@ export default function CartPage() {
     loadUserAndAddresses()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Run only once on mount - cart is intentionally not in deps
+
+  // Forcer les options de livraison selon le type de henné
+  useEffect(() => {
+    if (hasPrestations) {
+      if (forcePrestationPickup && cart.prestationDelivery.option !== 'pickup') {
+        setPrestationDeliveryOption('pickup')
+        setPrestationAddressInput('')
+        setPrestationDeliveryInfo(null)
+      } else if (forcePrestationDelivery && cart.prestationDelivery.option !== 'delivery') {
+        setPrestationDeliveryOption('delivery')
+      }
+    }
+  }, [forcePrestationPickup, forcePrestationDelivery, hasPrestations, cart.prestationDelivery.option, setPrestationDeliveryOption])
 
   // Calculer les frais de livraison pour les locations
   const handleCalculateRentalDeliveryFees = async (address?: string) => {
@@ -227,7 +255,7 @@ export default function CartPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           deliveryAddress: addressToUse,
-          category: 'henne',
+          category: 'prestations',
         }),
       })
 
@@ -686,7 +714,7 @@ export default function CartPage() {
               </p>
             )}
             {/* Show prestation date/time slot for prestation products */}
-            {item.category === 'henne' && item.prestationDate && (
+            {item.category === 'prestations' && item.prestationDate && (
               <div className="space-y-1 text-purple-700">
                 <p className="break-words">
                   <span className="font-medium">Date de la prestation :</span>{' '}
@@ -732,9 +760,12 @@ export default function CartPage() {
                 <span className="font-medium">Installation :</span> +{item.installationFees}€ / unité
               </p>
             )}
-            <p>
-              <span className="font-medium">Quantité :</span> {item.quantity}
-            </p>
+            {/* Afficher la quantité uniquement pour locations et achats (pas pour prestations car quantity = 1 et info dans personalizations) */}
+            {item.category !== 'prestations' && (
+              <p>
+                <span className="font-medium">Quantité :</span> {item.quantity}
+              </p>
+            )}
           </div>
 
           {/* Subtotal */}
@@ -1024,81 +1055,115 @@ export default function CartPage() {
                 {/* Options de livraison pour les prestations */}
                 <div className="mt-2 md:mt-4 p-3 md:p-4 bg-purple-50 border border-purple-300 rounded-lg">
                   <h3 className="font-semibold mb-2 md:mb-3 text-sm md:text-base text-purple-900">Lieu de la prestation</h3>
+
+                  {/* Message si mode forcé */}
+                  {forcePrestationPickup && (
+                    <div className="bg-purple-100 border border-purple-400 rounded-lg p-3 mb-3">
+                      <p className="text-sm text-purple-900 font-medium">
+                        ✓ Prestation en boutique uniquement
+                      </p>
+                      <p className="text-xs text-purple-700 mt-1">
+                        100 Boulevard de Saint-Loup, 13010 Marseille
+                      </p>
+                    </div>
+                  )}
+
+                  {forcePrestationDelivery && (
+                    <div className="bg-purple-100 border border-purple-400 rounded-lg p-3 mb-3">
+                      <p className="text-sm text-purple-900 font-medium">
+                        ✓ Prestation à domicile uniquement
+                      </p>
+                      <p className="text-xs text-purple-700 mt-1">
+                        Veuillez renseigner l&apos;adresse de la prestation ci-dessous
+                      </p>
+                    </div>
+                  )}
+
                   <div className="space-y-3">
-                    <label className="flex items-center cursor-pointer">
-                      <input
-                        type="radio"
-                        name="prestationDeliveryOption"
-                        value="pickup"
-                        checked={cart.prestationDelivery.option === 'pickup'}
-                        onChange={() => {
-                          setPrestationDeliveryOption('pickup')
-                          setPrestationAddressInput('')
-                          setPrestationDeliveryInfo(null)
-                        }}
-                        className="mr-3 w-5 h-5 cursor-pointer"
-                      />
-                      <div className="flex-1">
-                        <span className="font-medium">En boutique</span>
-                        <p className="text-xs text-stone-600">100 Boulevard de Saint-Loup, 13010 Marseille</p>
-                      </div>
-                    </label>
-                    <label className="flex items-start cursor-pointer">
-                      <input
-                        type="radio"
-                        name="prestationDeliveryOption"
-                        value="delivery"
-                        checked={cart.prestationDelivery.option === 'delivery'}
-                        onChange={() => setPrestationDeliveryOption('delivery')}
-                        className="mr-3 w-5 h-5 cursor-pointer mt-1"
-                      />
-                      <div className="flex-1">
-                        <span className="font-medium">À domicile</span>
-                        <p className="text-xs text-stone-600 mb-2">Frais de déplacement calculés selon la distance</p>
+                    {/* Option "En boutique" - masquée si henné à domicile */}
+                    {!forcePrestationDelivery && (
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          name="prestationDeliveryOption"
+                          value="pickup"
+                          checked={cart.prestationDelivery.option === 'pickup'}
+                          onChange={() => {
+                            setPrestationDeliveryOption('pickup')
+                            setPrestationAddressInput('')
+                            setPrestationDeliveryInfo(null)
+                          }}
+                          disabled={forcePrestationPickup}
+                          className="mr-3 w-5 h-5 cursor-pointer disabled:opacity-50"
+                        />
+                        <div className="flex-1">
+                          <span className="font-medium">En boutique</span>
+                          <p className="text-xs text-stone-600">100 Boulevard de Saint-Loup, 13010 Marseille</p>
+                        </div>
+                      </label>
+                    )}
 
-                        {cart.prestationDelivery.option === 'delivery' && (
-                          <div className="mt-2 space-y-2">
-                            {(hasRentals && cart.rentalDelivery.address) || (hasPurchases && cart.purchaseDelivery.address) ? (
-                              <button
-                                onClick={handleReuseAddressForPrestations}
-                                className="text-xs text-blue-600 hover:text-blue-700 font-medium underline mb-2"
-                              >
-                                Réutiliser l&apos;adresse renseignée
-                              </button>
-                            ) : null}
+                    {/* Option "À domicile" - masquée si henné en boutique */}
+                    {!forcePrestationPickup && (
+                      <label className="flex items-start cursor-pointer">
+                        <input
+                          type="radio"
+                          name="prestationDeliveryOption"
+                          value="delivery"
+                          checked={cart.prestationDelivery.option === 'delivery'}
+                          onChange={() => setPrestationDeliveryOption('delivery')}
+                          disabled={forcePrestationDelivery}
+                          className="mr-3 w-5 h-5 cursor-pointer mt-1 disabled:opacity-50"
+                        />
+                        <div className="flex-1">
+                          <span className="font-medium">À domicile</span>
+                          <p className="text-xs text-stone-600 mb-2">Frais de déplacement calculés selon la distance</p>
+                        </div>
+                      </label>
+                    )}
 
-                            <AddressAutocomplete
-                              value={prestationAddressInput}
-                              onChange={(value) => {
-                                setPrestationAddressInput(value)
-                                setPrestationDeliveryInfo(null)
-                              }}
-                              onSelect={(address) => {
-                                setPrestationAddressInput(address)
-                                handleCalculatePrestationDeliveryFees(address)
-                              }}
-                              placeholder="Adresse de la prestation"
-                              className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
-                            />
+                    {/* Champ d'adresse pour livraison à domicile */}
+                    {cart.prestationDelivery.option === 'delivery' && (
+                      <div className="mt-2 space-y-2">
+                        {(hasRentals && cart.rentalDelivery.address) || (hasPurchases && cart.purchaseDelivery.address) ? (
+                          <button
+                            onClick={handleReuseAddressForPrestations}
+                            className="text-xs text-blue-600 hover:text-blue-700 font-medium underline mb-2"
+                          >
+                            Réutiliser l&apos;adresse renseignée
+                          </button>
+                        ) : null}
 
-                            {isCalculatingPrestationFees && (
-                              <div className="flex items-center gap-2 text-sm text-stone-600">
-                                <div className="w-4 h-4 border-2 border-stone-200 border-t-purple-600 rounded-full animate-spin"></div>
-                                <span>Calcul des frais en cours...</span>
-                              </div>
-                            )}
+                        <AddressAutocomplete
+                          value={prestationAddressInput}
+                          onChange={(value) => {
+                            setPrestationAddressInput(value)
+                            setPrestationDeliveryInfo(null)
+                          }}
+                          onSelect={(address) => {
+                            setPrestationAddressInput(address)
+                            handleCalculatePrestationDeliveryFees(address)
+                          }}
+                          placeholder="Adresse de la prestation"
+                          className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                        />
 
-                            {prestationDeliveryInfo && (
-                              <div className="bg-white border-slate-300 border p-3 rounded-lg text-xs space-y-1">
-                                <p className="font-medium text-slate-800">Frais de déplacement calculés</p>
-                                <p className="text-stone-700">Distance : {prestationDeliveryInfo.distanceText}</p>
-                                <p className="font-semibold text-slate-800">Total déplacement : {prestationDeliveryInfo.totalDeliveryFees.toFixed(2)} €</p>
-                              </div>
-                            )}
+                        {isCalculatingPrestationFees && (
+                          <div className="flex items-center gap-2 text-sm text-stone-600">
+                            <div className="w-4 h-4 border-2 border-stone-200 border-t-purple-600 rounded-full animate-spin"></div>
+                            <span>Calcul des frais en cours...</span>
+                          </div>
+                        )}
+
+                        {prestationDeliveryInfo && (
+                          <div className="bg-white border-slate-300 border p-3 rounded-lg text-xs space-y-1">
+                            <p className="font-medium text-slate-800">Frais de déplacement calculés</p>
+                            <p className="text-stone-700">Distance : {prestationDeliveryInfo.distanceText}</p>
+                            <p className="font-semibold text-slate-800">Total déplacement : {prestationDeliveryInfo.totalDeliveryFees.toFixed(2)} €</p>
                           </div>
                         )}
                       </div>
-                    </label>
+                    )}
                   </div>
                 </div>
               </div>

@@ -440,7 +440,7 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
             <View style={styles.table}>
               <View style={styles.tableHeader}>
                 <Text style={styles.col1}>Article</Text>
-                <Text style={styles.col2}>Quantité</Text>
+                <Text style={styles.col2}>Nb. personnes</Text>
                 <Text style={styles.col3}>Date & Heure</Text>
                 <Text style={styles.col4}>Prix</Text>
               </View>

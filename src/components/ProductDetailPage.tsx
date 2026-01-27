@@ -47,11 +47,12 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
   // Determine if this is a rental, purchase, or prestation product
   const isRentalProduct = product?.category === 'locations'
   const isPurchaseProduct = product?.category === 'accessoires-personnalises'
-  const isPrestationProduct = product?.category === 'henne'
+  const isPrestationProduct = product?.category === 'prestations'
 
   // State for prestation date/time
   const [prestationDate, setPrestationDate] = useState<Date | null>(null)
   const [prestationTimeSlot, setPrestationTimeSlot] = useState<TimeSlot | undefined>()
+  const [numberOfPeople, setNumberOfPeople] = useState<string>('')
 
   // Get effective price (new_price if available, otherwise price)
   const getEffectivePrice = () => {
@@ -154,6 +155,14 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
         })
       : undefined
 
+    // For prestations: add number of people to personalizations
+    const finalPersonalizations = isPrestationProduct
+      ? {
+          ...personalizationValues,
+          ...(numberOfPeople ? { 'Nombre de personnes': numberOfPeople } : {})
+        }
+      : (Object.keys(personalizationValues).length > 0 ? personalizationValues : undefined)
+
     // For purchase and prestation products, use dummy dates (not displayed or used)
     const finalFrom = (isPurchaseProduct || isPrestationProduct) ? new Date() : rentalPeriod!.from!
     const finalTo = (isPurchaseProduct || isPrestationProduct) ? new Date() : rentalPeriod!.to!
@@ -163,10 +172,10 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
       productName: product.name,
       productSlug: product.slug,
       productImage: product.images[0],
-      quantity,
+      quantity: isPrestationProduct ? 1 : quantity, // Force quantity = 1 for prestations (prix fixe)
       pricePerUnit: getEffectivePrice(),
       selectedOptions,
-      personalizations: Object.keys(personalizationValues).length > 0 ? personalizationValues : undefined,
+      personalizations: finalPersonalizations,
       installationFees: product.installation_fees || undefined,
       needsInstallation,
       rentalPeriod: {
@@ -550,53 +559,95 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                       </p>
                     </div>
                   )}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-4">
-                      <label htmlFor="quantity" className={`text-lg font-semibold ${isInCart ? 'text-stone-400' : ''}`}>
-                        Quantité :
+                  {/* Champ différent selon le type de produit */}
+                  {isPrestationProduct ? (
+                    /* Champ texte simple pour les prestations (information uniquement) */
+                    <div className="mb-4">
+                      <label htmlFor="numberOfPeople" className={`text-lg font-semibold block mb-2 ${isInCart ? 'text-stone-400' : ''}`}>
+                        Nombre de personnes
                       </label>
-                      <div className={`flex items-center border rounded-lg ${isInCart ? 'border-stone-200 bg-stone-50' : 'border-stone-300'}`}>
-                        <button
-                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                          disabled={isInCart}
-                          className="px-4 py-2 hover:bg-stone-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                          aria-label="Diminuer la quantité"
-                        >
-                          -
-                        </button>
-                        <input
-                          id="quantity"
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          value={quantity === 0 ? '' : quantity}
-                          disabled={isInCart}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/[^0-9]/g, '')
-                            if (value === '') {
-                              setQuantity(0)
-                            } else {
-                              setQuantity(Math.min(product.stock, parseInt(value)))
-                            }
-                          }}
-                          onBlur={() => {
-                            if (quantity === 0 || quantity < 1) {
-                              setQuantity(1)
-                            }
-                          }}
-                          className="w-16 text-center border-x border-stone-300 py-2 focus:outline-none disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                        <button
-                          onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                          disabled={isInCart}
-                          className="px-4 py-2 hover:bg-stone-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                          aria-label="Augmenter la quantité"
-                        >
-                          +
-                        </button>
+                      <input
+                        id="numberOfPeople"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={numberOfPeople}
+                        disabled={isInCart}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9]/g, '')
+                          setNumberOfPeople(value)
+                        }}
+                        placeholder="Ex: 5 (optionnel)"
+                        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
+                          isInCart ? 'border-stone-200 bg-stone-50 text-stone-400 cursor-not-allowed' : 'border-stone-300'
+                        }`}
+                      />
+                      <p className="text-sm text-stone-500 mt-1">
+                        Cette information nous aide à mieux préparer la prestation (le prix reste fixe)
+                      </p>
+                    </div>
+                  ) : (
+                    /* Sélecteur de quantité classique pour locations et achats */
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-4">
+                        <label htmlFor="quantity" className={`text-lg font-semibold ${isInCart ? 'text-stone-400' : ''}`}>
+                          Quantité :
+                        </label>
+                        <div className={`flex items-center border rounded-lg ${isInCart ? 'border-stone-200 bg-stone-50' : 'border-stone-300'}`}>
+                          <button
+                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                            disabled={isInCart}
+                            className="px-4 py-2 hover:bg-stone-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                            aria-label="Diminuer la quantité"
+                          >
+                            -
+                          </button>
+                          <input
+                            id="quantity"
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={quantity === 0 ? '' : quantity}
+                            disabled={isInCart}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/[^0-9]/g, '')
+                              if (value === '') {
+                                setQuantity(0)
+                              } else {
+                                // No stock limit for purchases
+                                if (isPurchaseProduct) {
+                                  setQuantity(parseInt(value))
+                                } else {
+                                  setQuantity(Math.min(product.stock, parseInt(value)))
+                                }
+                              }
+                            }}
+                            onBlur={() => {
+                              if (quantity === 0 || quantity < 1) {
+                                setQuantity(1)
+                              }
+                            }}
+                            className="w-16 text-center border-x border-stone-300 py-2 focus:outline-none disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                          <button
+                            onClick={() => {
+                              // No stock limit for purchases
+                              if (isPurchaseProduct) {
+                                setQuantity(quantity + 1)
+                              } else {
+                                setQuantity(Math.min(product.stock, quantity + 1))
+                              }
+                            }}
+                            disabled={isInCart}
+                            className="px-4 py-2 hover:bg-stone-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                            aria-label="Augmenter la quantité"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Date Range Picker - Only for rental products */}

@@ -5,8 +5,8 @@ export default function HenneSeulProductPage({ params }: { params: Promise<{ slu
     <ProductDetailPage
       params={params}
       breadcrumbItems={[
-        { label: 'Henné', href: '/services/henne' },
-        { label: 'Henné seul', href: '/services/henne/henne-seul' },
+        { label: 'Prestations', href: '/services/prestations' },
+        { label: 'Henné', href: '/services/prestations/henne' },
       ]}
     />
   )

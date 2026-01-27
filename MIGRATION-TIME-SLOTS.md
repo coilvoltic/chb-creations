@@ -124,7 +124,7 @@ export interface CartItem {
    - Afficher le créneau horaire dans les emails/PDF
    - Format : "Date : 05/12/2025 - Créneau : 12h à 15h30"
 
-5. **Pages de produits henné** (ex: `src/app/services/henne/[subcategory]/[slug]/page.tsx`)
+5. **Pages de produits henné** (ex: `src/app/services/prestations/[subcategory]/[slug]/page.tsx`)
    - Intégrer le `TimeSlotPicker` au lieu d'un champ d'heure libre
 
 ### Étape 4 : Exemple d'utilisation du TimeSlotPicker

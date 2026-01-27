@@ -120,7 +120,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   const getPrestationItems = (): CartItem[] => {
-    return cart.items.filter(item => item.category === 'henne')
+    return cart.items.filter(item => item.category === 'prestations')
   }
 
   const calculateTotals = (items: CartItem[], _rentalDelivery: DeliveryInfo, _purchaseDelivery: DeliveryInfo, _prestationDelivery: DeliveryInfo) => {

@@ -289,20 +289,20 @@ export default function Navbar() {
 
               {/* Henné */}
               <Link
-                href="/services/henne"
+                href="/services/prestations"
                 className="group relative overflow-hidden rounded-xl bg-white hover:shadow-lg transition-all duration-300"
                 onClick={() => setActiveDropdown(null)}
               >
                 <div className="relative h-32 overflow-hidden">
                   <img
-                    src="/imgs/henne/henneMain.jpeg"
-                    alt="Henné"
+                    src="/imgs/prestations/prestationsMain.jpeg"
+                    alt="Prestations"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                    <h3 className="text-sm font-bold mb-1">Henné</h3>
-                    <p className="text-xs text-white/90">Prestations traditionnelles</p>
+                    <h3 className="text-sm font-bold mb-1">Prestations</h3>
+                    <p className="text-xs text-white/90">Art traditionnel</p>
                   </div>
                 </div>
               </Link>

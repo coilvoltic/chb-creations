@@ -137,7 +137,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
   const categories = useMemo(() => [
     { value: 'locations', label: 'Locations', subcategories: ['art-de-table', 'trones', 'tenues-homme', 'deco-et-accessoires'] },
     { value: 'accessoires-personnalises', label: 'Accessoires Personnalisés', subcategories: ['bendir', 'bougies', 'certificats-mariage', 'coussins', 'faire-parts', 'oeufs', 'tableaux', 'textile'] },
-    { value: 'henne', label: 'Henné', subcategories: ['henne-seul', 'pack-henne'] }
+    { value: 'prestations', label: 'Prestations', subcategories: ['henne'] }
   ], [])
 
   const [availableSubcategories, setAvailableSubcategories] = useState<string[]>([])
@@ -393,8 +393,13 @@ export default function EditProductPage({ params }: EditProductPageProps) {
 
     try {
       // Validate required fields
-      if (!name || !slug || !price || !category || !subcategory || !stock) {
+      if (!name || !slug || !price || !category || !subcategory) {
         throw new Error('Veuillez remplir tous les champs obligatoires')
+      }
+
+      // Validate stock only for "locations" category
+      if (category === 'locations' && !stock) {
+        throw new Error('Le stock est obligatoire pour les produits de location')
       }
 
       if (images.length === 0) {
@@ -425,9 +430,10 @@ export default function EditProductPage({ params }: EditProductPageProps) {
         description: description || null,
         category,
         subcategory,
-        stock: parseInt(stock),
+        // Stock et installation_fees uniquement pour "locations", sinon valeurs par défaut
+        stock: category === 'locations' ? parseInt(stock) : 0,
         is_out_of_stock: isOutOfStock,
-        installation_fees: installationFees ? parseFloat(installationFees) : null,
+        installation_fees: category === 'locations' && installationFees ? parseFloat(installationFees) : null,
         images: imageUrls,
         personalizations: cleanedPersonalizations.length > 0 ? cleanedPersonalizations : null,
         faq: cleanedFaq.length > 0 ? cleanedFaq : null,
@@ -609,32 +615,38 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">
-                  Stock <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  value={stock}
-                  onChange={(e) => setStock(e.target.value)}
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                  required
-                />
-              </div>
+              {/* Stock - uniquement pour la catégorie "locations" */}
+              {category === 'locations' && (
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-2">
+                    Stock <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={stock}
+                    onChange={(e) => setStock(e.target.value)}
+                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                    required
+                  />
+                </div>
+              )}
 
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">
-                  Frais d&apos;installation (€)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={installationFees}
-                  onChange={(e) => setInstallationFees(e.target.value)}
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                  placeholder="Optionnel"
-                />
-              </div>
+              {/* Frais d'installation - uniquement pour la catégorie "locations" */}
+              {category === 'locations' && (
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-2">
+                    Frais d&apos;installation (€)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={installationFees}
+                    onChange={(e) => setInstallationFees(e.target.value)}
+                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                    placeholder="Optionnel"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="mt-6">
