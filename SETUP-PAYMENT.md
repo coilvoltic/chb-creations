@@ -151,7 +151,7 @@ Les frais de base sont fixés par catégorie dans l'API:
 const BASE_DELIVERY_FEES = {
   locations: 70, // Locations (rentals)
   'accessoires-personnalises': 15, // Achats (purchases)
-  henne: 20, // Prestations henné
+  henne: 0, // Prestations henné
 }
 const COST_PER_KM = 1 // 1€ par km
 ```

@@ -7,7 +7,7 @@ const COST_PER_KM = 1 // 1€ par km
 const BASE_DELIVERY_FEES = {
   locations: 70, // Rentals
   'accessoires-personnalises': 15, // Purchases
-  prestations: 20, // Prestations
+  prestations: 0, // Prestations
 } as const
 
 type DeliveryCategory = keyof typeof BASE_DELIVERY_FEES
