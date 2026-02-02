@@ -105,7 +105,7 @@ export default function TimePickerBoutique({
     <div className="space-y-4">
       {/* Message si aucune date sélectionnée */}
       {!selectedDate && (
-        <p className="text-sm text-stone-500 italic">Veuillez d'abord sélectionner une date</p>
+        <p className="text-sm text-stone-500 italic">Veuillez d&apos;abord sélectionner une date</p>
       )}
 
       {selectedDate && (

@@ -94,7 +94,7 @@ export default function TimeSlotPickerFixed({
     <div className="space-y-3">
       {/* Message si aucune date sélectionnée */}
       {!selectedDate && (
-        <p className="text-sm text-stone-500 italic">Veuillez d'abord sélectionner une date</p>
+        <p className="text-sm text-stone-500 italic">Veuillez d&apos;abord sélectionner une date</p>
       )}
 
       {selectedDate && (
