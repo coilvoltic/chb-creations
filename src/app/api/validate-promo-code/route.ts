@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { validatePromoCodeRequestSchema } from '@/lib/validators'
 
 // Server-side Supabase client with service role key
 function getSupabaseServerClient() {
@@ -16,25 +17,22 @@ function getSupabaseServerClient() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { code } = body
 
-    // Validate input
-    if (!code || typeof code !== 'string') {
+    // Validate request with Zod
+    const validationResult = validatePromoCodeRequestSchema.safeParse(body)
+
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Code promo invalide' },
+        {
+          error: 'Code promo invalide',
+          details: validationResult.error.issues,
+        },
         { status: 400 }
       )
     }
 
     // Normalize code (uppercase, trim whitespace)
-    const normalizedCode = code.trim().toUpperCase()
-
-    if (normalizedCode.length === 0) {
-      return NextResponse.json(
-        { error: 'Code promo invalide' },
-        { status: 400 }
-      )
-    }
+    const normalizedCode = validationResult.data.code.trim().toUpperCase()
 
     // Query promotional_codes table
     const supabase = getSupabaseServerClient()

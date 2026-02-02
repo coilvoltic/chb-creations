@@ -1,6 +1,6 @@
 'use server'
 
-import type { Product } from '@/lib/supabase'
+import type { Product } from '@/types'
 import { createClient } from '@supabase/supabase-js'
 
 function getSupabaseClient() {
@@ -14,247 +14,87 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseAnonKey)
 }
 
-export async function getArtDeTableProducts(): Promise<Product[]> {
+/**
+ * Generic function to fetch products by subcategory
+ * Replaces 14 duplicate functions with a single reusable implementation
+ * @param subcategory - The product subcategory to filter by
+ * @param category - Optional category filter for additional validation
+ * @returns Array of products matching the subcategory
+ */
+export async function getProductsBySubcategory(
+  subcategory: string,
+  category?: string
+): Promise<Product[]> {
   try {
     const supabase = getSupabaseClient()
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('products')
       .select('*')
-      .eq('subcategory', 'art-de-table')
+      .eq('subcategory', subcategory)
       .order('created_at', { ascending: true })
 
+    // Optional category filter
+    if (category) {
+      query = query.eq('category', category)
+    }
+
+    const { data, error } = await query
+
     if (error) {
-      console.error('Error fetching art de table products:', error.message)
+      console.error(`Error fetching products for subcategory "${subcategory}":`, error.message)
       return []
     }
 
     return (data as Product[]) || []
   } catch (err) {
-    console.error('Exception fetching art de table products:', err)
+    console.error(`Exception fetching products for subcategory "${subcategory}":`, err)
     return []
   }
+}
+
+export async function getArtDeTableProducts(): Promise<Product[]> {
+  return getProductsBySubcategory('art-de-table', 'locations')
 }
 
 export async function getTronesProducts(): Promise<Product[]> {
-  try {
-    const supabase = getSupabaseClient()
-
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('subcategory', 'trones')
-      .order('created_at', { ascending: true })
-
-    if (error) {
-      console.error('Error fetching trones products:', error.message)
-      return []
-    }
-
-    return (data as Product[]) || []
-  } catch (err) {
-    console.error('Exception fetching trones products:', err)
-    return []
-  }
+  return getProductsBySubcategory('trones', 'locations')
 }
 
 export async function getDecoEtAccessoiresProducts(): Promise<Product[]> {
-  try {
-    const supabase = getSupabaseClient()
-
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('subcategory', 'deco-et-accessoires')
-      .order('created_at', { ascending: true })
-
-    if (error) {
-      console.error('Error fetching deco et accessoires products:', error.message)
-      return []
-    }
-
-    return (data as Product[]) || []
-  } catch (err) {
-    console.error('Exception fetching deco et accessoires products:', err)
-    return []
-  }
+  return getProductsBySubcategory('deco-et-accessoires', 'locations')
 }
 
-
 export async function getBougiesProducts(): Promise<Product[]> {
-  try {
-    const supabase = getSupabaseClient()
-
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('subcategory', 'bougies')
-      .order('created_at', { ascending: true })
-
-    if (error) {
-      console.error('Error fetching bougies products:', error.message)
-      return []
-    }
-
-    return (data as Product[]) || []
-  } catch (err) {
-    console.error('Exception fetching bougies products:', err)
-    return []
-  }
+  return getProductsBySubcategory('bougies', 'accessoires-personnalises')
 }
 
 export async function getCertificatsMariageProducts(): Promise<Product[]> {
-  try {
-    const supabase = getSupabaseClient()
-
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('subcategory', 'certificats-mariage')
-      .order('created_at', { ascending: true })
-
-    if (error) {
-      console.error('Error fetching certificats mariage products:', error.message)
-      return []
-    }
-
-    return (data as Product[]) || []
-  } catch (err) {
-    console.error('Exception fetching certificats mariage products:', err)
-    return []
-  }
+  return getProductsBySubcategory('certificats-mariage', 'accessoires-personnalises')
 }
 
 export async function getCoussinsProducts(): Promise<Product[]> {
-  try {
-    const supabase = getSupabaseClient()
-
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('subcategory', 'coussins')
-      .order('created_at', { ascending: true })
-
-    if (error) {
-      console.error('Error fetching coussins products:', error.message)
-      return []
-    }
-
-    return (data as Product[]) || []
-  } catch (err) {
-    console.error('Exception fetching coussins products:', err)
-    return []
-  }
+  return getProductsBySubcategory('coussins', 'accessoires-personnalises')
 }
 
 export async function getTableauxProducts(): Promise<Product[]> {
-  try {
-    const supabase = getSupabaseClient()
-
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('subcategory', 'tableaux')
-      .order('created_at', { ascending: true })
-
-    if (error) {
-      console.error('Error fetching tableaux products:', error.message)
-      return []
-    }
-
-    return (data as Product[]) || []
-  } catch (err) {
-    console.error('Exception fetching tableaux products:', err)
-    return []
-  }
+  return getProductsBySubcategory('tableaux', 'accessoires-personnalises')
 }
 
 export async function getTextileProducts(): Promise<Product[]> {
-  try {
-    const supabase = getSupabaseClient()
-
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('subcategory', 'textile')
-      .order('created_at', { ascending: true })
-
-    if (error) {
-      console.error('Error fetching textile products:', error.message)
-      return []
-    }
-
-    return (data as Product[]) || []
-  } catch (err) {
-    console.error('Exception fetching textile products:', err)
-    return []
-  }
+  return getProductsBySubcategory('textile', 'accessoires-personnalises')
 }
 
 export async function getBendirProducts(): Promise<Product[]> {
-  try {
-    const supabase = getSupabaseClient()
-
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('subcategory', 'bendir')
-      .order('created_at', { ascending: true })
-
-    if (error) {
-      console.error('Error fetching bendir products:', error.message)
-      return []
-    }
-
-    return (data as Product[]) || []
-  } catch (err) {
-    console.error('Exception fetching bendir products:', err)
-    return []
-  }
+  return getProductsBySubcategory('bendir', 'accessoires-personnalises')
 }
 
 export async function getFairePartsProducts(): Promise<Product[]> {
-  try {
-    const supabase = getSupabaseClient()
-
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('subcategory', 'faire-parts')
-      .order('created_at', { ascending: true })
-
-    if (error) {
-      console.error('Error fetching faire-parts products:', error.message)
-      return []
-    }
-
-    return (data as Product[]) || []
-  } catch (err) {
-    console.error('Exception fetching faire-parts products:', err)
-    return []
-  }
+  return getProductsBySubcategory('faire-parts', 'accessoires-personnalises')
 }
 
 export async function getOeufsProducts(): Promise<Product[]> {
-  try {
-    const supabase = getSupabaseClient()
-
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('subcategory', 'oeufs')
-      .order('created_at', { ascending: true })
-
-    if (error) {
-      console.error('Error fetching oeufs products:', error.message)
-      return []
-    }
-
-    return (data as Product[]) || []
-  } catch (err) {
-    console.error('Exception fetching oeufs products:', err)
-    return []
-  }
+  return getProductsBySubcategory('oeufs', 'accessoires-personnalises')
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
@@ -309,45 +149,9 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 }
 
 export async function getHenneProducts(): Promise<Product[]> {
-  try {
-    const supabase = getSupabaseClient()
-
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('subcategory', 'henne')
-      .order('created_at', { ascending: true })
-
-    if (error) {
-      console.error('Error fetching henne products:', error.message)
-      return []
-    }
-
-    return (data as Product[]) || []
-  } catch (err) {
-    console.error('Exception fetching henne products:', err)
-    return []
-  }
+  return getProductsBySubcategory('henne-seul', 'prestations')
 }
 
 export async function getPackHenneProducts(): Promise<Product[]> {
-  try {
-    const supabase = getSupabaseClient()
-
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('subcategory', 'pack-henne')
-      .order('created_at', { ascending: true })
-
-    if (error) {
-      console.error('Error fetching pack henne products:', error.message)
-      return []
-    }
-
-    return (data as Product[]) || []
-  } catch (err) {
-    console.error('Exception fetching pack henne products:', err)
-    return []
-  }
+  return getProductsBySubcategory('pack-henne', 'prestations')
 }

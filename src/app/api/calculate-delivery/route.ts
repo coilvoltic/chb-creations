@@ -1,38 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const SHOP_ADDRESS = '100 Boulevard de Saint-Loup, 13010 Marseille, France'
-const COST_PER_KM = 1 // 1€ par km
-
-// Fixed base delivery fees by category
-const BASE_DELIVERY_FEES = {
-  locations: 70, // Rentals
-  'accessoires-personnalises': 15, // Purchases
-  prestations: 0, // Prestations
-} as const
-
-type DeliveryCategory = keyof typeof BASE_DELIVERY_FEES
+import { SHOP_CONFIG, DELIVERY_CONFIG, GOOGLE_CONFIG } from '@/config/constants'
+import { calculateDeliverySchema } from '@/lib/validators'
+import type { Category } from '@/config/constants'
 
 export async function POST(request: NextRequest) {
   try {
-    const { deliveryAddress, category } = await request.json()
+    // Parse and validate request body
+    const body = await request.json()
+    const validationResult = calculateDeliverySchema.safeParse(body)
+
+    if (!validationResult.success) {
+      return NextResponse.json(
+        {
+          error: 'Données invalides',
+          details: validationResult.error.issues,
+        },
+        { status: 400 }
+      )
+    }
+
+    const { deliveryAddress, category } = validationResult.data
 
     console.log('Calcul livraison - Adresse:', deliveryAddress, 'Catégorie:', category)
 
-    if (!deliveryAddress || !category) {
-      return NextResponse.json(
-        { error: 'Adresse de livraison et catégorie requises' },
-        { status: 400 }
-      )
-    }
-
-    if (!(category in BASE_DELIVERY_FEES)) {
-      return NextResponse.json(
-        { error: 'Catégorie invalide' },
-        { status: 400 }
-      )
-    }
-
-    const baseDeliveryFees = BASE_DELIVERY_FEES[category as DeliveryCategory]
+    const baseDeliveryFees = DELIVERY_CONFIG.baseFees[category as Category]
 
     const apiKey = process.env.GOOGLE_PLACES_API_KEY
 
@@ -56,13 +47,13 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         origin: {
-          address: SHOP_ADDRESS,
+          address: SHOP_CONFIG.address,
         },
         destination: {
           address: deliveryAddress,
         },
-        travelMode: 'DRIVE',
-        routingPreference: 'TRAFFIC_AWARE',
+        travelMode: GOOGLE_CONFIG.routes.travelMode,
+        routingPreference: GOOGLE_CONFIG.routes.routingPreference,
         computeAlternativeRoutes: false,
         languageCode: 'fr',
         units: 'METRIC',
@@ -92,15 +83,15 @@ export async function POST(request: NextRequest) {
     const durationSeconds = parseInt(route.duration.replace('s', ''))
     const durationMinutes = Math.round(durationSeconds / 60)
 
-    // Calculer les frais: frais de base + (distance en km × 1€)
-    const totalDeliveryFees = baseDeliveryFees + distanceInKm * COST_PER_KM
+    // Calculer les frais: frais de base + (distance en km × coût par km)
+    const totalDeliveryFees = baseDeliveryFees + distanceInKm * DELIVERY_CONFIG.costPerKm
 
     return NextResponse.json({
       distance: distanceInKm,
       distanceText: `${distanceInKm.toFixed(1)} km`,
       duration: `${durationMinutes} min`,
       baseDeliveryFees,
-      distanceFees: distanceInKm * COST_PER_KM,
+      distanceFees: distanceInKm * DELIVERY_CONFIG.costPerKm,
       totalDeliveryFees: parseFloat(totalDeliveryFees.toFixed(2)),
     })
   } catch (error) {
