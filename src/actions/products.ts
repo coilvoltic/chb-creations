@@ -149,7 +149,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 }
 
 export async function getHenneProducts(): Promise<Product[]> {
-  return getProductsBySubcategory('henne-seul', 'prestations')
+  return getProductsBySubcategory('henne', 'prestations')
 }
 
 export async function getPackHenneProducts(): Promise<Product[]> {

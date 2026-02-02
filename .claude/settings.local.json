@@ -24,7 +24,8 @@
       "Bash(wc:*)",
       "Bash(grep:*)",
       "Bash(chmod:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(timeout 10 npm run dev:*)"
     ],
     "deny": [],
     "ask": []
