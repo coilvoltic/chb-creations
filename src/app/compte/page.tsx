@@ -8,7 +8,6 @@ import Navbar from '@/components/Navbar'
 import Loader from '@/components/Loader'
 import { ChevronDown, ChevronUp, Package, Calendar, MapPin, CheckCircle, Clock, XCircle } from 'lucide-react'
 import Image from 'next/image'
-import { TIME_SLOT_LABELS } from '@/lib/supabase'
 import type { CustomerOrder, ReservationStatus } from '@/lib/supabase'
 
 interface ProductInfo {
@@ -35,9 +34,9 @@ interface PurchaseItem {
 
 interface PrestationItem {
   id: number
-  quantity: number
-  prestation_date: string | null
-  time_slot: string | null
+  nb_of_people: number
+  prestation_start: string | null
+  prestation_end: string | null
   products: ProductInfo
 }
 
@@ -305,24 +304,29 @@ function OrderCard({
                     </div>
                     <div className="flex-1">
                       <h4 className="font-semibold">{item.products?.name}</h4>
-                      <p className="text-sm text-stone-600">Quantité : {item.quantity}</p>
-                      {item.prestation_date && (
-                        <div className="flex items-center gap-1 text-sm text-purple-700 mt-1">
-                          <Calendar className="w-4 h-4" />
-                          <span>
-                            {new Date(item.prestation_date).toLocaleDateString('fr-FR', {
-                              weekday: 'long',
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                            })}
-                          </span>
+                      <p className="text-sm text-stone-600">Nombre de personnes : {item.nb_of_people}</p>
+                      {item.prestation_start && item.prestation_end && (
+                        <div className="space-y-1 mt-1">
+                          <div className="flex items-center gap-1 text-sm text-purple-700">
+                            <Calendar className="w-4 h-4" />
+                            <span>
+                              {new Date(item.prestation_start).toLocaleDateString('fr-FR', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                              })}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 text-sm text-purple-600">
+                            <Clock className="w-4 h-4" />
+                            <span>
+                              {new Date(item.prestation_start).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                              {' - '}
+                              {new Date(item.prestation_end).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
                         </div>
-                      )}
-                      {item.time_slot && (
-                        <p className="text-sm text-purple-600 mt-1">
-                          Créneau : {TIME_SLOT_LABELS[item.time_slot as keyof typeof TIME_SLOT_LABELS]}
-                        </p>
                       )}
                     </div>
                   </div>
