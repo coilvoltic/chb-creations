@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { User } from '@supabase/supabase-js'
 import type { CustomerInfo } from '@/lib/supabase'
-import { TIME_SLOT_LABELS } from '@/lib/supabase'
 import type { CartItem } from '@/lib/cart-types'
 import SuccessModal from '@/components/SuccessModal'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
@@ -495,16 +494,12 @@ export default function CartPage() {
             productName: item.productName,
             category: item.category,
             quantity: item.quantity,
+            numberOfPeople: item.numberOfPeople,
             pricePerUnit: unitPrice,
             selectedOptions: item.selectedOptions,
             personalizations: item.personalizations,
-            prestationDate: item.prestationDate ? (() => {
-              const year = item.prestationDate.getFullYear()
-              const month = String(item.prestationDate.getMonth() + 1).padStart(2, '0')
-              const day = String(item.prestationDate.getDate()).padStart(2, '0')
-              return `${year}-${month}-${day}`
-            })() : undefined,
-            prestationTimeSlot: item.prestationTimeSlot,
+            prestationStart: item.prestationStart?.toISOString(),
+            prestationEnd: item.prestationEnd?.toISOString(),
           }
         }),
       ]
@@ -614,17 +609,12 @@ export default function CartPage() {
             productName: item.productName,
             category: item.category,
             quantity: item.quantity,
+            numberOfPeople: item.numberOfPeople,
             pricePerUnit: unitPrice,
             selectedOptions: item.selectedOptions,
             personalizations: item.personalizations,
-            prestationDate: item.prestationDate ? (() => {
-              // Format date in local timezone to avoid UTC conversion issues
-              const year = item.prestationDate.getFullYear()
-              const month = String(item.prestationDate.getMonth() + 1).padStart(2, '0')
-              const day = String(item.prestationDate.getDate()).padStart(2, '0')
-              return `${year}-${month}-${day}`
-            })() : undefined,
-            prestationTimeSlot: item.prestationTimeSlot,
+            prestationStart: item.prestationStart?.toISOString(),
+            prestationEnd: item.prestationEnd?.toISOString(),
           }
         }),
       ]
@@ -713,24 +703,28 @@ export default function CartPage() {
                 <span className="inline-block">{item.rentalPeriod.to.toLocaleDateString('fr-FR')} {item.endTime}</span>
               </p>
             )}
-            {/* Show prestation date/time slot for prestation products */}
-            {item.category === 'prestations' && item.prestationDate && (
+            {/* Show prestation date/time for prestation products */}
+            {item.category === 'prestations' && item.prestationStart && item.prestationEnd && (
               <div className="space-y-1 text-purple-700">
                 <p className="break-words">
                   <span className="font-medium">Date de la prestation :</span>{' '}
-                  {item.prestationDate.toLocaleDateString('fr-FR', {
+                  {item.prestationStart.toLocaleDateString('fr-FR', {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'
                   })}
                 </p>
-                {item.prestationTimeSlot && (
-                  <p className="break-words">
-                    <span className="font-medium">Créneau horaire :</span>{' '}
-                    {TIME_SLOT_LABELS[item.prestationTimeSlot]}
-                  </p>
-                )}
+                <p className="break-words">
+                  <span className="font-medium">Horaire :</span>{' '}
+                  {item.prestationStart.toLocaleTimeString('fr-FR', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })} - {item.prestationEnd.toLocaleTimeString('fr-FR', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </p>
               </div>
             )}
             <p>

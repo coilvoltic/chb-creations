@@ -55,9 +55,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (savedCart) {
       try {
         interface StoredCart {
-          items?: Array<Omit<CartItem, 'rentalPeriod' | 'prestationDate'> & {
+          items?: Array<Omit<CartItem, 'rentalPeriod' | 'prestationStart' | 'prestationEnd'> & {
             rentalPeriod: { from: string; to: string }
-            prestationDate?: string
+            prestationStart?: string
+            prestationEnd?: string
           }>
           totalItems?: number
           totalPrice?: number
@@ -77,7 +78,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
               from: new Date(item.rentalPeriod.from),
               to: new Date(item.rentalPeriod.to),
             },
-            prestationDate: item.prestationDate ? new Date(item.prestationDate) : undefined,
+            prestationStart: item.prestationStart ? new Date(item.prestationStart) : undefined,
+            prestationEnd: item.prestationEnd ? new Date(item.prestationEnd) : undefined,
           })) || [],
           totalItems: parsedCart.totalItems || 0,
           totalPrice: parsedCart.totalPrice || 0,

@@ -142,9 +142,9 @@ export async function POST(request: NextRequest) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const prestationItems = prestationRes?.prestation_items?.map((item: any) => ({
         productName: item.products.name,
-        quantity: item.quantity,
-        prestationDate: item.prestation_date,
-        prestationTimeSlot: item.time_slot,
+        nbOfPeople: item.nb_of_people || 1,
+        prestationStart: item.prestation_start,
+        prestationEnd: item.prestation_end,
         pricePerUnit: 0,
         selectedOptions: item.options?.selectedOptions as SelectedOption[] | undefined,
         personalizations: item.personalizations,

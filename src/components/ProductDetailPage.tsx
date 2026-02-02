@@ -4,10 +4,11 @@ import Navbar from '@/components/Navbar'
 import Breadcrumb from '@/components/Breadcrumb'
 import DateRangePicker from '@/components/DateRangePicker'
 import PrestationDatePicker from '@/components/PrestationDatePicker'
-import TimeSlotPicker from '@/components/TimeSlotPicker'
+import TimePickerBoutique from '@/components/TimePickerBoutique'
+import TimeSlotPickerFixed, { getSlotTimes } from '@/components/TimeSlotPickerFixed'
 import { useState, useEffect, use } from 'react'
 import { getProductBySlug } from '@/actions/products'
-import type { Product, TimeSlot } from '@/lib/supabase'
+import type { Product } from '@/lib/supabase'
 import { notFound, useRouter } from 'next/navigation'
 import { parseSimpleMarkdown } from '@/lib/markdown'
 import type { DateRange } from 'react-day-picker'
@@ -51,8 +52,13 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
 
   // State for prestation date/time
   const [prestationDate, setPrestationDate] = useState<Date | null>(null)
-  const [prestationTimeSlot, setPrestationTimeSlot] = useState<TimeSlot | undefined>()
+  const [prestationTime, setPrestationTime] = useState<string | null>(null) // Format HH:MM pour henné en boutique
+  const [prestationSlot, setPrestationSlot] = useState<'LUNCH' | 'AFTERNOON' | 'EVENING' | null>(null) // Créneau fixe pour henné à domicile
   const [numberOfPeople, setNumberOfPeople] = useState<string>('')
+
+  // Déterminer le type de henné (boutique ou domicile)
+  const isHenneBoutique = product?.name.toLowerCase().includes('henné en boutique') || false
+  const isHenneDomicile = product?.name.toLowerCase().includes('henné à domicile') || false
 
   // Get effective price (new_price if available, otherwise price)
   const getEffectivePrice = () => {
@@ -105,35 +111,26 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
     loadProduct()
   }, [slug])
 
-  // Calculate unavailable slots for the selected date (from pre-loaded data)
-  const getUnavailableSlotsForDate = (date: Date | null): TimeSlot[] => {
-    if (!date || !product || !product.prestationUnavailableSlots) {
-      return []
-    }
+  // Get total duration by summing ALL selected options durations
+  const getTotalPrestationDuration = (): number => {
+    if (!product || !product.options || product.options.length === 0) return 60 // Default 60 min
 
-    // Format date in local timezone to avoid UTC conversion issues
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const dateStr = `${year}-${month}-${day}` // Format: YYYY-MM-DD
+    let totalDuration = 0
+    let foundAnyDuration = false
 
-    // Filter slots for the selected date
-    const slotsForDate = product.prestationUnavailableSlots
-      .filter(slot => slot.date === dateStr)
-      .map(slot => slot.time_slot)
+    // Sum durations from ALL option groups
+    product.options.forEach((optionGroup, groupIndex) => {
+      const selectedIndex = selectedOptionIndices[groupIndex] ?? 0
+      const selectedOption = optionGroup.options[selectedIndex]
+      if (selectedOption?.duration && selectedOption.duration > 0) {
+        totalDuration += selectedOption.duration
+        foundAnyDuration = true
+      }
+    })
 
-    return slotsForDate
+    // If no duration found in any option, return default
+    return foundAnyDuration ? totalDuration : 60
   }
-
-  // Get unavailable slots for currently selected date
-  const unavailableSlots = getUnavailableSlotsForDate(prestationDate)
-
-  // Auto-deselect time slot if it becomes unavailable when date changes
-  useEffect(() => {
-    if (prestationTimeSlot && unavailableSlots.includes(prestationTimeSlot)) {
-      setPrestationTimeSlot(undefined)
-    }
-  }, [prestationDate, prestationTimeSlot, unavailableSlots])
 
   const handleAddToCart = () => {
     if (!product) return
@@ -167,12 +164,35 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
     const finalFrom = (isPurchaseProduct || isPrestationProduct) ? new Date() : rentalPeriod!.from!
     const finalTo = (isPurchaseProduct || isPrestationProduct) ? new Date() : rentalPeriod!.to!
 
+    // Calculate prestationStart and prestationEnd for prestation items
+    let prestationStart: Date | undefined
+    let prestationEnd: Date | undefined
+
+    if (isPrestationProduct && prestationDate) {
+      if (isHenneBoutique && prestationTime) {
+        // Henné en boutique: heure flexible
+        const [hours, minutes] = prestationTime.split(':').map(Number)
+        prestationStart = new Date(prestationDate)
+        prestationStart.setHours(hours, minutes, 0, 0)
+
+        const duration = getTotalPrestationDuration()
+        prestationEnd = new Date(prestationStart)
+        prestationEnd.setMinutes(prestationEnd.getMinutes() + duration)
+      } else if (isHenneDomicile && prestationSlot) {
+        // Henné à domicile: créneau fixe
+        const { start, end } = getSlotTimes(prestationSlot, prestationDate)
+        prestationStart = start
+        prestationEnd = end
+      }
+    }
+
     addToCart({
       productId: product.id,
       productName: product.name,
       productSlug: product.slug,
       productImage: product.images[0],
       quantity: isPrestationProduct ? 1 : quantity, // Force quantity = 1 for prestations (prix fixe)
+      numberOfPeople: isPrestationProduct && numberOfPeople ? parseInt(numberOfPeople) : undefined,
       pricePerUnit: getEffectivePrice(),
       selectedOptions,
       personalizations: finalPersonalizations,
@@ -184,8 +204,8 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
       },
       startTime,
       endTime,
-      prestationDate: isPrestationProduct ? prestationDate || undefined : undefined,
-      prestationTimeSlot: isPrestationProduct ? prestationTimeSlot : undefined,
+      prestationStart: isPrestationProduct ? prestationStart : undefined,
+      prestationEnd: isPrestationProduct ? prestationEnd : undefined,
       category: product.category,
       subcategory: product.subcategory,
     })
@@ -694,18 +714,39 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                     <PrestationDatePicker
                       selectedDate={prestationDate}
                       onDateChange={setPrestationDate}
+                      disabled={isInCart}
                     />
 
-                    <h2 className={`text-xl font-semibold mt-6 mb-3 ${isInCart ? 'text-stone-400' : ''}`}>Créneau horaire</h2>
-                    <p className={`text-sm mb-4 ${isInCart ? 'text-stone-400' : 'text-stone-600'}`}>
-                      Choisissez votre créneau horaire
-                    </p>
-                    <TimeSlotPicker
-                      selectedSlot={prestationTimeSlot}
-                      onSlotChange={setPrestationTimeSlot}
-                      disabled={isInCart}
-                      unavailableSlots={unavailableSlots}
-                    />
+                    {isHenneBoutique && (
+                      <>
+                        <h2 className={`text-xl font-semibold mt-6 mb-3 ${isInCart ? 'text-stone-400' : ''}`}>Heure de la prestation</h2>
+                        <p className={`text-sm mb-4 ${isInCart ? 'text-stone-400' : 'text-stone-600'}`}>
+                          Choisissez l&apos;heure de début
+                        </p>
+                        <TimePickerBoutique
+                          selectedDate={prestationDate}
+                          selectedTime={prestationTime}
+                          duration={getTotalPrestationDuration()}
+                          onTimeChange={setPrestationTime}
+                          disabled={isInCart}
+                        />
+                      </>
+                    )}
+
+                    {isHenneDomicile && (
+                      <>
+                        <h2 className={`text-xl font-semibold mt-6 mb-3 ${isInCart ? 'text-stone-400' : ''}`}>Créneau horaire</h2>
+                        <p className={`text-sm mb-4 ${isInCart ? 'text-stone-400' : 'text-stone-600'}`}>
+                          Sélectionnez un créneau
+                        </p>
+                        <TimeSlotPickerFixed
+                          selectedDate={prestationDate}
+                          selectedSlot={prestationSlot}
+                          onSlotChange={setPrestationSlot}
+                          disabled={isInCart}
+                        />
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -714,7 +755,9 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                     onClick={handleAddToCart}
                     disabled={
                       (isRentalProduct && (!rentalPeriod?.from || !rentalPeriod?.to)) ||
-                      (isPrestationProduct && (!prestationDate || !prestationTimeSlot)) ||
+                      (isPrestationProduct && isHenneBoutique && (!prestationDate || !prestationTime)) ||
+                      (isPrestationProduct && isHenneDomicile && (!prestationDate || !prestationSlot)) ||
+                      (isPrestationProduct && !isHenneBoutique && !isHenneDomicile && !prestationDate) ||
                       isInCart
                     }
                     className="w-full bg-black text-white px-8 py-4 rounded-lg hover:bg-stone-800 transition-colors text-lg font-medium disabled:bg-stone-300 disabled:cursor-not-allowed"

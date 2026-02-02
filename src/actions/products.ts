@@ -287,18 +287,17 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
     // Attach unavailabilities to the product
     product.unavailabilities = unavailabilities || []
 
-    // For prestation products (henne), fetch unavailable time slots
+    // For prestation products (henne), fetch ALL unavailable time slots (centralized)
     if (product.category === 'prestations') {
       const { data: prestationSlots, error: slotsError } = await supabase.rpc(
-        'get_prestation_all_unavailable_slots',
-        { product_id_param: product.id }
+        'get_all_prestation_unavailabilities'
       )
 
       if (slotsError) {
         console.error('Error fetching prestation unavailable slots:', slotsError.message)
       }
 
-      // Attach prestation unavailable slots to the product
+      // Attach ALL prestation unavailable slots to the product (centralized across all products)
       product.prestationUnavailableSlots = prestationSlots || []
     }
 

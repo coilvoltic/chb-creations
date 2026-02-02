@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import type { CustomerInfo, ReservationStatus, TimeSlot } from '@/lib/supabase'
+import type { CustomerInfo, ReservationStatus } from '@/lib/supabase'
 import { sendReservationConfirmation } from '@/lib/email'
 import { generateReservationCode } from '@/lib/reservation-code'
 
@@ -16,11 +16,12 @@ interface CartItemPayload {
   productName: string
   category: string // 'locations', 'accessoires-personnalises', or 'prestations'
   quantity: number
+  numberOfPeople?: number // For prestation items (henné) - number of people
   pricePerUnit: number
   rentalStart: string // ISO timestamp (dummy for purchase/prestation items)
   rentalEnd: string // ISO timestamp (dummy for purchase/prestation items)
-  prestationDate?: string // ISO timestamp for prestation date
-  prestationTimeSlot?: TimeSlot // Time slot ENUM: 'LUNCH' | 'AFTERNOON' | 'EVENING'
+  prestationStart?: string // ISO timestamp for prestation start (date + heure de début)
+  prestationEnd?: string // ISO timestamp for prestation end (date + heure de fin)
   selectedOptions?: SelectedOption[] // Array of selected options
   personalizations?: { [key: string]: string } // Map of personalization field name to value
   needsInstallation?: boolean
@@ -339,13 +340,13 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // La date de prestation est déjà au format YYYY-MM-DD depuis le panier
+        // Les dates de prestation sont au format ISO timestamp depuis le panier
         return {
           prestation_reservation_id: prestationReservationId,
           product_id: item.productId,
-          quantity: item.quantity,
-          prestation_date: item.prestationDate || null,
-          time_slot: item.prestationTimeSlot || null,
+          nb_of_people: item.numberOfPeople || 1, // Default to 1 if not specified
+          prestation_start: item.prestationStart || null,
+          prestation_end: item.prestationEnd || null,
           options: optionsData,
           personalizations: item.personalizations || null,
         }
@@ -400,11 +401,11 @@ export async function POST(request: NextRequest) {
         .filter((item) => item.category === 'prestations')
         .map((item) => ({
           product_name: item.productName,
-          quantity: item.quantity,
-          prestation_date: item.prestationDate,
-          time_slot: item.prestationTimeSlot,
+          nb_of_people: item.numberOfPeople || 1,
+          prestation_start: item.prestationStart,
+          prestation_end: item.prestationEnd,
           unit_price: item.pricePerUnit,
-          total_price: item.quantity * item.pricePerUnit,
+          total_price: (item.numberOfPeople || 1) * item.pricePerUnit,
           selectedOptions: item.selectedOptions,
           personalizations: item.personalizations,
         }))

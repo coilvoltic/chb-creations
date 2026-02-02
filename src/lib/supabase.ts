@@ -18,8 +18,9 @@ export interface UnavailabilityEntry {
 }
 
 export interface PrestationUnavailableSlot {
-  date: string // YYYY-MM-DD
-  time_slot: TimeSlot
+  product_id: number
+  prestation_start: string // ISO timestamp
+  prestation_end: string // ISO timestamp
 }
 
 export interface FAQItem {
@@ -31,6 +32,7 @@ export interface ProductOption {
   name: string
   description?: string
   additional_fee: number
+  duration?: number // Durée en minutes (pour prestations boutique uniquement)
 }
 
 export interface ProductOptionGroup {
@@ -156,27 +158,14 @@ export interface PrestationReservation {
   delivery_fees?: number
 }
 
-// Time slot types for prestations (matches SQL ENUM TimeSlot)
-export type TimeSlot = 'LUNCH' | 'AFTERNOON' | 'EVENING'
-
-// Time slot display mapping
-export const TIME_SLOT_LABELS: Record<TimeSlot, string> = {
-  LUNCH: '12h à 15h30',
-  AFTERNOON: '16h à 20h',
-  EVENING: '20h30 à 23h30',
-}
-
-// Helper to get all time slots as array
-export const TIME_SLOTS: TimeSlot[] = ['LUNCH', 'AFTERNOON', 'EVENING']
-
 // Prestation Item (items in a prestation reservation)
 export interface PrestationItem {
   id: number
   prestation_reservation_id: number
   product_id: number
-  prestation_date?: string // Date only (YYYY-MM-DD format)
-  time_slot?: TimeSlot // Fixed time slot ENUM: 'LUNCH' | 'AFTERNOON' | 'EVENING'
-  quantity: number
+  prestation_start?: string // ISO timestamp (date + heure de début)
+  prestation_end?: string // ISO timestamp (date + heure de fin)
+  nb_of_people: number // Number of people for the prestation (default: 1)
   options?: RentalItemOption // Same structure as rental items
   personalizations?: Record<string, string>
 }
@@ -227,4 +216,39 @@ export async function getPromotionalMessages(): Promise<PromotionalMessage[]> {
   }
 
   return data || []
+}
+
+// Helper function to get all prestation unavailabilities (centralized across all products)
+export async function getAllPrestationUnavailabilities(): Promise<PrestationUnavailableSlot[]> {
+  const supabase = getSupabaseClient()
+
+  // Call the SQL function get_all_prestation_unavailabilities
+  const { data, error } = await supabase.rpc('get_all_prestation_unavailabilities')
+
+  if (error) {
+    console.error('Error fetching prestation unavailabilities:', error)
+    return []
+  }
+
+  return (data || []) as PrestationUnavailableSlot[]
+}
+
+// Helper function to check if a prestation time slot is available
+export async function isPrestationSlotAvailable(
+  startTime: string,
+  endTime: string
+): Promise<boolean> {
+  const supabase = getSupabaseClient()
+
+  const { data, error } = await supabase.rpc('is_prestation_slot_available', {
+    requested_start: startTime,
+    requested_end: endTime,
+  })
+
+  if (error) {
+    console.error('Error checking slot availability:', error)
+    return false
+  }
+
+  return data === true
 }

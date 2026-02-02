@@ -333,9 +333,17 @@ function getEventLabel(type: CalendarEventType): string {
   }
 }
 
+// Helper function to format date as YYYY-MM-DD in local timezone
+function formatDateLocal(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 // Fonction pour récupérer les événements d'une date spécifique
 function getEventsForDate(date: Date, orders: OrderWithReservations[]): CalendarEvent[] {
-  const dateStr = date.toISOString().split('T')[0]
+  const dateStr = formatDateLocal(date)
   const events: CalendarEvent[] = []
 
   orders.forEach(order => {
@@ -348,8 +356,8 @@ function getEventsForDate(date: Date, orders: OrderWithReservations[]): Calendar
 
         const startDateTime = new Date(item.rental_start)
         const endDateTime = new Date(item.rental_end)
-        const startDate = startDateTime.toISOString().split('T')[0]
-        const endDate = endDateTime.toISOString().split('T')[0]
+        const startDate = formatDateLocal(startDateTime)
+        const endDate = formatDateLocal(endDateTime)
 
         // Extraire l'heure au format HH:MM
         const startTime = startDateTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
@@ -388,13 +396,17 @@ function getEventsForDate(date: Date, orders: OrderWithReservations[]): Calendar
     // Traiter les prestations (prestation_reservations)
     order.prestation_reservations.forEach(prestation => {
       prestation.prestation_items?.forEach(item => {
-        if (!item.prestation_date) return
+        if (!item.prestation_start || !item.prestation_end) return
 
-        const prestationDate = new Date(item.prestation_date).toISOString().split('T')[0]
+        const prestationStartDateTime = new Date(item.prestation_start)
+        const prestationEndDateTime = new Date(item.prestation_end)
+        const prestationDate = formatDateLocal(prestationStartDateTime)
 
         if (dateStr === prestationDate) {
-          // Convertir le time_slot en plage horaire
-          const timeSlotLabel = getTimeSlotLabel(item.time_slot)
+          // Extraire l'heure de début et de fin
+          const startTime = prestationStartDateTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+          const endTime = prestationEndDateTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+          const timeLabel = `${startTime} - ${endTime}`
 
           events.push({
             type: 'prestation',
@@ -404,7 +416,7 @@ function getEventsForDate(date: Date, orders: OrderWithReservations[]): Calendar
             reservationId: prestation.id,
             reservationType: 'prestation',
             status: prestation.reservation_status,
-            time: timeSlotLabel
+            time: timeLabel
           })
         }
       })
@@ -417,7 +429,7 @@ function getEventsForDate(date: Date, orders: OrderWithReservations[]): Calendar
         const orderCreatedDate = new Date(order.created_at)
         const deliveryDate = new Date(orderCreatedDate)
         deliveryDate.setDate(deliveryDate.getDate() + 5)
-        const deliveryDateStr = deliveryDate.toISOString().split('T')[0]
+        const deliveryDateStr = formatDateLocal(deliveryDate)
 
         if (dateStr === deliveryDateStr) {
           events.push({
@@ -436,20 +448,6 @@ function getEventsForDate(date: Date, orders: OrderWithReservations[]): Calendar
   })
 
   return events
-}
-
-// Convertir le time_slot enum en label lisible
-function getTimeSlotLabel(timeSlot?: string): string {
-  switch (timeSlot) {
-    case 'LUNCH':
-      return '12h-15h30'
-    case 'AFTERNOON':
-      return '16h-20h'
-    case 'EVENING':
-      return '20h30-23h30'
-    default:
-      return ''
-  }
 }
 
 // Vérifier si une date est aujourd'hui

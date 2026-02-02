@@ -1,6 +1,5 @@
 import React from 'react'
 import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer'
-import { TimeSlot, TIME_SLOT_LABELS } from './supabase'
 
 // Types
 interface SelectedOption {
@@ -35,9 +34,9 @@ interface PurchaseItem {
 
 interface PrestationItem {
   product_name: string
-  quantity: number
-  prestation_date?: string
-  time_slot?: TimeSlot
+  nb_of_people: number // Number of people for the prestation
+  prestation_start?: string // ISO timestamp (date + heure de début)
+  prestation_end?: string // ISO timestamp (date + heure de fin)
   unit_price: number
   total_price: number
   selectedOptions?: SelectedOption[]
@@ -97,10 +96,10 @@ interface GenerateReservationPDFParams {
   }>
   prestationItems?: Array<{
     productName: string
-    quantity: number
+    nbOfPeople: number // Number of people for the prestation
     pricePerUnit: number
-    prestationDate?: string
-    timeSlot?: TimeSlot
+    prestationStart?: string // ISO timestamp
+    prestationEnd?: string // ISO timestamp
     selectedOptions?: SelectedOption[]
     personalizations?: { [key: string]: string }
   }>
@@ -227,6 +226,14 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleTimeString('fr-FR', {
       hour: '2-digit',
       minute: '2-digit',
     })
@@ -465,10 +472,10 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
                         </Text>
                       )}
                     </Text>
-                    <Text style={styles.col2}>{item.quantity}</Text>
+                    <Text style={styles.col2}>{item.nb_of_people}</Text>
                     <Text style={styles.col3}>
-                      {item.prestation_date ? (
-                        `${formatDate(item.prestation_date)}${item.time_slot ? ` - ${TIME_SLOT_LABELS[item.time_slot]}` : ''}`
+                      {item.prestation_start && item.prestation_end ? (
+                        `${formatDate(item.prestation_start)} de ${formatTime(item.prestation_start)} à ${formatTime(item.prestation_end)}`
                       ) : (
                         'À définir'
                       )}
@@ -612,11 +619,11 @@ export async function generateReservationPDF(params: GenerateReservationPDFParam
     })),
     prestationItems: params.prestationItems?.map((item) => ({
       product_name: item.productName,
-      quantity: item.quantity,
-      prestation_date: item.prestationDate,
-      time_slot: item.timeSlot,
+      nb_of_people: item.nbOfPeople || 1,
+      prestation_start: item.prestationStart,
+      prestation_end: item.prestationEnd,
       unit_price: item.pricePerUnit,
-      total_price: item.quantity * item.pricePerUnit,
+      total_price: (item.nbOfPeople || 1) * item.pricePerUnit,
       selectedOptions: item.selectedOptions,
       personalizations: item.personalizations,
     })),

@@ -3,10 +3,8 @@ export interface SelectedOption {
   name: string
   description?: string
   additional_fee: number
+  duration?: number // Durée en minutes (pour prestations boutique uniquement)
 }
-
-// Time slot type (matches SQL ENUM and src/lib/supabase.ts)
-export type TimeSlot = 'LUNCH' | 'AFTERNOON' | 'EVENING'
 
 export interface CartItem {
   id: string // unique cart item id
@@ -15,6 +13,7 @@ export interface CartItem {
   productSlug: string
   productImage: string
   quantity: number
+  numberOfPeople?: number // For prestation items (henné) - number of people
   pricePerUnit: number
   selectedOptions?: SelectedOption[] // Array of selected options (one per option group)
   personalizations?: { [key: string]: string } // Map of personalization field name to user value
@@ -26,8 +25,8 @@ export interface CartItem {
   }
   startTime: string
   endTime: string
-  prestationDate?: Date // For prestation items (henne, etc.) - date only
-  prestationTimeSlot?: TimeSlot // Fixed time slot ENUM: 'LUNCH' | 'AFTERNOON' | 'EVENING'
+  prestationStart?: Date // For prestation items - date + heure de début
+  prestationEnd?: Date // For prestation items - date + heure de fin
   category: string
   subcategory: string
 }

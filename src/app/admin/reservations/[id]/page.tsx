@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import type { CustomerOrder, RentalReservation, PurchaseReservation, PrestationReservation } from '@/lib/supabase'
-import { TIME_SLOT_LABELS } from '@/lib/supabase'
 import Loader from '@/components/Loader'
 
 interface RentalItem {
@@ -63,9 +62,9 @@ interface PrestationItem {
   id: number
   prestation_reservation_id: number
   product_id: number
-  quantity: number
-  prestation_date?: string // Date only (YYYY-MM-DD)
-  time_slot?: 'LUNCH' | 'AFTERNOON' | 'EVENING' // Fixed time slot ENUM
+  nb_of_people: number // Number of people for the prestation
+  prestation_start?: string // ISO timestamp (date + heure de début)
+  prestation_end?: string // ISO timestamp (date + heure de fin)
   options: {
     selectedOptions?: Array<{
       option_type_name: string
@@ -204,7 +203,9 @@ export default function ReservationDetailPage() {
     const basePrice = item.products.new_price ?? item.products.price
     const optionsFees = item.options?.selectedOptions?.reduce((sum, opt) => sum + opt.additional_fee, 0) ?? 0
     const installationFees = item.options?.installationFees ?? 0
-    return (basePrice + optionsFees + installationFees) * item.quantity
+    // Use nb_of_people for prestation items, quantity for others
+    const multiplier = 'nb_of_people' in item ? item.nb_of_people : item.quantity
+    return (basePrice + optionsFees + installationFees) * multiplier
   }
 
   const calculateRentalTotal = () => {
@@ -714,15 +715,18 @@ export default function ReservationDetailPage() {
                             <h3 className="font-semibold text-base md:text-lg text-black mb-2 break-words">{item.products.name}</h3>
 
                             <div className="space-y-1 text-sm text-stone-700">
-                              {item.prestation_date && (
-                                <p>
-                                  <span className="font-medium">Date :</span> {formatDateOnly(item.prestation_date)}
-                                </p>
-                              )}
-                              {item.time_slot && (
-                                <p>
-                                  <span className="font-medium">Créneau :</span> {TIME_SLOT_LABELS[item.time_slot]}
-                                </p>
+                              {item.prestation_start && item.prestation_end && (
+                                <>
+                                  <p>
+                                    <span className="font-medium">Date :</span> {formatDateOnly(item.prestation_start)}
+                                  </p>
+                                  <p>
+                                    <span className="font-medium">Horaire :</span>{' '}
+                                    {new Date(item.prestation_start).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                    {' - '}
+                                    {new Date(item.prestation_end).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                  </p>
+                                </>
                               )}
                               <p>
                                 <span className="font-medium">Prix unitaire :</span> {(item.products.new_price ?? item.products.price).toFixed(2)} €
@@ -752,7 +756,7 @@ export default function ReservationDetailPage() {
                               )}
 
                               <p>
-                                <span className="font-medium">Quantité :</span> {item.quantity}
+                                <span className="font-medium">Nombre de personnes :</span> {item.nb_of_people}
                               </p>
                             </div>
 
