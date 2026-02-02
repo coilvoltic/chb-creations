@@ -2,35 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { generateReservationCode } from '@/lib/reservation-code'
-import type { TimeSlot } from '@/lib/supabase'
+import type { CartItemPayload } from '@/types'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
-
-interface SelectedOption {
-  option_type_name: string
-  name: string
-  description?: string
-  additional_fee: number
-}
-
-interface CartItemPayload {
-  productId: number
-  productName: string
-  category: string
-  quantity: number
-  pricePerUnit: number
-  rentalStart: string
-  rentalEnd: string
-  prestationDate?: string
-  prestationTimeSlot?: TimeSlot
-  selectedOptions?: SelectedOption[]
-  personalizations?: { [key: string]: string }
-  needsInstallation?: boolean
-  installationFees?: number
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -204,7 +181,7 @@ export async function POST(request: NextRequest) {
           customer_order_id: customerOrder.id,
           delivery_address: reservationData.prestationDelivery?.option === 'delivery' ? reservationData.prestationDelivery.address : null,
           delivery_fees: reservationData.prestationDelivery?.fees || 0,
-          total_price: prestationItems.reduce((sum: number, item: CartItemPayload) => sum + (item.pricePerUnit * item.quantity), 0),
+          total_price: prestationItems.reduce((sum: number, item: CartItemPayload) => sum + (item.pricePerUnit * (item.numberOfPeople || 1)), 0),
           reservation_status: 'PENDING',
         })
         .select()
@@ -222,10 +199,10 @@ export async function POST(request: NextRequest) {
       const prestationItemsToInsert = prestationItems.map((item: CartItemPayload) => ({
         prestation_reservation_id: prestationReservation.id,
         product_id: item.productId,
-        quantity: item.quantity,
-        prestation_date: item.prestationDate || null,
-        time_slot: item.prestationTimeSlot || null,
-        options: item.selectedOptions ? { selectedOptions: item.selectedOptions } : null,
+        nb_of_people: item.numberOfPeople || 1,
+        prestation_start: item.prestationStart || null,
+        prestation_end: item.prestationEnd || null,
+        options: item.selectedOptions || null, // Stocker directement le tableau
         personalizations: item.personalizations || null,
       }))
 

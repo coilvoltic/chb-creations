@@ -313,7 +313,7 @@ export async function POST(request: NextRequest) {
           delivery_address: prestationDelivery?.option === 'delivery' ? (prestationDelivery.address || null) : null,
           delivery_fees: prestationDelivery?.fees || 0,
           reservation_status: reservationStatus,
-          total_price: prestationItems.reduce((sum, item) => sum + (item.pricePerUnit * item.quantity), 0),
+          total_price: prestationItems.reduce((sum, item) => sum + (item.pricePerUnit * (item.numberOfPeople || 1)), 0),
         })
         .select()
         .single()
@@ -332,14 +332,6 @@ export async function POST(request: NextRequest) {
 
       // Créer les prestation_items
       const prestationItemsData = prestationItems.map((item) => {
-        let optionsData: ReservationItemOptions | null = null
-
-        if (item.selectedOptions && item.selectedOptions.length > 0) {
-          optionsData = {
-            selectedOptions: item.selectedOptions,
-          }
-        }
-
         // Les dates de prestation sont au format ISO timestamp depuis le panier
         return {
           prestation_reservation_id: prestationReservationId,
@@ -347,7 +339,7 @@ export async function POST(request: NextRequest) {
           nb_of_people: item.numberOfPeople || 1, // Default to 1 if not specified
           prestation_start: item.prestationStart || null,
           prestation_end: item.prestationEnd || null,
-          options: optionsData,
+          options: item.selectedOptions || null, // Stocker directement le tableau d'options
           personalizations: item.personalizations || null,
         }
       })
