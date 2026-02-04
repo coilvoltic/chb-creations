@@ -31,6 +31,10 @@ export type {
   PrestationItem,
   ItemOption,
 
+  // Tags
+  Tag,
+  ReservationTag,
+
   // Promotional
   PromotionalCode,
   PromotionalMessage,

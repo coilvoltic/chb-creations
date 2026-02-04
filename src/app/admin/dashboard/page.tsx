@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import type { CustomerOrder, RentalReservation, PurchaseReservation, PrestationReservation, RentalItem, PurchaseItem, PrestationItem } from '@/lib/supabase'
 import Loader from '@/components/Loader'
 import ReservationCalendar from '@/components/ReservationCalendar'
+import TagManagement from '@/components/TagManagement'
 
 // Extended interfaces to include nested items (matching API response structure)
 interface RentalReservationWithItems extends RentalReservation {
@@ -30,7 +31,7 @@ export default function AdminDashboardPage() {
   const [orders, setOrders] = useState<OrderWithReservations[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
+  const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'tags'>('list')
   const router = useRouter()
   const supabase = createClientComponentClient()
 
@@ -152,12 +153,14 @@ export default function AdminDashboardPage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold text-black">
-                Commandes ({orders.length})
+                {viewMode === 'tags' ? 'Gestion des tags' : `Commandes (${orders.length})`}
               </h2>
               <p className="text-sm text-stone-600 mt-1">
                 {viewMode === 'list'
                   ? 'Triées par date de création (plus récentes en premier)'
-                  : 'Vue calendrier des réservations'}
+                  : viewMode === 'calendar'
+                  ? 'Vue calendrier des réservations'
+                  : 'Créez et gérez les tags pour vos réservations'}
               </p>
             </div>
             <div className="flex gap-2">
@@ -187,11 +190,26 @@ export default function AdminDashboardPage() {
                 </svg>
                 <span className="hidden sm:inline">Calendrier</span>
               </button>
+              <button
+                onClick={() => setViewMode('tags')}
+                className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                  viewMode === 'tags'
+                    ? 'bg-black text-white'
+                    : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                <span className="hidden sm:inline">Tags</span>
+              </button>
             </div>
           </div>
         </div>
 
-        {orders.length === 0 ? (
+        {viewMode === 'tags' ? (
+          <TagManagement />
+        ) : orders.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-12 text-center">
             <p className="text-stone-500">Aucune commande pour le moment</p>
           </div>

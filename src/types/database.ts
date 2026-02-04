@@ -11,6 +11,25 @@ export type DeliveryOption = 'pickup' | 'delivery' | 'relay_point'
 
 export type RelayProvider = 'chronopost' | 'mondialrelay'
 
+// ==================== TAGS ====================
+
+export interface Tag {
+  id: number
+  name: string
+  color: string // Hex color code (e.g., #EF4444)
+  created_at: string
+}
+
+export interface ReservationTag {
+  id: number
+  tag_id: number
+  rental_reservation_id?: number
+  purchase_reservation_id?: number
+  prestation_reservation_id?: number
+  created_at: string
+  tag?: Tag // Relation virtuelle pour inclure les détails du tag
+}
+
 // ==================== CUSTOMER INFO ====================
 
 export interface CustomerInfo {
@@ -97,6 +116,7 @@ export interface RentalReservation {
   reservation_status: ReservationStatus
   delivery_address?: string
   delivery_fees?: number
+  tags?: Tag[] // Tags associés à cette réservation (relation via reservation_tags)
 }
 
 // Product option stored in rental/purchase/prestation items
@@ -130,6 +150,7 @@ export interface PurchaseReservation {
   reservation_status: ReservationStatus
   delivery_address?: string
   delivery_fees?: number
+  tags?: Tag[] // Tags associés à cette réservation (relation via reservation_tags)
 }
 
 // Purchase Item (items in a purchase reservation)
@@ -152,6 +173,7 @@ export interface PrestationReservation {
   reservation_status: ReservationStatus
   delivery_address?: string
   delivery_fees?: number
+  tags?: Tag[] // Tags associés à cette réservation (relation via reservation_tags)
 }
 
 // Prestation Item (items in a prestation reservation)

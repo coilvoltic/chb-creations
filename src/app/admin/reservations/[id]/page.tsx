@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import type { CustomerOrder, RentalReservation, PurchaseReservation, PrestationReservation } from '@/lib/supabase'
+import type { CustomerOrder, RentalReservation, PurchaseReservation, PrestationReservation, Tag } from '@/lib/supabase'
 import Loader from '@/components/Loader'
+import ReservationTagSelector from '@/components/ReservationTagSelector'
 
 interface RentalItem {
   id: number
@@ -87,14 +88,17 @@ interface PrestationItem {
 
 interface RentalReservationWithItems extends RentalReservation {
   items: RentalItem[]
+  tags?: Tag[]
 }
 
 interface PurchaseReservationWithItems extends PurchaseReservation {
   items: PurchaseItem[]
+  tags?: Tag[]
 }
 
 interface PrestationReservationWithItems extends PrestationReservation {
   items: PrestationItem[]
+  tags?: Tag[]
 }
 
 interface OrderDetail {
@@ -364,6 +368,27 @@ export default function ReservationDetailPage() {
                       <span className="text-sm text-stone-600">Frais de livraison</span>
                       <span className="text-sm font-semibold text-blue-700">{(firstRental?.delivery_fees ?? 0).toFixed(2)} €</span>
                     </div>
+                    {firstRental && (
+                      <div className="pt-2">
+                        <p className="text-xs text-stone-500 mb-2">Tags :</p>
+                        <ReservationTagSelector
+                          reservationId={firstRental.id}
+                          reservationType="rental"
+                          currentTags={firstRental.tags || []}
+                          onTagsChange={(tags) => {
+                            setData(prev => {
+                              if (!prev) return null
+                              return {
+                                ...prev,
+                                rental_reservations: prev.rental_reservations.map(r =>
+                                  r.id === firstRental.id ? { ...r, tags } : r
+                                )
+                              }
+                            })
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -379,6 +404,27 @@ export default function ReservationDetailPage() {
                       <span className="text-sm text-stone-600">Frais de livraison</span>
                       <span className="text-sm font-semibold text-green-700">{(firstPurchase?.delivery_fees ?? 0).toFixed(2)} €</span>
                     </div>
+                    {firstPurchase && (
+                      <div className="pt-2">
+                        <p className="text-xs text-stone-500 mb-2">Tags :</p>
+                        <ReservationTagSelector
+                          reservationId={firstPurchase.id}
+                          reservationType="purchase"
+                          currentTags={firstPurchase.tags || []}
+                          onTagsChange={(tags) => {
+                            setData(prev => {
+                              if (!prev) return null
+                              return {
+                                ...prev,
+                                purchase_reservations: prev.purchase_reservations.map(p =>
+                                  p.id === firstPurchase.id ? { ...p, tags } : p
+                                )
+                              }
+                            })
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -394,6 +440,27 @@ export default function ReservationDetailPage() {
                       <span className="text-sm text-stone-600">Frais de déplacement</span>
                       <span className="text-sm font-semibold text-purple-700">{(firstPrestation?.delivery_fees ?? 0).toFixed(2)} €</span>
                     </div>
+                    {firstPrestation && (
+                      <div className="pt-2">
+                        <p className="text-xs text-stone-500 mb-2">Tags :</p>
+                        <ReservationTagSelector
+                          reservationId={firstPrestation.id}
+                          reservationType="prestation"
+                          currentTags={firstPrestation.tags || []}
+                          onTagsChange={(tags) => {
+                            setData(prev => {
+                              if (!prev) return null
+                              return {
+                                ...prev,
+                                prestation_reservations: prev.prestation_reservations.map(p =>
+                                  p.id === firstPrestation.id ? { ...p, tags } : p
+                                )
+                              }
+                            })
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 

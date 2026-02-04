@@ -1,7 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import type { CustomerOrder, RentalReservation, PurchaseReservation, PrestationReservation, RentalItem, PurchaseItem, PrestationItem } from '@/lib/supabase'
+import { useMemo, useState, useEffect } from 'react'
+import type { CustomerOrder, RentalReservation, PurchaseReservation, PrestationReservation, RentalItem, PurchaseItem, PrestationItem, Tag } from '@/lib/supabase'
+import QuickTagModal from './QuickTagModal'
 
 // Extended interfaces to include nested items
 interface RentalReservationWithItems extends RentalReservation {
@@ -39,6 +40,7 @@ interface CalendarEvent {
   reservationType: 'rental' | 'purchase' | 'prestation'
   status: string
   time?: string // Heure pour les prestations et locations
+  tags?: Tag[] // Tags associés à la réservation
 }
 
 interface CalendarDay {
@@ -49,6 +51,95 @@ interface CalendarDay {
 
 export default function ReservationCalendar({ orders, onOrderClick }: ReservationCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [allTags, setAllTags] = useState<Tag[]>([])
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
+  const [ordersState, setOrdersState] = useState(orders)
+  const [tagModalState, setTagModalState] = useState<{
+    isOpen: boolean
+    reservationId: number | null
+    reservationType: 'rental' | 'purchase' | 'prestation' | null
+    currentTags: Tag[]
+  }>({
+    isOpen: false,
+    reservationId: null,
+    reservationType: null,
+    currentTags: []
+  })
+
+  // Synchroniser ordersState avec props orders
+  useEffect(() => {
+    setOrdersState(orders)
+  }, [orders])
+
+  // Charger tous les tags disponibles
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const response = await fetch('/api/admin/tags')
+        if (response.ok) {
+          const data = await response.json()
+          setAllTags(data.tags || [])
+        }
+      } catch (error) {
+        console.error('Error fetching tags:', error)
+      }
+    }
+    fetchTags()
+  }, [])
+
+  const openTagModal = (reservationId: number, reservationType: 'rental' | 'purchase' | 'prestation', currentTags: Tag[]) => {
+    setTagModalState({
+      isOpen: true,
+      reservationId,
+      reservationType,
+      currentTags
+    })
+  }
+
+  const closeTagModal = () => {
+    setTagModalState({
+      isOpen: false,
+      reservationId: null,
+      reservationType: null,
+      currentTags: []
+    })
+  }
+
+  const handleTagsChange = (newTags: Tag[]) => {
+    if (!tagModalState.reservationId || !tagModalState.reservationType) return
+
+    // Mettre à jour l'état local
+    setOrdersState(prevOrders => {
+      return prevOrders.map(order => {
+        if (tagModalState.reservationType === 'rental') {
+          return {
+            ...order,
+            rental_reservations: order.rental_reservations.map(r =>
+              r.id === tagModalState.reservationId ? { ...r, tags: newTags } : r
+            )
+          }
+        } else if (tagModalState.reservationType === 'purchase') {
+          return {
+            ...order,
+            purchase_reservations: order.purchase_reservations.map(p =>
+              p.id === tagModalState.reservationId ? { ...p, tags: newTags } : p
+            )
+          }
+        } else if (tagModalState.reservationType === 'prestation') {
+          return {
+            ...order,
+            prestation_reservations: order.prestation_reservations.map(p =>
+              p.id === tagModalState.reservationId ? { ...p, tags: newTags } : p
+            )
+          }
+        }
+        return order
+      })
+    })
+
+    // Mettre à jour l'état du modal
+    setTagModalState(prev => ({ ...prev, currentTags: newTags }))
+  }
 
   const { calendarDays, weekRange } = useMemo(() => {
     // Calculer le début de la semaine (lundi)
@@ -63,10 +154,19 @@ export default function ReservationCalendar({ orders, onOrderClick }: Reservatio
     for (let i = 0; i < 7; i++) {
       const date = new Date(startOfWeek)
       date.setDate(startOfWeek.getDate() + i)
+      const allEvents = getEventsForDate(date, ordersState)
+
+      // Filtrer les événements par tags si des tags sont sélectionnés
+      const filteredEvents = selectedTagIds.length > 0
+        ? allEvents.filter(event =>
+            event.tags && event.tags.some(tag => selectedTagIds.includes(tag.id))
+          )
+        : allEvents
+
       days.push({
         date,
         isCurrentMonth: true,
-        events: getEventsForDate(date, orders)
+        events: filteredEvents
       })
     }
 
@@ -80,7 +180,7 @@ export default function ReservationCalendar({ orders, onOrderClick }: Reservatio
       calendarDays: days,
       weekRange
     }
-  }, [currentDate, orders])
+  }, [currentDate, ordersState, selectedTagIds])
 
   const previousWeek = () => {
     const newDate = new Date(currentDate)
@@ -98,39 +198,90 @@ export default function ReservationCalendar({ orders, onOrderClick }: Reservatio
     setCurrentDate(new Date())
   }
 
+  const toggleTagFilter = (tagId: number) => {
+    setSelectedTagIds(prev =>
+      prev.includes(tagId)
+        ? prev.filter(id => id !== tagId)
+        : [...prev, tagId]
+    )
+  }
+
+  const clearFilters = () => {
+    setSelectedTagIds([])
+  }
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
       {/* En-tête du calendrier */}
-      <div className="p-4 md:p-6 border-b border-stone-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <h2 className="text-xl font-semibold text-black capitalize">
-          {weekRange}
-        </h2>
-        <div className="flex gap-2">
-          <button
-            onClick={goToToday}
-            className="px-3 py-2 text-sm bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
-          >
-            Aujourd&apos;hui
-          </button>
-          <button
-            onClick={previousWeek}
-            className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
-            title="Semaine précédente"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <button
-            onClick={nextWeek}
-            className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
-            title="Semaine suivante"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+      <div className="p-4 md:p-6 border-b border-stone-200">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+          <h2 className="text-xl font-semibold text-black capitalize">
+            {weekRange}
+          </h2>
+          <div className="flex gap-2">
+            <button
+              onClick={goToToday}
+              className="px-3 py-2 text-sm bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
+            >
+              Aujourd&apos;hui
+            </button>
+            <button
+              onClick={previousWeek}
+              className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
+              title="Semaine précédente"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={nextWeek}
+              className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
+              title="Semaine suivante"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
         </div>
+
+        {/* Filtres par tags */}
+        {allTags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-stone-600">Filtrer par tags :</span>
+            {allTags.map(tag => (
+              <button
+                key={tag.id}
+                onClick={() => toggleTagFilter(tag.id)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                  selectedTagIds.includes(tag.id)
+                    ? 'ring-1 ring-offset-1'
+                    : 'opacity-60 hover:opacity-100'
+                }`}
+                style={{
+                  backgroundColor: tag.color + '20',
+                  color: tag.color,
+                  borderColor: tag.color,
+                  borderWidth: '1px',
+                  ...(selectedTagIds.includes(tag.id) && {
+                    ringColor: tag.color
+                  })
+                }}
+              >
+                {tag.name}
+              </button>
+            ))}
+            {selectedTagIds.length > 0 && (
+              <button
+                onClick={clearFilters}
+                className="text-xs text-stone-500 hover:text-stone-700 underline ml-2"
+              >
+                Réinitialiser
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Vue par semaine */}
@@ -142,11 +293,22 @@ export default function ReservationCalendar({ orders, onOrderClick }: Reservatio
               key={index}
               day={day}
               onOrderClick={onOrderClick}
+              onTagClick={openTagModal}
               isToday={isToday(day.date)}
             />
           ))}
         </div>
       </div>
+
+      {/* Modal de gestion des tags */}
+      <QuickTagModal
+        isOpen={tagModalState.isOpen}
+        onClose={closeTagModal}
+        reservationId={tagModalState.reservationId || 0}
+        reservationType={tagModalState.reservationType || 'rental'}
+        currentTags={tagModalState.currentTags}
+        onTagsChange={handleTagsChange}
+      />
     </div>
   )
 }
@@ -154,10 +316,11 @@ export default function ReservationCalendar({ orders, onOrderClick }: Reservatio
 interface CalendarDayCellProps {
   day: CalendarDay
   onOrderClick: (orderId: number) => void
+  onTagClick: (reservationId: number, reservationType: 'rental' | 'purchase' | 'prestation', currentTags: Tag[]) => void
   isToday: boolean
 }
 
-function CalendarDayCell({ day, onOrderClick, isToday }: CalendarDayCellProps) {
+function CalendarDayCell({ day, onOrderClick, onTagClick, isToday }: CalendarDayCellProps) {
   const hasEvents = day.events.length > 0
   const dayName = day.date.toLocaleDateString('fr-FR', { weekday: 'long' })
   const dayNumber = day.date.getDate()
@@ -198,6 +361,7 @@ function CalendarDayCell({ day, onOrderClick, isToday }: CalendarDayCellProps) {
               key={`${event.orderId}-${event.reservationId}-${event.type}-${index}`}
               event={event}
               onClick={() => onOrderClick(event.orderId)}
+              onTagClick={onTagClick}
             />
           ))}
         </div>
@@ -214,50 +378,88 @@ function CalendarDayCell({ day, onOrderClick, isToday }: CalendarDayCellProps) {
 interface EventCardProps {
   event: CalendarEvent
   onClick: () => void
+  onTagClick: (reservationId: number, reservationType: 'rental' | 'purchase' | 'prestation', currentTags: Tag[]) => void
 }
 
-function EventCard({ event, onClick }: EventCardProps) {
+function EventCard({ event, onClick, onTagClick }: EventCardProps) {
   const categoryColor = getCategoryColor(event.reservationType)
   const icon = getEventIcon(event.type)
   const paymentBadge = getPaymentStatusBadge(event.status)
 
-  return (
-    <button
-      onClick={onClick}
-      className={`
-        w-full text-left p-2 rounded-lg border-l-4
-        ${categoryColor}
-        hover:shadow-md transition-shadow
-      `}
-    >
-      <div className="flex items-start gap-2">
-        {/* Icône */}
-        <div className="flex-shrink-0 mt-0.5">
-          {icon}
-        </div>
+  const handleTagClick = (e: React.MouseEvent) => {
+    e.stopPropagation() // Empêcher l'ouverture de la commande
+    onTagClick(event.reservationId, event.reservationType, event.tags || [])
+  }
 
-        {/* Contenu */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <div className="text-xs font-semibold text-stone-900 truncate">
-              #{event.orderNumber}
+  return (
+    <div className="relative group">
+      <button
+        onClick={onClick}
+        className={`
+          w-full text-left p-2 rounded-lg border-l-4
+          ${categoryColor}
+          hover:shadow-md transition-shadow
+        `}
+      >
+        <div className="flex items-start gap-2">
+          {/* Icône */}
+          <div className="flex-shrink-0 mt-0.5">
+            {icon}
+          </div>
+
+          {/* Contenu */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="text-xs font-semibold text-stone-900 truncate">
+                #{event.orderNumber}
+              </div>
+              {paymentBadge}
             </div>
-            {paymentBadge}
-          </div>
-          <div className="text-xs text-stone-700 truncate">
-            {event.customerName}
-          </div>
-          <div className="text-xs text-stone-500 mt-0.5">
-            {getEventLabel(event.type)}
-          </div>
-          {event.time && (
-            <div className="text-xs font-medium text-stone-600 mt-1">
-              {event.time}
+            <div className="text-xs text-stone-700 truncate">
+              {event.customerName}
             </div>
-          )}
+            <div className="text-xs text-stone-500 mt-0.5">
+              {getEventLabel(event.type)}
+            </div>
+            {event.time && (
+              <div className="text-xs font-medium text-stone-600 mt-1">
+                {event.time}
+              </div>
+            )}
+            {/* Tags personnalisés */}
+            {event.tags && event.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {event.tags.map((tag) => (
+                  <span
+                    key={tag.id}
+                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium whitespace-nowrap"
+                    style={{
+                      backgroundColor: tag.color + '20',
+                      color: tag.color,
+                      borderColor: tag.color,
+                      borderWidth: '1px'
+                    }}
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </button>
+      </button>
+
+      {/* Bouton + pour gérer les tags */}
+      <button
+        onClick={handleTagClick}
+        className="absolute top-1 right-1 w-6 h-6 bg-white border border-stone-300 rounded-md shadow-sm hover:bg-stone-50 hover:border-stone-400 transition-all opacity-0 group-hover:opacity-100 flex items-center justify-center"
+        title="Gérer les tags"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+      </button>
+    </div>
   )
 }
 
@@ -373,7 +575,8 @@ function getEventsForDate(date: Date, orders: OrderWithReservations[]): Calendar
             reservationId: rental.id,
             reservationType: 'rental',
             status: rental.reservation_status,
-            time: startTime
+            time: startTime,
+            tags: rental.tags || []
           })
         }
 
@@ -387,7 +590,8 @@ function getEventsForDate(date: Date, orders: OrderWithReservations[]): Calendar
             reservationId: rental.id,
             reservationType: 'rental',
             status: rental.reservation_status,
-            time: endTime
+            time: endTime,
+            tags: rental.tags || []
           })
         }
       })
@@ -416,7 +620,8 @@ function getEventsForDate(date: Date, orders: OrderWithReservations[]): Calendar
             reservationId: prestation.id,
             reservationType: 'prestation',
             status: prestation.reservation_status,
-            time: timeLabel
+            time: timeLabel,
+            tags: prestation.tags || []
           })
         }
       })
@@ -439,7 +644,8 @@ function getEventsForDate(date: Date, orders: OrderWithReservations[]): Calendar
             customerName,
             reservationId: purchase.id,
             reservationType: 'purchase',
-            status: purchase.reservation_status
+            status: purchase.reservation_status,
+            tags: purchase.tags || []
             // Pas d'heure pour les achats
           })
         }

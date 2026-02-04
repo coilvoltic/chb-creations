@@ -27,6 +27,8 @@ export type {
   PrestationReservation,
   PrestationItem,
   ItemOption,
+  Tag,
+  ReservationTag,
   PromotionalCode,
   PromotionalMessage,
 

@@ -86,7 +86,7 @@ export async function GET() {
           .select('*')
           .eq('customer_order_id', order.id)
 
-        // Pour chaque rental_reservation, récupérer ses rental_items
+        // Pour chaque rental_reservation, récupérer ses rental_items et tags
         const rentalReservationsWithItems = await Promise.all(
           (rentalReservations || []).map(async (rental) => {
             const { data: rentalItems } = await supabase
@@ -94,9 +94,18 @@ export async function GET() {
               .select('*')
               .eq('rental_reservation_id', rental.id)
 
+            // Récupérer les tags associés
+            const { data: reservationTags } = await supabase
+              .from('reservation_tags')
+              .select('*, tag:tags(*)')
+              .eq('rental_reservation_id', rental.id)
+
+            const tags = reservationTags?.map(rt => rt.tag).filter(Boolean) || []
+
             return {
               ...rental,
-              rental_items: rentalItems || []
+              rental_items: rentalItems || [],
+              tags
             }
           })
         )
@@ -114,9 +123,18 @@ export async function GET() {
               .select('*')
               .eq('purchase_reservation_id', purchase.id)
 
+            // Récupérer les tags associés
+            const { data: reservationTags } = await supabase
+              .from('reservation_tags')
+              .select('*, tag:tags(*)')
+              .eq('purchase_reservation_id', purchase.id)
+
+            const tags = reservationTags?.map(rt => rt.tag).filter(Boolean) || []
+
             return {
               ...purchase,
-              purchase_items: purchaseItems || []
+              purchase_items: purchaseItems || [],
+              tags
             }
           })
         )
@@ -134,9 +152,18 @@ export async function GET() {
               .select('*')
               .eq('prestation_reservation_id', prestation.id)
 
+            // Récupérer les tags associés
+            const { data: reservationTags } = await supabase
+              .from('reservation_tags')
+              .select('*, tag:tags(*)')
+              .eq('prestation_reservation_id', prestation.id)
+
+            const tags = reservationTags?.map(rt => rt.tag).filter(Boolean) || []
+
             return {
               ...prestation,
-              prestation_items: prestationItems || []
+              prestation_items: prestationItems || [],
+              tags
             }
           })
         )
