@@ -11,10 +11,11 @@ if (!supabaseUrl || !supabaseServiceRoleKey) {
 // PATCH /api/admin/tags/[id] - Modifier un tag
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tagId = parseInt(params.id)
+    const { id } = await params
+    const tagId = parseInt(id)
     if (isNaN(tagId)) {
       return NextResponse.json(
         { error: 'Invalid tag ID' },
@@ -99,10 +100,11 @@ export async function PATCH(
 // DELETE /api/admin/tags/[id] - Supprimer un tag
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tagId = parseInt(params.id)
+    const { id } = await params
+    const tagId = parseInt(id)
     if (isNaN(tagId)) {
       return NextResponse.json(
         { error: 'Invalid tag ID' },

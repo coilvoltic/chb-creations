@@ -11,10 +11,11 @@ if (!supabaseUrl || !supabaseServiceRoleKey) {
 // DELETE /api/admin/reservation-tags/[id] - Supprimer l'association d'un tag à une réservation
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const reservationTagId = parseInt(params.id)
+    const { id } = await params
+    const reservationTagId = parseInt(id)
     if (isNaN(reservationTagId)) {
       return NextResponse.json(
         { error: 'Invalid reservation tag ID' },
