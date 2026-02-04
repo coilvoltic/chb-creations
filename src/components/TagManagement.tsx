@@ -150,7 +150,7 @@ export default function TagManagement() {
         <form onSubmit={editingTag ? handleUpdate : handleCreate}>
           <div className="flex flex-col gap-3">
             {/* Ligne 1: Nom du tag et Couleur */}
-            <div className="flex gap-3 items-center">
+            <div className="flex gap-2 md:gap-3 items-center">
               {/* Nom du tag - 60% */}
               <input
                 type="text"
@@ -158,26 +158,26 @@ export default function TagManagement() {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
-                className="bg-white flex-[0.6] px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                className="bg-white flex-[0.6] min-w-0 px-3 md:px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-sm md:text-base"
               />
 
               {/* Sélecteur de couleur avec dropdown - 40% */}
-              <div className="relative flex-[0.4]">
+              <div className="relative flex-[0.4] min-w-0">
                 <button
                   type="button"
                   onClick={() => setIsColorPickerOpen(!isColorPickerOpen)}
-                  className="w-full flex items-center gap-2 px-4 py-2 border border-stone-300 rounded-lg bg-white transition-colors bg-stone-50"
+                  className="w-full flex items-center gap-1.5 md:gap-2 px-2 md:px-4 py-2 border border-stone-300 rounded-lg bg-stone-50 hover:bg-stone-100 transition-colors"
                 >
                   <div
-                    className="w-5 h-5 md:w-6 md:h-6 rounded border border-stone-300"
+                    className="w-5 h-5 md:w-6 md:h-6 rounded border border-stone-300 flex-shrink-0"
                     style={{ backgroundColor: formData.color }}
                   />
-                  <span className="text-sm text-stone-700 whitespace-nowrap">
+                  <span className="text-xs md:text-sm text-stone-700 truncate">
                     {getColorName(formData.color)}
                   </span>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className={`h-4 w-4 text-stone-500 transition-transform ml-auto ${isColorPickerOpen ? 'rotate-180' : ''}`}
+                    className={`h-4 w-4 text-stone-500 transition-transform ml-auto flex-shrink-0 ${isColorPickerOpen ? 'rotate-180' : ''}`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"

@@ -15,6 +15,8 @@ export default function ManageProductsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [sortField, setSortField] = useState<'name' | 'category' | 'subcategory' | 'price' | 'stock'>('name')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
   useEffect(() => {
     checkAuthAndLoadProducts()
@@ -75,10 +77,46 @@ export default function ManageProductsPage() {
     }
   }
 
-  // Filter products based on search query
-  const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Handle sorting
+  const handleSort = (field: 'name' | 'category' | 'subcategory' | 'price' | 'stock') => {
+    if (sortField === field) {
+      // Toggle direction if same field
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      // New field, default to ascending
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  // Filter and sort products
+  const filteredProducts = products
+    .filter((product) =>
+      product.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      let comparison = 0
+
+      switch (sortField) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name, 'fr')
+          break
+        case 'category':
+          comparison = a.category.localeCompare(b.category, 'fr')
+          break
+        case 'subcategory':
+          comparison = a.subcategory.localeCompare(b.subcategory, 'fr')
+          break
+        case 'price':
+          comparison = a.price - b.price
+          break
+        case 'stock':
+          comparison = a.stock - b.stock
+          break
+      }
+
+      return sortDirection === 'asc' ? comparison : -comparison
+    })
 
   if (loading) {
     return <Loader />
@@ -173,11 +211,81 @@ export default function ManageProductsPage() {
             {/* Table Header - Hidden on mobile */}
             <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-3 bg-stone-50 border-b border-stone-200 font-medium text-sm text-stone-700">
               <div className="col-span-1">Image</div>
-              <div className="col-span-3">Nom</div>
-              <div className="col-span-2">Catégorie</div>
-              <div className="col-span-2">Sous-catégorie</div>
-              <div className="col-span-1">Prix</div>
-              <div className="col-span-1">Stock</div>
+              <button
+                onClick={() => handleSort('name')}
+                className="col-span-3 flex items-center gap-1 hover:text-black transition-colors text-left"
+              >
+                Nom
+                {sortField === 'name' && (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    {sortDirection === 'asc' ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    )}
+                  </svg>
+                )}
+              </button>
+              <button
+                onClick={() => handleSort('category')}
+                className="col-span-2 flex items-center gap-1 hover:text-black transition-colors text-left"
+              >
+                Catégorie
+                {sortField === 'category' && (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    {sortDirection === 'asc' ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    )}
+                  </svg>
+                )}
+              </button>
+              <button
+                onClick={() => handleSort('subcategory')}
+                className="col-span-2 flex items-center gap-1 hover:text-black transition-colors text-left"
+              >
+                Sous-catégorie
+                {sortField === 'subcategory' && (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    {sortDirection === 'asc' ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    )}
+                  </svg>
+                )}
+              </button>
+              <button
+                onClick={() => handleSort('price')}
+                className="col-span-1 flex items-center gap-1 hover:text-black transition-colors text-left"
+              >
+                Prix
+                {sortField === 'price' && (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    {sortDirection === 'asc' ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    )}
+                  </svg>
+                )}
+              </button>
+              <button
+                onClick={() => handleSort('stock')}
+                className="col-span-1 flex items-center gap-1 hover:text-black transition-colors text-left"
+              >
+                Stock
+                {sortField === 'stock' && (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    {sortDirection === 'asc' ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    )}
+                  </svg>
+                )}
+              </button>
               <div className="col-span-2">Actions</div>
             </div>
 

@@ -305,7 +305,7 @@ export default function NewProductPage() {
     updated[groupIndex].options.splice(optionIndex, 1)
     setOptions(updated)
   }
-  const updateOption = (groupIndex: number, optionIndex: number, field: 'name' | 'description' | 'additional_fee', value: string | number) => {
+  const updateOption = (groupIndex: number, optionIndex: number, field: 'name' | 'description' | 'additional_fee' | 'duration', value: string | number) => {
     const updated = [...options]
     updated[groupIndex].options[optionIndex][field] = value as never
     setOptions(updated)
@@ -760,11 +760,22 @@ export default function NewProductPage() {
                         <input
                           type="number"
                           step="1"
-                          value={option.additional_fee}
+                          value={option.additional_fee || ''}
                           onChange={(e) => updateOption(groupIndex, optionIndex, 'additional_fee', parseInt(e.target.value) || 0)}
                           placeholder="Frais (€)"
                           className="w-full md:w-24 px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-sm"
                         />
+                        {/* Champ durée - uniquement pour la catégorie "prestations" */}
+                        {category === 'prestations' && (
+                          <input
+                            type="number"
+                            step="1"
+                            value={option.duration || ''}
+                            onChange={(e) => updateOption(groupIndex, optionIndex, 'duration', parseInt(e.target.value) || 0)}
+                            placeholder="Durée (min)"
+                            className="w-full md:w-24 px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-sm"
+                          />
+                        )}
                         <button
                           type="button"
                           onClick={() => removeOption(groupIndex, optionIndex)}
