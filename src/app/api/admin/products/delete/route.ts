@@ -49,7 +49,38 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Supprimer le produit de la base de données
+    // Supprimer en cascade les références dans les tables liées
+    // 1. Supprimer les rental_items
+    const { error: rentalItemsError } = await supabase
+      .from('rental_items')
+      .delete()
+      .eq('product_id', productId)
+
+    if (rentalItemsError) {
+      console.error('Erreur suppression rental_items:', rentalItemsError)
+    }
+
+    // 2. Supprimer les purchase_items
+    const { error: purchaseItemsError } = await supabase
+      .from('purchase_items')
+      .delete()
+      .eq('product_id', productId)
+
+    if (purchaseItemsError) {
+      console.error('Erreur suppression purchase_items:', purchaseItemsError)
+    }
+
+    // 3. Supprimer les prestation_items
+    const { error: prestationItemsError } = await supabase
+      .from('prestation_items')
+      .delete()
+      .eq('product_id', productId)
+
+    if (prestationItemsError) {
+      console.error('Erreur suppression prestation_items:', prestationItemsError)
+    }
+
+    // 4. Supprimer le produit de la base de données
     const { error: deleteError } = await supabase
       .from('products')
       .delete()

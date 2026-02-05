@@ -137,7 +137,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
   const categories = useMemo(() => [
     { value: 'locations', label: 'Locations', subcategories: ['art-de-table', 'trones', 'tenues-homme', 'deco-et-accessoires'] },
     { value: 'accessoires-personnalises', label: 'Accessoires Personnalisés', subcategories: ['bendir', 'bougies', 'certificats-mariage', 'coussins', 'faire-parts', 'oeufs', 'tableaux', 'textile'] },
-    { value: 'prestations', label: 'Prestations', subcategories: ['henne'] }
+    { value: 'prestations', label: 'Prestations', subcategories: ['henne-boutique', 'henne-domicile'] }
   ], [])
 
   const [availableSubcategories, setAvailableSubcategories] = useState<string[]>([])

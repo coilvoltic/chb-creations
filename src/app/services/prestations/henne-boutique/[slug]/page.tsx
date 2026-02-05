@@ -1,12 +1,12 @@
 import ProductDetailPage from '@/components/ProductDetailPage'
 
-export default function HenneSeulProductPage({ params }: { params: Promise<{ slug: string }> }) {
+export default function HenneBoutiqueProductPage({ params }: { params: Promise<{ slug: string }> }) {
   return (
     <ProductDetailPage
       params={params}
       breadcrumbItems={[
         { label: 'Prestations', href: '/services/prestations' },
-        { label: 'Henné', href: '/services/prestations/henne' },
+        { label: 'Henné en Boutique', href: '/services/prestations/henne-boutique' },
       ]}
     />
   )

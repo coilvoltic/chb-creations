@@ -140,7 +140,7 @@ export default function Home() {
                 <div className="bg-white rounded-2xl overflow-hidden transition-all duration-300 ease-in-out hover:scale-[1.02] hover:-translate-y-2 animate-fade-in-up delay-300">
                   <div className="relative aspect-[3/4] md:aspect-[4/5] overflow-hidden">
                     <img
-                      src="/imgs/prestations/henneMain.jpeg"
+                      src="/imgs/prestations/prestationsMain.jpeg"
                       alt="Henné"
                       className="w-full h-full object-cover"
                     />

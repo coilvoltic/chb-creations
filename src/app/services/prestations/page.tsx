@@ -4,10 +4,16 @@ import Link from 'next/link'
 export default function HennePage() {
   const categories = [
     {
-      title: 'Henné',
-      href: '/services/prestations/henne',
-      image: '/imgs/prestations/henneMain.jpeg',
-      description: 'Prestations de henné traditionnel pour vos événements'
+      title: 'Henné en Boutique',
+      href: '/services/prestations/henne-boutique',
+      image: '/imgs/prestations/henneBoutiqueMain.jpeg',
+      description: 'Prestations de henné en boutique avec créneaux fixes'
+    },
+    {
+      title: 'Henné à Domicile',
+      href: '/services/prestations/henne-domicile',
+      image: '/imgs/prestations/henneDomicileMain.png',
+      description: 'Prestations de henné à votre domicile pour vos événements'
     },
   ]
 

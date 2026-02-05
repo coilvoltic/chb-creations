@@ -56,9 +56,9 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
   const [prestationSlot, setPrestationSlot] = useState<'LUNCH' | 'AFTERNOON' | 'EVENING' | null>(null) // Créneau fixe pour henné à domicile
   const [numberOfPeople, setNumberOfPeople] = useState<string>('')
 
-  // Déterminer le type de henné (boutique ou domicile)
-  const isHenneBoutique = product?.name.toLowerCase().includes('henné en boutique') || false
-  const isHenneDomicile = product?.name.toLowerCase().includes('henné à domicile') || false
+  // Déterminer le type de henné (boutique ou domicile) via subcategory
+  const isHenneBoutique = product?.subcategory === 'henne-boutique'
+  const isHenneDomicile = product?.subcategory === 'henne-domicile'
 
   // Get effective price (new_price if available, otherwise price)
   const getEffectivePrice = () => {
@@ -191,7 +191,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
       productName: product.name,
       productSlug: product.slug,
       productImage: product.images[0],
-      quantity: isPrestationProduct ? 1 : quantity, // Force quantity = 1 for prestations (prix fixe)
+      quantity: isHenneBoutique ? 1 : quantity, // Force quantity = 1 for henne-boutique only (prix fixe)
       numberOfPeople: isPrestationProduct && numberOfPeople ? parseInt(numberOfPeople) : undefined,
       pricePerUnit: getEffectivePrice(),
       selectedOptions,

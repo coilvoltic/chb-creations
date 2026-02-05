@@ -153,7 +153,8 @@ export default function Contact() {
                     <option value="">Sélectionnez un sujet</option>
                     <option value="locations">Location</option>
                     <option value="accessoires">Accessoires personnalisés</option>
-                    <option value="henne">Prestation henné</option>
+                    <option value="henne-boutique">Prestation henné en boutique</option>
+                    <option value="henne-domicile">Prestation henné à domicile</option>
                     <option value="decoration">Livraison / Installation décoration</option>
                     <option value="autre">Autre demande</option>
                   </select>

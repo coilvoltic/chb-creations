@@ -57,14 +57,12 @@ export default function CartPage() {
   const hasPurchases = purchaseItems.length > 0
   const hasPrestations = prestationItems.length > 0
 
-  // Détection des produits henné spécifiques
+  // Détection des produits henné spécifiques par subcategory
   const hasHenneBoutique = prestationItems.some(item =>
-    item.productName.toLowerCase().includes('henné en boutique') ||
-    item.productSlug.includes('henne-en-boutique')
+    item.subcategory === 'henne-boutique'
   )
   const hasHenneDomicile = prestationItems.some(item =>
-    item.productName.toLowerCase().includes('henné à domicile') ||
-    item.productSlug.includes('henne-a-domicile')
+    item.subcategory === 'henne-domicile'
   )
 
   // Si henné en boutique uniquement, forcer pickup
@@ -754,8 +752,8 @@ export default function CartPage() {
                 <span className="font-medium">Installation :</span> +{item.installationFees}€ / unité
               </p>
             )}
-            {/* Afficher la quantité uniquement pour locations et achats (pas pour prestations car quantity = 1 et info dans personalizations) */}
-            {item.category !== 'prestations' && (
+            {/* Afficher la quantité pour locations, achats et henne-domicile (pas pour henne-boutique car quantity = 1) */}
+            {!(item.category === 'prestations' && item.subcategory === 'henne-boutique') && (
               <p>
                 <span className="font-medium">Quantité :</span> {item.quantity}
               </p>

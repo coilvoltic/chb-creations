@@ -98,8 +98,8 @@ export const SUBCATEGORIES = {
   TEXTILE: 'textile',
 
   // Prestations
-  HENNE_SEUL: 'henne-seul',
-  PACK_HENNE: 'pack-henne',
+  HENNE_BOUTIQUE: 'henne-boutique',
+  HENNE_DOMICILE: 'henne-domicile',
 } as const
 
 // ==================== TIME SLOTS (PRESTATIONS) ====================
