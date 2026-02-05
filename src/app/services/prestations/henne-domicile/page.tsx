@@ -10,7 +10,7 @@ export default async function HenneDomicilePage() {
       products={henneDomicileData}
       title="Henné à Domicile."
       description='Prestations de henné à votre domicile pour vos événements.'
-      heroImage="/imgs/prestations/henneDomicileMain.jpeg"
+      heroImage="/imgs/prestations/henneDomicileMain.png"
       heroAlt="Henné à Domicile"
       categorySlug="henne-domicile"
       breadcrumbItems={[
