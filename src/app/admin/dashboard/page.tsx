@@ -7,6 +7,7 @@ import type { CustomerOrder, RentalReservation, PurchaseReservation, PrestationR
 import Loader from '@/components/Loader'
 import ReservationCalendar from '@/components/ReservationCalendar'
 import TagManagement from '@/components/TagManagement'
+import MaintenanceToggle from '@/components/MaintenanceToggle'
 
 // Extended interfaces to include nested items (matching API response structure)
 interface RentalReservationWithItems extends RentalReservation {
@@ -147,6 +148,9 @@ export default function AdminDashboardPage() {
             <p className="text-red-600">{error}</p>
           </div>
         )}
+
+        {/* Mode Maintenance Toggle */}
+        <MaintenanceToggle />
 
         {/* Header avec bouton de bascule */}
         <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6 mb-6">
