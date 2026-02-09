@@ -1,4 +1,42 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useRouter } from 'next/navigation'
+
 export default function MaintenancePage() {
+  const [isLoading, setIsLoading] = useState(true)
+  const supabase = createClientComponentClient()
+  const router = useRouter()
+
+  useEffect(() => {
+    const checkMaintenanceStatus = async () => {
+      try {
+        const { data } = await supabase
+          .rpc('get_maintenance_status')
+          .single()
+
+        // Si le mode maintenance est désactivé, rediriger vers l'accueil
+        if (!(data as { is_maintenance: boolean })?.is_maintenance) {
+          router.replace('/')
+          return
+        }
+      } catch (error) {
+        console.error('Erreur vérification maintenance:', error)
+        // En cas d'erreur, rediriger vers l'accueil
+        router.replace('/')
+        return
+      }
+      setIsLoading(false)
+    }
+
+    checkMaintenanceStatus()
+  }, [supabase, router])
+
+  if (isLoading) {
+    return null
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-stone-50 to-stone-100 flex items-center justify-center p-6">
       <div className="max-w-xl w-full">
