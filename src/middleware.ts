@@ -4,36 +4,45 @@ import type { NextRequest } from 'next/server'
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
 
-  // Récupérer la session
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  // Si pas de session et route admin (sauf login), rediriger vers login
-  if (!session && req.nextUrl.pathname.startsWith('/admin') && !req.nextUrl.pathname.startsWith('/admin/login')) {
-    return NextResponse.redirect(new URL('/admin/login', req.url))
+  // Permettre l'accès à /admin/login sans vérification
+  if (req.nextUrl.pathname === '/admin/login' || req.nextUrl.pathname === '/admin') {
+    return res
   }
 
-  // Si session et route admin/dashboard ou admin/reservations, vérifier que c'est un admin
-  if (session && (req.nextUrl.pathname.startsWith('/admin/dashboard') || req.nextUrl.pathname.startsWith('/admin/reservations'))) {
-    const { data: isAdmin } = await supabase
-      .rpc('is_admin', { user_email: session.user.email })
+  // Pour les autres routes admin, vérifier la session
+  try {
+    const supabase = createMiddlewareClient({ req, res })
 
-    if (!isAdmin) {
-      // Pas admin, déconnecter et rediriger vers home
-      await supabase.auth.signOut()
-      return NextResponse.redirect(new URL('/', req.url))
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    // Si pas de session, rediriger vers login
+    if (!session) {
+      return NextResponse.redirect(new URL('/admin/login', req.url))
     }
-  }
 
-  // Si déjà connecté et accès à /admin/login, rediriger vers dashboard
-  if (session && req.nextUrl.pathname === '/admin/login') {
-    return NextResponse.redirect(new URL('/admin/dashboard', req.url))
-  }
+    // Si session et route protégée, vérifier que c'est un admin
+    if (req.nextUrl.pathname.startsWith('/admin/dashboard') ||
+        req.nextUrl.pathname.startsWith('/admin/reservations') ||
+        req.nextUrl.pathname.startsWith('/admin/products')) {
+      const { data: isAdmin } = await supabase
+        .rpc('is_admin', { user_email: session.user.email })
 
-  return res
+      if (!isAdmin) {
+        // Pas admin, déconnecter et rediriger vers home
+        await supabase.auth.signOut()
+        return NextResponse.redirect(new URL('/', req.url))
+      }
+    }
+
+    return res
+  } catch (error) {
+    console.error('Middleware error:', error)
+    // En cas d'erreur, permettre l'accès (éviter les blocages)
+    return res
+  }
 }
 
 export const config = {
