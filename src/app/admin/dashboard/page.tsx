@@ -118,6 +118,7 @@ export default function AdminDashboardPage() {
               <p className="text-sm text-stone-600 font-cinzel">CHB Créations<span className="text-sm text-stone-600 font-sans"> - Gestion des réservations</span></p>
             </div>
             <div className="flex gap-2 md:gap-3">
+              <MaintenanceToggle />
               <button
                 onClick={() => router.push('/admin/products')}
                 className="p-2 bg-stone-700 hover:bg-stone-600 text-white rounded-lg transition-colors"
@@ -148,9 +149,6 @@ export default function AdminDashboardPage() {
             <p className="text-red-600">{error}</p>
           </div>
         )}
-
-        {/* Mode Maintenance Toggle */}
-        <MaintenanceToggle />
 
         {/* Header avec bouton de bascule */}
         <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6 mb-6">

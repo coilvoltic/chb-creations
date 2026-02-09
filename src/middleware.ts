@@ -52,11 +52,14 @@ export async function middleware(req: NextRequest) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maintenance - CHB Créations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #fafaf9;
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -64,50 +67,76 @@ export async function middleware(req: NextRequest) {
       padding: 20px;
     }
     .container {
-      background: white;
-      border-radius: 20px;
-      padding: 60px 40px;
-      max-width: 600px;
+      max-width: 500px;
       text-align: center;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     }
     h1 {
-      font-size: 32px;
-      color: #2d3748;
-      margin-bottom: 20px;
+      font-family: 'Cinzel', serif;
+      font-size: 28px;
+      font-weight: 600;
+      color: #1c1917;
+      margin-bottom: 16px;
+      letter-spacing: 0.5px;
     }
     p {
-      font-size: 18px;
-      color: #4a5568;
+      font-size: 16px;
+      color: #57534e;
       line-height: 1.6;
-      margin-bottom: 30px;
+      margin-bottom: 32px;
     }
     .contact {
-      background: #f7fafc;
+      background: white;
+      border: 1px solid #e7e5e4;
       border-radius: 12px;
-      padding: 20px;
-      margin-top: 30px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .contact h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1c1917;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .contact-item {
+      margin-bottom: 12px;
+    }
+    .contact-item:last-child {
+      margin-bottom: 0;
     }
     .contact a {
-      color: #667eea;
+      color: #1c1917;
       text-decoration: none;
-      font-weight: 600;
+      font-weight: 500;
+      transition: color 0.2s;
     }
-    .icon {
-      font-size: 64px;
-      margin-bottom: 20px;
+    .contact a:hover {
+      color: #78716c;
+    }
+    .logo {
+      font-family: 'Cinzel', serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: #1c1917;
+      margin-bottom: 48px;
+      letter-spacing: 1px;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="icon">🔧</div>
+    <div class="logo">CHB CRÉATIONS</div>
     <h1>Site en maintenance</h1>
-    <p>${status.message || 'Le site est actuellement en maintenance. Nous revenons bientôt !'}</p>
+    <p>Le site est actuellement en maintenance. Nous revenons très bientôt !</p>
     <div class="contact">
-      <p><strong>Besoin de nous contacter ?</strong></p>
-      <p>Email: <a href="mailto:chbcreations13@gmail.com">chbcreations13@gmail.com</a></p>
-      <p>Téléphone: <a href="tel:+33768662910">07 68 66 29 10</a></p>
+      <h2>Nous contacter</h2>
+      <div class="contact-item">
+        <a href="mailto:chbcreations13@gmail.com">chbcreations13@gmail.com</a>
+      </div>
+      <div class="contact-item">
+        <a href="tel:+33768662910">07 68 66 29 10</a>
+      </div>
     </div>
   </div>
 </body>
@@ -130,11 +159,14 @@ export async function middleware(req: NextRequest) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maintenance - CHB Créations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #fafaf9;
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -142,50 +174,76 @@ export async function middleware(req: NextRequest) {
       padding: 20px;
     }
     .container {
-      background: white;
-      border-radius: 20px;
-      padding: 60px 40px;
-      max-width: 600px;
+      max-width: 500px;
       text-align: center;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     }
     h1 {
-      font-size: 32px;
-      color: #2d3748;
-      margin-bottom: 20px;
+      font-family: 'Cinzel', serif;
+      font-size: 28px;
+      font-weight: 600;
+      color: #1c1917;
+      margin-bottom: 16px;
+      letter-spacing: 0.5px;
     }
     p {
-      font-size: 18px;
-      color: #4a5568;
+      font-size: 16px;
+      color: #57534e;
       line-height: 1.6;
-      margin-bottom: 30px;
+      margin-bottom: 32px;
     }
     .contact {
-      background: #f7fafc;
+      background: white;
+      border: 1px solid #e7e5e4;
       border-radius: 12px;
-      padding: 20px;
-      margin-top: 30px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .contact h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1c1917;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .contact-item {
+      margin-bottom: 12px;
+    }
+    .contact-item:last-child {
+      margin-bottom: 0;
     }
     .contact a {
-      color: #667eea;
+      color: #1c1917;
       text-decoration: none;
-      font-weight: 600;
+      font-weight: 500;
+      transition: color 0.2s;
     }
-    .icon {
-      font-size: 64px;
-      margin-bottom: 20px;
+    .contact a:hover {
+      color: #78716c;
+    }
+    .logo {
+      font-family: 'Cinzel', serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: #1c1917;
+      margin-bottom: 48px;
+      letter-spacing: 1px;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="icon">🔧</div>
+    <div class="logo">CHB CRÉATIONS</div>
     <h1>Site en maintenance</h1>
-    <p>${status.message || 'Le site est actuellement en maintenance. Nous revenons bientôt !'}</p>
+    <p>Le site est actuellement en maintenance. Nous revenons très bientôt !</p>
     <div class="contact">
-      <p><strong>Besoin de nous contacter ?</strong></p>
-      <p>Email: <a href="mailto:chbcreations13@gmail.com">chbcreations13@gmail.com</a></p>
-      <p>Téléphone: <a href="tel:+33768662910">07 68 66 29 10</a></p>
+      <h2>Nous contacter</h2>
+      <div class="contact-item">
+        <a href="mailto:chbcreations13@gmail.com">chbcreations13@gmail.com</a>
+      </div>
+      <div class="contact-item">
+        <a href="tel:+33768662910">07 68 66 29 10</a>
+      </div>
     </div>
   </div>
 </body>
