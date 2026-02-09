@@ -49,7 +49,7 @@ export default function MaintenancePage() {
         </div>
 
         {/* Main Card */}
-        <div className="bg-white rounded-3xl shadow-soft p-8 md:p-10 text-center animate-scale-in" style={{ animationDelay: '0.1s' }}>
+        <div className="bg-white rounded-xl shadow-xs p-8 md:p-10 text-center animate-scale-in" style={{ animationDelay: '0.1s' }}>
           {/* Icon */}
           <div className="inline-flex items-center justify-center w-16 h-16 bg-stone-100 rounded-full mb-6">
             <svg className="w-8 h-8 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
