@@ -674,7 +674,7 @@ export default function CartPage() {
           <div className="flex justify-between items-start mb-2 gap-2">
             <div className="flex-1 min-w-0">
               <Link
-                href={`/services/${item.category}/${item.subcategory}/${item.productSlug}`}
+                href={`/${item.category}/${item.subcategory}/${item.productSlug}`}
                 className="font-semibold text-base md:text-lg hover:underline block break-words"
               >
                 {item.productName}
@@ -784,7 +784,7 @@ export default function CartPage() {
               Ajoutez des articles pour commencer votre commande
             </p>
             <Link
-              href="/services/locations"
+              href="/locations"
               className="inline-block bg-black text-white px-8 py-3 rounded-lg hover:bg-stone-800 transition-colors"
             >
               Découvrir nos produits

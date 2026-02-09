@@ -172,26 +172,26 @@ Required in `.env.local`:
 ### Page Hierarchy & Routing
 
 **Main sections** (3 services):
-1. **Locations** (`/services/locations`) - Product rentals
-   - Art de table (`/services/locations/art-de-table`)
-   - Trônes (`/services/locations/trones`)
-   - Déco et accessoires (`/services/locations/deco-et-accessoires`)
+1. **Locations** (`/locations`) - Product rentals
+   - Art de table (`/locations/art-de-table`)
+   - Trônes (`/locations/trones`)
+   - Déco et accessoires (`/locations/deco-et-accessoires`)
 
-2. **Accessoires Personnalisés** (`/services/accessoires-personnalises`) - Custom product purchases
-   - Bendir (`/services/accessoires-personnalises/bendir`)
-   - Bougies (`/services/accessoires-personnalises/bougies`)
-   - Certificats mariage (`/services/accessoires-personnalises/certificats-mariage`)
-   - Coussins (`/services/accessoires-personnalises/coussins`)
-   - Faire-parts (`/services/accessoires-personnalises/faire-parts`)
-   - Oeufs (`/services/accessoires-personnalises/oeufs`)
-   - Tableaux (`/services/accessoires-personnalises/tableaux`)
-   - Textile (`/services/accessoires-personnalises/textile`)
+2. **Accessoires Personnalisés** (`/accessoires-personnalises`) - Custom product purchases
+   - Bendir (`/accessoires-personnalises/bendir`)
+   - Bougies (`/accessoires-personnalises/bougies`)
+   - Certificats mariage (`/accessoires-personnalises/certificats-mariage`)
+   - Coussins (`/accessoires-personnalises/coussins`)
+   - Faire-parts (`/accessoires-personnalises/faire-parts`)
+   - Oeufs (`/accessoires-personnalises/oeufs`)
+   - Tableaux (`/accessoires-personnalises/tableaux`)
+   - Textile (`/accessoires-personnalises/textile`)
 
-3. **Henné** (`/services/prestations`) - Henné services
-   - Henné seul (`/services/prestations/henne-seul`)
-   - Pack henné (`/services/prestations/pack-henne`)
+3. **Henné** (`/prestations`) - Henné services
+   - Henné seul (`/prestations/henne-seul`)
+   - Pack henné (`/prestations/pack-henne`)
 
-**Individual products** follow pattern: `/services/[category]/[subcategory]/[product-slug]`
+**Individual products** follow pattern: `/[category]/[subcategory]/[product-slug]`
 
 **Admin section**:
 - `/admin/login`: Admin authentication page

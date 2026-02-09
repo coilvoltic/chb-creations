@@ -25,7 +25,8 @@
       "Bash(grep:*)",
       "Bash(chmod:*)",
       "Bash(mkdir:*)",
-      "Bash(timeout 10 npm run dev:*)"
+      "Bash(timeout 10 npm run dev:*)",
+      "Bash(head:*)"
     ],
     "deny": [],
     "ask": []

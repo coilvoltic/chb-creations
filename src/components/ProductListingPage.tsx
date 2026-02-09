@@ -112,7 +112,7 @@ export default function ProductListingPage({
                         </div>
                       </div>
                     ) : (
-                      <Link href={`/services/${product.category}/${categorySlug}/${product.slug}`}>
+                      <Link href={`/${product.category}/${categorySlug}/${product.slug}`}>
                         <div className="relative aspect-square overflow-hidden bg-white mb-4 rounded-xl shadow-soft group-hover:shadow-dark transition-all duration-300">
                           <img
                             src={product.images[0]}

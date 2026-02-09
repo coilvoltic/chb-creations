@@ -249,7 +249,7 @@ export default function Navbar() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Locations */}
               <Link
-                href="/services/locations"
+                href="/locations"
                 className="group relative overflow-hidden rounded-xl bg-white hover:shadow-lg transition-all duration-300"
                 onClick={() => setActiveDropdown(null)}
               >
@@ -269,7 +269,7 @@ export default function Navbar() {
 
               {/* Accessoires */}
               <Link
-                href="/services/accessoires-personnalises"
+                href="/accessoires-personnalises"
                 className="group relative overflow-hidden rounded-xl bg-white hover:shadow-lg transition-all duration-300"
                 onClick={() => setActiveDropdown(null)}
               >
@@ -289,7 +289,7 @@ export default function Navbar() {
 
               {/* Henné */}
               <Link
-                href="/services/prestations"
+                href="/prestations"
                 className="group relative overflow-hidden rounded-xl bg-white hover:shadow-lg transition-all duration-300"
                 onClick={() => setActiveDropdown(null)}
               >

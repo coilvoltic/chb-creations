@@ -78,12 +78,10 @@ export async function sendReservationConfirmation(reservation: ReservationData) 
     const pdfBase64 = pdfBuffer.toString('base64')
 
     // Envoyer l'email avec le PDF en pièce jointe
-    // TEMPORAIRE: En mode test, on envoie à volticthedev@gmail.com
-    // TODO: Configurer un domaine sur Resend pour envoyer à n'importe quelle adresse
     const { data, error } = await resend.emails.send({
       from: 'CHB Créations <onboarding@resend.dev>',
-      to: ['volticthedev@gmail.com'], // Mode test - À remplacer par reservation.customer_email après config domaine
-      subject: `[TEST] Confirmation de votre réservation n° ${reservation.reservation_code}`,
+      to: [reservation.customer_email],
+      subject: `Confirmation de votre réservation n° ${reservation.reservation_code}`,
       html: `
         <!DOCTYPE html>
         <html>

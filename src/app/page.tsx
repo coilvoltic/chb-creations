@@ -84,7 +84,7 @@ export default function Home() {
             <div className="max-w-[1400px] mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
               {/* Locations */}
-              <Link href="/services/locations" className="group cursor-pointer">
+              <Link href="/locations" className="group cursor-pointer">
                 <div className="bg-white rounded-2xl overflow-hidden transition-all duration-300 ease-in-out hover:scale-[1.02] hover:-translate-y-2 animate-fade-in-up delay-100">
                   <div className="relative aspect-[3/4] md:aspect-[4/5] overflow-hidden">
                     <img
@@ -110,7 +110,7 @@ export default function Home() {
               </Link>
 
               {/* Accessoires */}
-              <Link href="/services/accessoires-personnalises" className="group cursor-pointer">
+              <Link href="/accessoires-personnalises" className="group cursor-pointer">
                 <div className="bg-white rounded-2xl overflow-hidden transition-all duration-300 ease-in-out hover:scale-[1.02] hover:-translate-y-2 animate-fade-in-up delay-200">
                   <div className="relative aspect-[3/4] md:aspect-[4/5] overflow-hidden">
                     <img
@@ -136,7 +136,7 @@ export default function Home() {
               </Link>
 
               {/* Henné */}
-              <Link href="/services/prestations" className="group cursor-pointer">
+              <Link href="/prestations" className="group cursor-pointer">
                 <div className="bg-white rounded-2xl overflow-hidden transition-all duration-300 ease-in-out hover:scale-[1.02] hover:-translate-y-2 animate-fade-in-up delay-300">
                   <div className="relative aspect-[3/4] md:aspect-[4/5] overflow-hidden">
                     <img
