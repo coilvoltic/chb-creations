@@ -86,7 +86,7 @@ export default function Home() {
               {/* Locations */}
               <Link href="/locations" className="group cursor-pointer">
                 <div className="bg-white rounded-2xl overflow-hidden transition-all duration-300 ease-in-out hover:scale-[1.02] hover:-translate-y-2 animate-fade-in-up delay-100">
-                  <div className="relative aspect-[3/4] md:aspect-[4/5] overflow-hidden">
+                  <div className="relative aspect-[4/5] overflow-hidden max-h-[500px] md:max-h-[600px] w-full">
                     <img
                       src="/imgs/locations/locationsMain.png"
                       alt="Locations"
@@ -112,7 +112,7 @@ export default function Home() {
               {/* Accessoires */}
               <Link href="/accessoires-personnalises" className="group cursor-pointer">
                 <div className="bg-white rounded-2xl overflow-hidden transition-all duration-300 ease-in-out hover:scale-[1.02] hover:-translate-y-2 animate-fade-in-up delay-200">
-                  <div className="relative aspect-[3/4] md:aspect-[4/5] overflow-hidden">
+                  <div className="relative aspect-[4/5] overflow-hidden max-h-[500px] md:max-h-[600px] w-full">
                     <img
                       src="/imgs/accessoires-personnalises/accessoiresMain.jpeg"
                       alt="Accessoires"
@@ -138,7 +138,7 @@ export default function Home() {
               {/* Henné */}
               <Link href="/prestations" className="group cursor-pointer">
                 <div className="bg-white rounded-2xl overflow-hidden transition-all duration-300 ease-in-out hover:scale-[1.02] hover:-translate-y-2 animate-fade-in-up delay-300">
-                  <div className="relative aspect-[3/4] md:aspect-[4/5] overflow-hidden">
+                  <div className="relative aspect-[4/5] overflow-hidden max-h-[500px] md:max-h-[600px] w-full">
                     <img
                       src="/imgs/prestations/prestationsMain.jpeg"
                       alt="Henné"
