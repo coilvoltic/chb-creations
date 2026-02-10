@@ -176,7 +176,10 @@ export async function POST(request: NextRequest) {
           delivery_address: rentalDelivery?.option === 'delivery' ? (rentalDelivery.address || null) : null,
           delivery_fees: rentalDelivery?.fees || 0,
           reservation_status: reservationStatus,
-          total_price: rentalItems.reduce((sum, item) => sum + (item.pricePerUnit * item.quantity), 0),
+          total_price: rentalItems.reduce((sum, item) => {
+            const installationFee = (item.installationFees && item.needsInstallation) ? item.installationFees : 0
+            return sum + ((item.pricePerUnit + installationFee) * item.quantity)
+          }, 0),
         })
         .select()
         .single()
@@ -252,7 +255,10 @@ export async function POST(request: NextRequest) {
           delivery_address: deliveryAddress,
           delivery_fees: purchaseDelivery?.fees || 0,
           reservation_status: reservationStatus,
-          total_price: purchaseItems.reduce((sum, item) => sum + (item.pricePerUnit * item.quantity), 0),
+          total_price: purchaseItems.reduce((sum, item) => {
+            const installationFee = (item.installationFees && item.needsInstallation) ? item.installationFees : 0
+            return sum + ((item.pricePerUnit + installationFee) * item.quantity)
+          }, 0),
         })
         .select()
         .single()
@@ -316,7 +322,11 @@ export async function POST(request: NextRequest) {
           delivery_address: prestationDelivery?.option === 'delivery' ? (prestationDelivery.address || null) : null,
           delivery_fees: prestationDelivery?.fees || 0,
           reservation_status: reservationStatus,
-          total_price: prestationItems.reduce((sum, item) => sum + (item.pricePerUnit * (item.numberOfPeople || 1)), 0),
+          total_price: prestationItems.reduce((sum, item) => {
+            // Note: prestations n'ont généralement pas d'installation, mais on le gère au cas où
+            const installationFee = (item.installationFees && item.needsInstallation) ? item.installationFees : 0
+            return sum + ((item.pricePerUnit + installationFee) * (item.numberOfPeople || 1))
+          }, 0),
         })
         .select()
         .single()

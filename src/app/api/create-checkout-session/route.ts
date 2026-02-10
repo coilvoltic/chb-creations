@@ -87,7 +87,10 @@ export async function POST(request: NextRequest) {
           caution: reservationData.caution,
           delivery_address: reservationData.rentalDelivery?.option === 'delivery' ? reservationData.rentalDelivery.address : null,
           delivery_fees: reservationData.rentalDelivery?.fees || 0,
-          total_price: rentalItems.reduce((sum: number, item: CartItemPayload) => sum + (item.pricePerUnit * item.quantity), 0),
+          total_price: rentalItems.reduce((sum: number, item: CartItemPayload) => {
+            const installationFee = (item.installationFees && item.needsInstallation) ? item.installationFees : 0
+            return sum + ((item.pricePerUnit + installationFee) * item.quantity)
+          }, 0),
           reservation_status: 'PENDING',
         })
         .select()
@@ -135,7 +138,10 @@ export async function POST(request: NextRequest) {
           customer_order_id: customerOrder.id,
           delivery_address: reservationData.purchaseDelivery?.option !== 'pickup' ? reservationData.purchaseDelivery?.address : null,
           delivery_fees: reservationData.purchaseDelivery?.fees || 0,
-          total_price: purchaseItems.reduce((sum: number, item: CartItemPayload) => sum + (item.pricePerUnit * item.quantity), 0),
+          total_price: purchaseItems.reduce((sum: number, item: CartItemPayload) => {
+            const installationFee = (item.installationFees && item.needsInstallation) ? item.installationFees : 0
+            return sum + ((item.pricePerUnit + installationFee) * item.quantity)
+          }, 0),
           reservation_status: 'PENDING',
         })
         .select()
@@ -181,7 +187,10 @@ export async function POST(request: NextRequest) {
           customer_order_id: customerOrder.id,
           delivery_address: reservationData.prestationDelivery?.option === 'delivery' ? reservationData.prestationDelivery.address : null,
           delivery_fees: reservationData.prestationDelivery?.fees || 0,
-          total_price: prestationItems.reduce((sum: number, item: CartItemPayload) => sum + (item.pricePerUnit * (item.numberOfPeople || 1)), 0),
+          total_price: prestationItems.reduce((sum: number, item: CartItemPayload) => {
+            const installationFee = (item.installationFees && item.needsInstallation) ? item.installationFees : 0
+            return sum + ((item.pricePerUnit + installationFee) * (item.numberOfPeople || 1))
+          }, 0),
           reservation_status: 'PENDING',
         })
         .select()
