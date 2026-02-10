@@ -62,6 +62,8 @@ interface ReservationData {
   prestationDeliveryFees?: number
   deposit: number
   caution: number
+  paymentType?: 'cash' | 'deposit' | 'full'
+  amountPaid?: number
   promoCode?: string | null
   promoDiscount?: number | null
 }
@@ -106,6 +108,8 @@ interface GenerateReservationPDFParams {
   totalPrice: number
   deposit: number
   caution: number
+  paymentType?: 'cash' | 'deposit' | 'full' // Type de paiement effectué
+  amountPaid?: number // Montant effectivement payé (pour paiement intégral)
   rentalDeliveryOption?: 'pickup' | 'delivery'
   rentalDeliveryAddress?: string
   rentalDeliveryFees?: number
@@ -519,15 +523,38 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
         </View>
 
         {/* Acompte et Caution */}
-        {(reservation.deposit > 0 || reservation.caution > 0) && (
+        {(reservation.deposit > 0 || reservation.caution > 0 || reservation.paymentType === 'full') && (
           <View style={[styles.section, { marginTop: 15, paddingTop: 15, borderTop: '1pt solid #e5e7eb' }]}>
-            {reservation.deposit > 0 && (
+            {/* Afficher le paiement intégral si applicable */}
+            {reservation.paymentType === 'full' && (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text style={{ fontSize: 11, color: '#16a34a', fontWeight: 'bold' }}>
+                  ✓ Paiement intégral :
+                </Text>
+                <Text style={{ fontSize: 11, color: '#16a34a', fontWeight: 'bold' }}>
+                  {(reservation.amountPaid || reservation.total_amount).toFixed(2)} €
+                </Text>
+              </View>
+            )}
+            {/* Afficher l'acompte si non paiement intégral */}
+            {reservation.paymentType !== 'full' && reservation.deposit > 0 && (
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
                 <Text style={{ fontSize: 11, color: '#2563eb', fontWeight: 'bold' }}>
-                  💳 Acompte :
+                  💳 Acompte {reservation.paymentType === 'deposit' ? '(payé)' : ''} :
                 </Text>
                 <Text style={{ fontSize: 11, color: '#2563eb', fontWeight: 'bold' }}>
                   {reservation.deposit.toFixed(2)} €
+                </Text>
+              </View>
+            )}
+            {/* Afficher le solde restant si non paiement intégral */}
+            {reservation.paymentType !== 'full' && reservation.deposit > 0 && (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text style={{ fontSize: 11, color: '#6b7280' }}>
+                  Solde restant :
+                </Text>
+                <Text style={{ fontSize: 11, color: '#6b7280', fontWeight: 'bold' }}>
+                  {(reservation.total_amount - reservation.deposit).toFixed(2)} €
                 </Text>
               </View>
             )}
@@ -542,7 +569,9 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
               </View>
             )}
             <Text style={{ fontSize: 9, color: '#6b7280', fontStyle: 'italic', marginTop: 8 }}>
-              {reservation.deposit > 0 && "L'acompte est à payer pour valider la commande. "}
+              {reservation.paymentType === 'full' && "Paiement intégral effectué - Plus rien à payer ! "}
+              {reservation.paymentType === 'deposit' && reservation.deposit > 0 && `Acompte payé. Le solde de ${(reservation.total_amount - reservation.deposit).toFixed(2)} € sera à régler lors de la récupération ou livraison. `}
+              {reservation.paymentType === 'cash' && reservation.deposit > 0 && "L'acompte est à payer en boutique pour valider la commande. "}
               {reservation.caution > 0 && "La caution sera demandée à la récupération (non encaissée sauf dommage)."}
             </Text>
           </View>
@@ -590,6 +619,8 @@ export async function generateReservationPDF(params: GenerateReservationPDFParam
     created_at: new Date().toISOString(),
     deposit: params.deposit,
     caution: params.caution,
+    paymentType: params.paymentType,
+    amountPaid: params.amountPaid,
     rentalDeliveryAddress: params.rentalDeliveryOption === 'delivery' ? params.rentalDeliveryAddress : null,
     rentalDeliveryFees: params.rentalDeliveryFees,
     purchaseDeliveryAddress: params.purchaseDeliveryOption === 'delivery' ? params.purchaseDeliveryAddress : null,

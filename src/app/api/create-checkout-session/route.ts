@@ -226,6 +226,13 @@ export async function POST(request: NextRequest) {
       apiVersion: '2023-10-16',
     })
 
+    // Déterminer le type de paiement et le libellé
+    const isFullPayment = reservationData.paymentMethod === 'full'
+    const paymentLabel = isFullPayment ? 'Paiement intégral' : 'Acompte'
+    const paymentDescription = isFullPayment
+      ? `Paiement intégral de ${amount.toFixed(2)} € pour votre réservation CHB Créations`
+      : `Acompte de ${amount.toFixed(2)} € pour votre réservation CHB Créations`
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -233,8 +240,8 @@ export async function POST(request: NextRequest) {
           price_data: {
             currency: 'eur',
             product_data: {
-              name: `Acompte réservation ${reservationCode}`,
-              description: `Acompte de ${amount.toFixed(2)} € pour votre réservation CHB Créations`,
+              name: `${paymentLabel} réservation ${reservationCode}`,
+              description: paymentDescription,
             },
             unit_amount: Math.round(amount * 100), // Stripe utilise les centimes
           },
@@ -248,6 +255,7 @@ export async function POST(request: NextRequest) {
       metadata: {
         orderNumber: reservationCode,
         customerEmail: reservationData.customerInfo.email,
+        paymentType: reservationData.paymentMethod || 'deposit',
       },
     })
 

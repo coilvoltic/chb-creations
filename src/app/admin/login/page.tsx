@@ -64,7 +64,7 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-100 to-stone-200 flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-black mb-2">Administration</h1>
           <p className="text-stone-600 font-cinzel">CHB Créations</p>

@@ -111,6 +111,14 @@ export async function POST(request: NextRequest) {
       await Promise.all(updates)
       console.log(`Updated ${updates.length} reservations to CONFIRMED`)
 
+      // Récupérer le type de paiement depuis les métadonnées de la session
+      const paymentType = session.metadata?.paymentType || 'deposit'
+      const isFullPayment = paymentType === 'full'
+
+      // Montant payé (soit l'acompte, soit le total)
+      const deposit = customerOrder.rental_reservations?.[0]?.deposit || 0
+      const amountPaid = session.amount_total ? session.amount_total / 100 : deposit
+
       // Préparer données PDF
       const rentalRes = customerOrder.rental_reservations?.[0]
       const purchaseRes = customerOrder.purchase_reservations?.[0]
@@ -162,6 +170,8 @@ export async function POST(request: NextRequest) {
         totalPrice: customerOrder.total_price,
         deposit: rentalRes?.deposit || 0,
         caution: rentalRes?.caution || 0,
+        paymentType: paymentType as 'cash' | 'deposit' | 'full',
+        amountPaid,
         rentalDeliveryOption: rentalRes?.delivery_address ? 'delivery' : 'pickup',
         rentalDeliveryAddress: rentalRes?.delivery_address,
         rentalDeliveryFees: rentalRes?.delivery_fees || 0,
@@ -179,9 +189,13 @@ export async function POST(request: NextRequest) {
       console.log('Sending confirmation email to:', emailTo)
       console.log('Customer email:', customerOrder.customer_infos.email)
       try {
-        const deposit = rentalRes?.deposit || 0
+        const balanceRemaining = isFullPayment ? 0 : (customerOrder.total_price - deposit)
 
         console.log('Sending confirmation email with PDF attachment...')
+        console.log('Payment type:', paymentType)
+        console.log('Amount paid:', amountPaid)
+        console.log('Balance remaining:', balanceRemaining)
+
         const emailResult = await resend.emails.send({
           from: 'CHB Créations <onboarding@resend.dev>',
           to: emailTo,
@@ -190,9 +204,11 @@ export async function POST(request: NextRequest) {
             <h1>Réservation confirmée !</h1>
             <p>Bonjour ${customerOrder.customer_infos.firstName} ${customerOrder.customer_infos.lastName},</p>
             <p>Votre réservation ${customerOrder.order_number} a été confirmée et votre paiement a été reçu avec succès.</p>
-            <p><strong>Montant de l'acompte payé :</strong> ${deposit.toFixed(2)} €</p>
-            <p><strong>Solde restant :</strong> ${(customerOrder.total_price - deposit).toFixed(2)} €</p>
-            <p>Le solde sera à régler lors de la récupération ou livraison.</p>
+            <p><strong>Montant payé :</strong> ${amountPaid.toFixed(2)} €</p>
+            ${isFullPayment
+              ? '<p><strong>✓ Paiement intégral effectué</strong> - Plus rien à payer !</p>'
+              : `<p><strong>Solde restant :</strong> ${balanceRemaining.toFixed(2)} €</p><p>Le solde sera à régler lors de la récupération ou livraison.</p>`
+            }
             <p>Vous trouverez tous les détails de votre réservation en pièce jointe.</p>
             <p>À très bientôt !</p>
             <p>L'équipe CHB Créations</p>

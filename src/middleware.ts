@@ -22,7 +22,10 @@ export async function middleware(req: NextRequest) {
     req.nextUrl.pathname.startsWith(path)
   )
 
-  if (!isExcluded) {
+  // Désactiver le mode maintenance en développement local
+  const isDevelopment = process.env.NODE_ENV === 'development'
+
+  if (!isExcluded && !isDevelopment) {
     try {
       // Vérifier le mode maintenance
       const { data: maintenanceStatus } = await supabase

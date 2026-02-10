@@ -66,17 +66,14 @@ export default function MaintenanceToggle() {
     <button
       onClick={handleToggle}
       disabled={updating}
-      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+      className={`flex items-center justify-center p-2 rounded-lg transition-all ${
         isMaintenanceMode
           ? 'bg-amber-500 text-white hover:bg-amber-600'
           : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
       } ${updating ? 'opacity-50 cursor-not-allowed' : ''}`}
-      title={isMaintenanceMode ? 'Désactiver le mode maintenance' : 'Activer le mode maintenance'}
+      title={isMaintenanceMode ? 'Mode maintenance activé - Cliquer pour désactiver' : 'Mode maintenance désactivé - Cliquer pour activer'}
     >
-      <Wrench className="w-4 h-4" />
-      <span className="text-sm font-medium">
-        {isMaintenanceMode ? 'Maintenance ON' : 'Maintenance OFF'}
-      </span>
+      <Wrench className="w-5 h-5" />
     </button>
   )
 }
