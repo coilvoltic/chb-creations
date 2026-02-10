@@ -354,7 +354,7 @@ export default function CartPage() {
       rentalSubtotal += (itemPrice + installationFee) * item.quantity
     })
 
-    return rentalSubtotal * 0.5 // 50% du total des locations
+    return rentalSubtotal * 5 // 400% du total des locations
   }
 
   const cautionAmount = calculateCaution()

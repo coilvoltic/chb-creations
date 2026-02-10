@@ -470,13 +470,17 @@ export default function ReservationDetailPage() {
                   <span className="text-sm font-bold text-black">{order.total_price.toFixed(2)} €</span>
                 </div>
 
-                {/* Section globale Acompte & Caution */}
+                {/* Section globale Montant payé & Caution */}
                 {(firstRental?.deposit || firstRental?.caution) && (
                   <div className="pt-4 space-y-2 border-t border-stone-200">
                     {firstRental.deposit && firstRental.deposit > 0 && (
                       <div className="flex justify-between">
-                        <span className="text-sm text-stone-600">💳 Acompte</span>
-                        <span className="text-sm font-semibold text-blue-600">{firstRental.deposit.toFixed(2)} €</span>
+                        <span className="text-sm text-stone-600">
+                          {firstReservation?.reservation_status === 'CONFIRMED' ? '✓ Déjà payé' : '💳 Acompte à régler'}
+                        </span>
+                        <span className={`text-sm font-semibold ${firstReservation?.reservation_status === 'CONFIRMED' ? 'text-green-600' : 'text-blue-600'}`}>
+                          {firstRental.deposit.toFixed(2)} €
+                        </span>
                       </div>
                     )}
                     {firstRental.caution && firstRental.caution > 0 && (

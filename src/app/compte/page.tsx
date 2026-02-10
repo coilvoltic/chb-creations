@@ -216,8 +216,10 @@ function OrderCard({
               )}
 
               {reservation.deposit > 0 && (
-                <div className="mt-2 bg-amber-50 rounded-lg p-2 text-xs text-amber-800">
-                  <span className="font-medium">Acompte :</span> {reservation.deposit.toFixed(2)} €
+                <div className={`mt-2 rounded-lg p-2 text-xs ${reservation.reservation_status === 'CONFIRMED' || reservation.reservation_status === 'DONE' ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-800'}`}>
+                  <span className="font-medium">
+                    {reservation.reservation_status === 'CONFIRMED' || reservation.reservation_status === 'DONE' ? '✓ Déjà payé :' : 'Acompte :'}
+                  </span> {reservation.deposit.toFixed(2)} €
                 </div>
               )}
             </div>

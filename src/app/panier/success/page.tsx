@@ -117,11 +117,11 @@ function PaymentSuccessContent() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-green-600 mt-0.5">✓</span>
-                <span>Votre acompte a été payé avec succès.</span>
+                <span>Votre paiement a été effectué avec succès.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-amber-600 mt-0.5">→</span>
-                <span>Le solde restant sera à régler lors de la récupération ou livraison.</span>
+                <span>Consultez votre email pour connaître le montant déjà payé et le solde restant (le cas échéant).</span>
               </li>
             </ul>
           </div>
