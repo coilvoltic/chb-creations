@@ -45,7 +45,7 @@ export default function CartPage() {
   const [error, setError] = useState<string | null>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [reservationCode, setReservationCode] = useState<string | null>(null)
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'online' | 'cash'>('cash')
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cash' | 'deposit' | 'full'>('cash')
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
 
@@ -410,6 +410,10 @@ export default function CartPage() {
   }
 
   const handleValidateOrder = async () => {
+    console.log('=== VALIDATE ORDER START ===')
+    console.log('Payment method:', selectedPaymentMethod)
+    console.log('Deposit amount:', depositAmount)
+
     // Vérifier que tous les champs sont remplis
     if (!customerInfo.firstName.trim()) {
       setError('Le prénom est obligatoire')
@@ -431,13 +435,15 @@ export default function CartPage() {
     // Réinitialiser l'erreur
     setError(null)
 
-    // Si paiement en ligne et qu'il y a un acompte, rediriger vers Stripe Checkout
-    if (selectedPaymentMethod === 'online' && depositAmount > 0) {
+    // Si paiement en ligne (acompte ou intégral), rediriger vers Stripe Checkout
+    if ((selectedPaymentMethod === 'deposit' || selectedPaymentMethod === 'full') && depositAmount > 0) {
+      console.log('→ Redirecting to Stripe Checkout')
       await handleStripeCheckout()
       return
     }
 
-    // Sinon, créer directement la réservation (paiement en espèce)
+    // Sinon, créer directement la réservation (paiement en boutique)
+    console.log('→ Creating reservation with cash payment')
     await createReservation('cash')
   }
 
@@ -512,16 +518,17 @@ export default function CartPage() {
         prestationDelivery: cart.prestationDelivery,
         totalPrice: getFinalTotal(),
         promoCode: cart.promoCode,
-        paymentMethod: 'online',
+        paymentMethod: selectedPaymentMethod,
         userId: currentUser?.id,
       }
 
       // Créer la session Stripe Checkout
+      const amountToPay = selectedPaymentMethod === 'full' ? getFinalTotal() : depositAmount
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: depositAmount,
+          amount: amountToPay,
           reservationData,
         }),
       })
@@ -541,7 +548,7 @@ export default function CartPage() {
     }
   }
 
-  const createReservation = async (paymentMethod: 'online' | 'cash') => {
+  const createReservation = async (paymentMethod: 'cash' | 'deposit' | 'full') => {
     setIsSubmitting(true)
     setError(null)
 
@@ -632,18 +639,24 @@ export default function CartPage() {
       }
 
       // Créer la réservation
+      console.log('=== CREATING RESERVATION ===')
+      console.log('Payload:', JSON.stringify(payload, null, 2))
+
       const response = await fetch('/api/reservations/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
 
+      console.log('Response status:', response.status)
       const data = await response.json()
+      console.log('Response data:', data)
 
       if (!response.ok) {
         throw new Error(data.error || 'Erreur lors de la création de la réservation')
       }
 
+      console.log('✅ Reservation created successfully:', data.reservationCode)
       setReservationCode(data.reservationCode)
       setShowSuccessModal(true)
     } catch (err) {
@@ -1355,11 +1368,11 @@ export default function CartPage() {
                     />
                   </div>
 
-                  {/* Mode de paiement de l'acompte (si acompte requis) */}
+                  {/* Mode de paiement */}
                   {depositAmount > 0 && (
                     <div className="border border-stone-200 rounded-lg p-4">
-                      <h4 className="font-semibold mb-3 text-sm">Mode de paiement de l&apos;acompte</h4>
-                      <div className="space-y-2">
+                      <h4 className="font-semibold mb-3 text-sm">Mode de paiement</h4>
+                      <div className="space-y-3">
                         <label className="flex items-start cursor-pointer">
                           <input
                             type="radio"
@@ -1380,15 +1393,34 @@ export default function CartPage() {
                           <input
                             type="radio"
                             name="paymentMethod"
-                            value="online"
-                            checked={selectedPaymentMethod === 'online'}
-                            onChange={() => setSelectedPaymentMethod('online')}
+                            value="deposit"
+                            checked={selectedPaymentMethod === 'deposit'}
+                            onChange={() => setSelectedPaymentMethod('deposit')}
                             className="mr-3 w-5 h-5 cursor-pointer mt-0.5"
                           />
                           <div className="flex-1">
-                            <span className="font-medium text-sm">Paiement en ligne</span>
+                            <span className="font-medium text-sm">Payer l&apos;acompte en ligne</span>
                             <p className="text-xs text-stone-600 mt-1">
-                              Payez l&apos;acompte maintenant par carte bancaire ou Apple Pay
+                              Payez l&apos;acompte de {depositAmount.toFixed(2)} € maintenant par carte bancaire ou Apple Pay
+                            </p>
+                          </div>
+                        </label>
+                        <label className="flex items-start cursor-pointer">
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value="full"
+                            checked={selectedPaymentMethod === 'full'}
+                            onChange={() => setSelectedPaymentMethod('full')}
+                            className="mr-3 w-5 h-5 cursor-pointer mt-0.5"
+                          />
+                          <div className="flex-1">
+                            <span className="font-medium text-sm">Payer l&apos;intégralité en ligne</span>
+                            <p className="text-xs text-stone-600 mt-1">
+                              Payez le montant total de {getFinalTotal().toFixed(2)} € maintenant par carte bancaire ou Apple Pay
+                            </p>
+                            <p className="text-xs text-green-700 mt-1 font-medium">
+                              ✓ Plus rien à payer après la commande
                             </p>
                           </div>
                         </label>
@@ -1413,8 +1445,10 @@ export default function CartPage() {
                         {isProcessingPayment ? 'Redirection vers le paiement...' : 'Validation en cours...'}
                       </span>
                     ) : (
-                      selectedPaymentMethod === 'online' && depositAmount > 0
+                      selectedPaymentMethod === 'deposit'
                         ? `Payer l'acompte (${depositAmount.toFixed(2)} €)`
+                        : selectedPaymentMethod === 'full'
+                        ? `Payer l'intégralité (${getFinalTotal().toFixed(2)} €)`
                         : 'Confirmer la commande'
                     )}
                   </button>

@@ -65,19 +65,29 @@ interface ReservationData {
   prestationDeliveryFees?: number
   deposit: number
   caution: number
+  paymentType?: 'cash' | 'deposit' | 'full'
+  amountPaid?: number
   promoCode?: string | null
   promoDiscount?: number | null
 }
 
 export async function sendReservationConfirmation(reservation: ReservationData) {
   try {
+    console.log('📧 sendReservationConfirmation - START')
+    console.log('To:', reservation.customer_email)
+    console.log('Reservation code:', reservation.reservation_code)
+
     // Générer le PDF
+    console.log('Generating PDF...')
     const pdfBuffer = await renderToBuffer(<ReservationPDF reservation={reservation} />)
+    console.log('PDF generated, size:', pdfBuffer.length, 'bytes')
 
     // Convertir le buffer en base64 pour l'attachment
     const pdfBase64 = pdfBuffer.toString('base64')
+    console.log('PDF base64 length:', pdfBase64.length)
 
     // Envoyer l'email avec le PDF en pièce jointe
+    console.log('Sending email via Resend...')
     const { data, error } = await resend.emails.send({
       from: 'CHB Créations <onboarding@resend.dev>',
       to: [reservation.customer_email],
@@ -207,14 +217,21 @@ export async function sendReservationConfirmation(reservation: ReservationData) 
     })
 
     if (error) {
-      console.error('Erreur envoi email:', error)
+      console.error('❌ Resend API error:', error)
+      console.error('Error details:', JSON.stringify(error, null, 2))
       throw new Error(`Échec de l'envoi de l'email: ${error.message}`)
     }
 
-    console.log('Email envoyé avec succès:', data)
+    console.log('✅ Email envoyé avec succès via Resend!')
+    console.log('Email ID:', data?.id)
+    console.log('Response data:', JSON.stringify(data, null, 2))
     return { success: true, data }
   } catch (error) {
-    console.error('Exception lors de l\'envoi de l\'email:', error)
+    console.error('❌ Exception lors de l\'envoi de l\'email:', error)
+    if (error instanceof Error) {
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
+    }
     throw error
   }
 }

@@ -66,16 +66,19 @@ interface CreateReservationPayload {
   prestationDelivery?: DeliveryInfo // Delivery info for prestation items
   totalPrice: number
   promoCode?: PromoCodePayload // Promotional code if applied
-  paymentMethod?: 'online' | 'cash' | null
+  paymentMethod?: 'cash' | 'deposit' | 'full' | null
   userId?: string // Optional: Supabase Auth user ID if logged in with Google
 }
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('=== API /api/reservations/create - START ===')
     const payload: CreateReservationPayload = await request.json()
+    console.log('Received payload:', JSON.stringify(payload, null, 2))
 
     // Validation
     if (!payload.customerInfo || !payload.items || payload.items.length === 0) {
+      console.error('❌ Invalid payload - missing customerInfo or items')
       return NextResponse.json(
         { error: 'Données de réservation invalides' },
         { status: 400 }
@@ -102,11 +105,11 @@ export async function POST(request: NextRequest) {
 
     // Déterminer le statut de la réservation en fonction du mode de paiement
     let reservationStatus: ReservationStatus
-    if (paymentMethod === 'online' && deposit > 0) {
-      // Paiement en ligne effectué (simulation) - l'acompte est considéré comme payé
-      reservationStatus = 'CONFIRMED'
+    if ((paymentMethod === 'deposit' || paymentMethod === 'full') && deposit > 0) {
+      // Paiement en ligne effectué (acompte ou intégral) - pas encore confirmé (en attente du webhook)
+      reservationStatus = 'PENDING'
     } else if (paymentMethod === 'cash' && deposit > 0) {
-      // Réservation avec acompte non payé (à payer en espèces en boutique)
+      // Réservation avec acompte à payer en boutique
       reservationStatus = 'PENDING'
     } else if (deposit === 0) {
       // Pas d'acompte requis
@@ -359,6 +362,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Envoyer l'email de confirmation avec le PDF
+    console.log('=== SENDING EMAIL ===')
+    console.log('Customer email:', customerInfo.email)
     try {
       // Construire les adresses de livraison pour l'email
       // Séparer les items en locations et achats pour l'email
@@ -435,11 +440,15 @@ export async function POST(request: NextRequest) {
       }
 
       await sendReservationConfirmation(emailData)
-      console.log('Email de confirmation envoyé à:', customerInfo.email)
+      console.log('✅ Email de confirmation envoyé avec succès à:', customerInfo.email)
     } catch (emailError) {
       // Ne pas faire échouer la réservation si l'email échoue
       // La réservation est déjà créée en base
-      console.error('Erreur envoi email (réservation créée):', emailError)
+      console.error('❌ Erreur envoi email (réservation créée):', emailError)
+      if (emailError instanceof Error) {
+        console.error('Error message:', emailError.message)
+        console.error('Error stack:', emailError.stack)
+      }
     }
 
     // 5. Retourner le succès avec les IDs
