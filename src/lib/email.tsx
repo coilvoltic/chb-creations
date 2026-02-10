@@ -89,7 +89,7 @@ export async function sendReservationConfirmation(reservation: ReservationData) 
     // Envoyer l'email avec le PDF en pièce jointe
     console.log('Sending email via Resend...')
     const { data, error } = await resend.emails.send({
-      from: 'CHB Créations <onboarding@resend.dev>',
+      from: 'CHB Créations <noreply@chb-creations.com>',
       to: [reservation.customer_email],
       subject: `Confirmation de votre réservation n° ${reservation.reservation_code}`,
       html: `
