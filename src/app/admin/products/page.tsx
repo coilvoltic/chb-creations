@@ -364,9 +364,14 @@ export default function ManageProductsPage() {
                       <p className="text-sm text-stone-600">{product.subcategory}</p>
                     </div>
                     <div className="col-span-1">
-                      <p className="font-medium text-black">{product.price.toFixed(2)} €</p>
+                      <p className={`font-medium ${product.new_price ? "text-red-600" : "text-black"}`}>
+                        {(product.new_price ?? product.price).toFixed(2)} €
+                      </p>
+
                       {product.new_price && (
-                        <p className="text-sm text-green-600 line-through">{product.new_price.toFixed(2)} €</p>
+                        <p className="text-sm text-black line-through">
+                          {product.price.toFixed(2)} €
+                        </p>
                       )}
                     </div>
                     <div className="col-span-1">
