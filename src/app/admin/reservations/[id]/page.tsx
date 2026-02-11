@@ -113,6 +113,10 @@ export default function ReservationDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [isConfirmingPayment, setIsConfirmingPayment] = useState(false)
+  const [notes, setNotes] = useState('')
+  const [savedNotes, setSavedNotes] = useState('')
+  const [isSavingNotes, setIsSavingNotes] = useState(false)
+  const [notesStatus, setNotesStatus] = useState<'idle' | 'saved'>('idle')
   const router = useRouter()
   const params = useParams()
   const id = params?.id
@@ -139,11 +143,43 @@ export default function ReservationDetailPage() {
 
       const result = await response.json()
       setData(result)
+      setNotes(result.order.notes || '')
+      setSavedNotes(result.order.notes || '')
     } catch (err) {
       console.error('Erreur:', err)
       setError('Impossible de charger les détails de la commande')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSaveNotes = async () => {
+    setIsSavingNotes(true)
+    setNotesStatus('idle')
+    try {
+      const response = await fetch(`/api/admin/reservations/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes })
+      })
+
+      if (response.status === 401) {
+        router.push('/admin/login')
+        return
+      }
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la sauvegarde')
+      }
+
+      setSavedNotes(notes)
+      setNotesStatus('saved')
+      setTimeout(() => setNotesStatus('idle'), 2000)
+    } catch (err) {
+      console.error('Erreur:', err)
+      alert('Erreur lors de la sauvegarde des notes')
+    } finally {
+      setIsSavingNotes(false)
     }
   }
 
@@ -206,7 +242,7 @@ export default function ReservationDetailPage() {
   const calculateItemPrice = (item: RentalItem | PurchaseItem | PrestationItem) => {
     const basePrice = item.products.new_price ?? item.products.price
     const optionsFees = item.options?.selectedOptions?.reduce((sum, opt) => sum + opt.additional_fee, 0) ?? 0
-    const installationFees = item.options?.installationFees ?? 0
+    const installationFees = item.needs_installation ? (item.options?.installationFees ?? 0) : 0
     // Use nb_of_people for prestation items, quantity for others
     const multiplier = 'nb_of_people' in item ? item.nb_of_people : item.quantity
     return (basePrice + optionsFees + installationFees) * multiplier
@@ -350,6 +386,34 @@ export default function ReservationDetailPage() {
                     </p>
                   </div>
                 )}
+              </div>
+
+              <hr className="my-6 border-stone-200" />
+
+              <h3 className="text-lg font-semibold text-black mb-4">Notes</h3>
+              <div className="space-y-3">
+                <textarea
+                  value={notes}
+                  onChange={(e) => {
+                    setNotes(e.target.value)
+                    setNotesStatus('idle')
+                  }}
+                  placeholder="Ajouter une note sur cette commande..."
+                  rows={3}
+                  className="w-full text-sm text-black border border-stone-300 rounded-lg p-3 resize-y focus:outline-none focus:ring-2 focus:ring-stone-400 placeholder:text-stone-400"
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSaveNotes}
+                    disabled={isSavingNotes || notes === savedNotes}
+                    className="px-4 py-2 bg-stone-800 hover:bg-stone-900 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSavingNotes ? 'Enregistrement...' : 'Enregistrer'}
+                  </button>
+                  {notesStatus === 'saved' && (
+                    <span className="text-sm text-green-600 font-medium">Enregistré</span>
+                  )}
+                </div>
               </div>
 
               <hr className="my-6 border-stone-200" />

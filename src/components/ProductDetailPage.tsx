@@ -46,9 +46,6 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
   const [needsInstallation, setNeedsInstallation] = useState(false)
   const [personalizationValues, setPersonalizationValues] = useState<{ [key: string]: string }>({})
 
-  // Check if product is already in cart
-  const isInCart = product ? cart.items.some(item => item.productId === product.id) : false
-
   // Determine if this is a rental, purchase, or prestation product
   const isRentalProduct = product?.category === 'locations'
   const isPurchaseProduct = product?.category === 'accessoires-personnalises'
@@ -59,6 +56,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
   const [prestationTime, setPrestationTime] = useState<string | null>(null) // Format HH:MM pour henné en boutique
   const [prestationSlot, setPrestationSlot] = useState<'LUNCH' | 'AFTERNOON' | 'EVENING' | null>(null) // Créneau fixe pour henné à domicile
   const [numberOfPeople, setNumberOfPeople] = useState<string>('')
+  const [prestationTimeConflict, setPrestationTimeConflict] = useState(false)
 
   // Déterminer le type de henné (boutique ou domicile) via subcategory
   const isHenneBoutique = product?.subcategory === 'henne-boutique'
@@ -136,6 +134,24 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
     return foundAnyDuration ? totalDuration : 60
   }
 
+  // Check if product is already in cart (not applicable for prestations - they use time slot blocking instead)
+  const isInCart = product
+    ? product.category === 'prestations'
+      ? false
+      : cart.items.some(item => item.productId === product.id)
+    : false
+
+  // Extract prestation time slots from cart to block them in time pickers
+  const cartPrestationSlots = isPrestationProduct
+    ? cart.items
+        .filter(item => item.category === 'prestations' && item.prestationStart && item.prestationEnd)
+        .map(item => ({
+          product_id: item.productId,
+          prestation_start: new Date(item.prestationStart!).toISOString(),
+          prestation_end: new Date(item.prestationEnd!).toISOString(),
+        }))
+    : []
+
   const handleAddToCart = () => {
     if (!product) return
 
@@ -156,11 +172,11 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
         })
       : undefined
 
-    // For prestations: add number of people to personalizations
+    // For prestations (except henne-boutique): add number of people to personalizations
     const finalPersonalizations = isPrestationProduct
       ? {
           ...personalizationValues,
-          ...(numberOfPeople ? { 'Nombre de personnes': numberOfPeople } : {})
+          ...(!isHenneBoutique && numberOfPeople ? { 'Nombre de personnes': numberOfPeople } : {})
         }
       : (Object.keys(personalizationValues).length > 0 ? personalizationValues : undefined)
 
@@ -196,7 +212,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
       productSlug: product.slug,
       productImage: product.images[0],
       quantity: isHenneBoutique ? 1 : quantity, // Force quantity = 1 for henne-boutique only (prix fixe)
-      numberOfPeople: isPrestationProduct && numberOfPeople ? parseInt(numberOfPeople) : undefined,
+      numberOfPeople: isPrestationProduct && !isHenneBoutique && numberOfPeople ? parseInt(numberOfPeople) : undefined,
       pricePerUnit: getEffectivePrice(),
       selectedOptions,
       personalizations: finalPersonalizations,
@@ -584,8 +600,8 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                     </div>
                   )}
                   {/* Champ différent selon le type de produit */}
-                  {isPrestationProduct ? (
-                    /* Champ texte simple pour les prestations (information uniquement) */
+                  {isPrestationProduct && !isHenneBoutique ? (
+                    /* Champ texte simple pour les prestations hors boutique (information uniquement) */
                     <div className="mb-4">
                       <label htmlFor="numberOfPeople" className={`text-lg font-semibold block mb-2 ${isInCart ? 'text-stone-400' : ''}`}>
                         Nombre de personnes
@@ -610,7 +626,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                         Cette information nous aide à mieux préparer la prestation (le prix reste fixe)
                       </p>
                     </div>
-                  ) : (
+                  ) : isPrestationProduct ? null : (
                     /* Sélecteur de quantité classique pour locations et achats */
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-4">
@@ -732,7 +748,9 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                           selectedTime={prestationTime}
                           duration={getTotalPrestationDuration()}
                           onTimeChange={setPrestationTime}
+                          onConflictChange={setPrestationTimeConflict}
                           disabled={isInCart}
+                          cartUnavailabilities={cartPrestationSlots}
                         />
                       </>
                     )}
@@ -748,6 +766,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                           selectedSlot={prestationSlot}
                           onSlotChange={setPrestationSlot}
                           disabled={isInCart}
+                          cartUnavailabilities={cartPrestationSlots}
                         />
                       </>
                     )}
@@ -759,7 +778,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                     onClick={handleAddToCart}
                     disabled={
                       (isRentalProduct && (!rentalPeriod?.from || !rentalPeriod?.to)) ||
-                      (isPrestationProduct && isHenneBoutique && (!prestationDate || !prestationTime)) ||
+                      (isPrestationProduct && isHenneBoutique && (!prestationDate || !prestationTime || prestationTimeConflict)) ||
                       (isPrestationProduct && isHenneDomicile && (!prestationDate || !prestationSlot)) ||
                       (isPrestationProduct && !isHenneBoutique && !isHenneDomicile && !prestationDate) ||
                       isInCart

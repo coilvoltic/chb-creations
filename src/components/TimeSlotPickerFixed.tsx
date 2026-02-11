@@ -9,6 +9,7 @@ interface TimeSlotPickerFixedProps {
   selectedSlot: 'LUNCH' | 'AFTERNOON' | 'EVENING' | null
   onSlotChange: (slot: 'LUNCH' | 'AFTERNOON' | 'EVENING') => void
   disabled?: boolean
+  cartUnavailabilities?: PrestationUnavailableSlot[]
 }
 
 // Définition des créneaux fixes
@@ -41,6 +42,7 @@ export default function TimeSlotPickerFixed({
   selectedSlot,
   onSlotChange,
   disabled = false,
+  cartUnavailabilities = [],
 }: TimeSlotPickerFixedProps) {
   const [unavailableSlots, setUnavailableSlots] = useState<PrestationUnavailableSlot[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -57,9 +59,12 @@ export default function TimeSlotPickerFixed({
     fetchUnavailabilities()
   }, [])
 
+  // Combine database unavailabilities with cart unavailabilities
+  const allUnavailableSlots = [...unavailableSlots, ...cartUnavailabilities]
+
   // Vérifier les chevauchements pour chaque créneau
   useEffect(() => {
-    if (!selectedDate || unavailableSlots.length === 0) {
+    if (!selectedDate || allUnavailableSlots.length === 0) {
       setConflictingSlots(new Set())
       return
     }
@@ -73,8 +78,8 @@ export default function TimeSlotPickerFixed({
       const slotEnd = new Date(slotStart)
       slotEnd.setMinutes(slotEnd.getMinutes() + slot.durationMinutes)
 
-      // Vérifier si ce créneau chevauche avec une réservation existante
-      const hasConflict = unavailableSlots.some((unavailable) => {
+      // Vérifier si ce créneau chevauche avec une réservation existante ou dans le panier
+      const hasConflict = allUnavailableSlots.some((unavailable) => {
         const unavailableStart = new Date(unavailable.prestation_start)
         const unavailableEnd = new Date(unavailable.prestation_end)
 
@@ -88,7 +93,8 @@ export default function TimeSlotPickerFixed({
     })
 
     setConflictingSlots(conflicts)
-  }, [selectedDate, unavailableSlots])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate, unavailableSlots, cartUnavailabilities])
 
   return (
     <div className="space-y-3">

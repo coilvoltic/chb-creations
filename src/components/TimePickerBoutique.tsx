@@ -1,15 +1,29 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { getAllPrestationUnavailabilities, PrestationUnavailableSlot } from '@/lib/supabase'
 import { AlertCircle } from 'lucide-react'
+
+// Génère les créneaux de 08:00 à 20:00 toutes les 5 minutes
+function generateTimeOptions(): string[] {
+  const options: string[] = []
+  for (let h = 8; h <= 20; h++) {
+    for (let m = 0; m < 60; m += 5) {
+      if (h === 20 && m > 0) break
+      options.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`)
+    }
+  }
+  return options
+}
 
 interface TimePickerBoutiqueProps {
   selectedDate: Date | null
   selectedTime: string | null // Format HH:MM (ex: "14:30")
   duration: number // Durée en minutes (ex: 60, 90, 120)
   onTimeChange: (time: string) => void
+  onConflictChange?: (hasConflict: boolean) => void
   disabled?: boolean
+  cartUnavailabilities?: PrestationUnavailableSlot[]
 }
 
 export default function TimePickerBoutique({
@@ -17,13 +31,16 @@ export default function TimePickerBoutique({
   selectedTime,
   duration,
   onTimeChange,
+  onConflictChange,
   disabled = false,
+  cartUnavailabilities = [],
 }: TimePickerBoutiqueProps) {
   const [unavailableSlots, setUnavailableSlots] = useState<PrestationUnavailableSlot[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [conflictWarning, setConflictWarning] = useState<string | null>(null)
 
   const [localTime, setLocalTime] = useState(selectedTime || '14:00')
+  const timeOptions = useMemo(() => generateTimeOptions(), [])
 
   // Sync local time with parent when selectedTime changes
   useEffect(() => {
@@ -52,10 +69,14 @@ export default function TimePickerBoutique({
     fetchUnavailabilities()
   }, [])
 
+  // Combine database unavailabilities with cart unavailabilities
+  const allUnavailableSlots = [...unavailableSlots, ...cartUnavailabilities]
+
   // Vérifier si l'heure sélectionnée crée un conflit
   useEffect(() => {
-    if (!selectedDate || !selectedTime || unavailableSlots.length === 0) {
+    if (!selectedDate || !selectedTime || allUnavailableSlots.length === 0) {
       setConflictWarning(null)
+      onConflictChange?.(false)
       return
     }
 
@@ -67,7 +88,7 @@ export default function TimePickerBoutique({
     endDateTime.setMinutes(endDateTime.getMinutes() + duration)
 
     // Vérifier les chevauchements
-    const hasConflict = unavailableSlots.some((slot) => {
+    const hasConflict = allUnavailableSlots.some((slot) => {
       const slotStart = new Date(slot.prestation_start)
       const slotEnd = new Date(slot.prestation_end)
 
@@ -77,10 +98,13 @@ export default function TimePickerBoutique({
 
     if (hasConflict) {
       setConflictWarning('⚠️ Créneau indisponible : chevauchement avec une autre réservation')
+      onConflictChange?.(true)
     } else {
       setConflictWarning(null)
+      onConflictChange?.(false)
     }
-  }, [selectedDate, selectedTime, duration, unavailableSlots])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate, selectedTime, duration, unavailableSlots, cartUnavailabilities])
 
   const handleTimeChange = (newTime: string) => {
     setLocalTime(newTime)
@@ -120,16 +144,19 @@ export default function TimePickerBoutique({
               <label htmlFor="prestation-time" className={`block text-xs mb-2 ${disabled ? 'text-stone-400' : 'text-stone-600'}`}>
                 Heure de début
               </label>
-              <input
+              <select
                 id="prestation-time"
-                type="time"
                 value={localTime}
                 disabled={disabled || isLoading}
                 onChange={(e) => handleTimeChange(e.target.value)}
                 className={`w-full max-w-full px-2 md:px-3 py-2 border ${
                   conflictWarning ? 'border-red-500 bg-red-50' : 'border-stone-300'
                 } rounded-lg focus:outline-none focus:ring-2 focus:ring-black disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed`}
-              />
+              >
+                {timeOptions.map((time) => (
+                  <option key={time} value={time}>{time}</option>
+                ))}
+              </select>
             </div>
           </div>
 

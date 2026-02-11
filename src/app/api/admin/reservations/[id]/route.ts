@@ -222,21 +222,23 @@ export async function PATCH(
     const cookieStore = await cookies()
     const body = await request.json()
 
-    // Validation du body
-    if (!body.new_status) {
+    const { new_status, notes } = body
+
+    // Validation: au moins un champ à mettre à jour
+    if (!new_status && notes === undefined) {
       return NextResponse.json({
-        error: 'Paramètres manquants. Requis: new_status'
+        error: 'Paramètres manquants. Requis: new_status ou notes'
       }, { status: 400 })
     }
 
-    const { new_status } = body
-
-    // Valider le statut
-    const validStatuses = ['CONFIRMED', 'PENDING', 'DONE', 'CANCELLED']
-    if (!validStatuses.includes(new_status)) {
-      return NextResponse.json({
-        error: `new_status invalide. Valeurs acceptées: ${validStatuses.join(', ')}`
-      }, { status: 400 })
+    // Valider le statut si fourni
+    if (new_status) {
+      const validStatuses = ['CONFIRMED', 'PENDING', 'DONE', 'CANCELLED']
+      if (!validStatuses.includes(new_status)) {
+        return NextResponse.json({
+          error: `new_status invalide. Valeurs acceptées: ${validStatuses.join(', ')}`
+        }, { status: 400 })
+      }
     }
 
     // Authentification
@@ -279,6 +281,24 @@ export async function PATCH(
 
     if (!isAdmin) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+    }
+
+    // Mettre à jour les notes sur customer_orders si fourni
+    if (notes !== undefined) {
+      const { error: notesError } = await supabase
+        .from('customer_orders')
+        .update({ notes: notes || null })
+        .eq('id', id)
+
+      if (notesError) {
+        console.error('Erreur mise à jour notes:', notesError)
+        return NextResponse.json({ error: 'Erreur lors de la mise à jour des notes' }, { status: 500 })
+      }
+
+      // Si seules les notes sont mises à jour, retourner directement
+      if (!new_status) {
+        return NextResponse.json({ success: true, message: 'Notes mises à jour' })
+      }
     }
 
     // Mettre à jour TOUTES les sous-réservations de cette commande

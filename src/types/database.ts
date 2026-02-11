@@ -103,6 +103,7 @@ export interface CustomerOrder {
   promotional_code_id?: number // FK to promotional_codes
   promotional_code_name?: string // Snapshot of code name at order time
   promotional_code_discount?: number // Snapshot of discount percentage (0-100)
+  notes?: string | null
 }
 
 // Rental Reservation (child of CustomerOrder)

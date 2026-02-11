@@ -5,7 +5,19 @@ import { fr } from 'date-fns/locale'
 import { UnavailabilityEntry } from '@/lib/supabase'
 import { differenceInDays, eachDayOfInterval, format } from 'date-fns'
 import 'react-day-picker/style.css'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+
+// Génère les créneaux de 08:00 à 20:00 toutes les 5 minutes
+function generateTimeOptions(): string[] {
+  const options: string[] = []
+  for (let h = 8; h <= 20; h++) {
+    for (let m = 0; m < 60; m += 5) {
+      if (h === 20 && m > 0) break
+      options.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`)
+    }
+  }
+  return options
+}
 
 interface DateRangePickerProps {
   unavailabilities?: UnavailabilityEntry[]
@@ -34,6 +46,7 @@ export default function DateRangePicker({
   const [infoMessage, setInfoMessage] = useState<string | null>(null)
   const [localStartTime, setLocalStartTime] = useState(startTime)
   const [localEndTime, setLocalEndTime] = useState(endTime)
+  const timeOptions = useMemo(() => generateTimeOptions(), [])
 
   // Calculate which dates are unavailable based on stock and requested quantity
   const disabledDatesSet = new Set(
@@ -173,27 +186,33 @@ export default function DateRangePicker({
               <label htmlFor="start-time" className={`block text-xs mb-2 ${disabled ? 'text-stone-400' : 'text-stone-600'}`}>
                 Heure de retrait
               </label>
-              <input
+              <select
                 id="start-time"
-                type="time"
                 value={localStartTime}
                 disabled={disabled}
                 onChange={(e) => handleTimeChange('start', e.target.value)}
                 className="w-full max-w-full px-2 md:px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed"
-              />
+              >
+                {timeOptions.map((time) => (
+                  <option key={time} value={time}>{time}</option>
+                ))}
+              </select>
             </div>
             <div className="min-w-0 overflow-hidden">
               <label htmlFor="end-time" className={`block text-xs mb-2 ${disabled ? 'text-stone-400' : 'text-stone-600'}`}>
                 Heure de dépôt
               </label>
-              <input
+              <select
                 id="end-time"
-                type="time"
                 value={localEndTime}
                 disabled={disabled}
                 onChange={(e) => handleTimeChange('end', e.target.value)}
                 className="w-full max-w-full px-2 md:px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed"
-              />
+              >
+                {timeOptions.map((time) => (
+                  <option key={time} value={time}>{time}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
