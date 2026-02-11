@@ -97,15 +97,21 @@ export async function getOeufsProducts(): Promise<Product[]> {
   return getProductsBySubcategory('oeufs', 'accessoires-personnalises')
 }
 
-export async function getProductBySlug(slug: string): Promise<Product | null> {
+export async function getProductBySlug(slug: string, subcategory?: string): Promise<Product | null> {
   try {
     const supabase = getSupabaseClient()
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('products')
       .select('*')
       .eq('slug', slug)
-      .single()
+
+    // If subcategory is provided, use it to filter (disambiguate products with same slug)
+    if (subcategory) {
+      query = query.eq('subcategory', subcategory)
+    }
+
+    const { data, error } = await query.single()
 
     if (error) {
       console.error('Error fetching product by slug:', error.message)

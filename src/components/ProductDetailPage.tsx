@@ -27,6 +27,10 @@ interface ProductDetailPageProps {
 
 export default function ProductDetailPage({ params, breadcrumbItems }: ProductDetailPageProps) {
   const { slug } = use(params)
+
+  // Extract subcategory automatically from the last breadcrumb href
+  // Example: '/accessoires-personnalises/certificats-mariage' -> 'certificats-mariage'
+  const subcategory = breadcrumbItems[breadcrumbItems.length - 1]?.href.split('/').pop() || undefined
   const router = useRouter()
   const { addToCart, cart } = useCart()
   const [product, setProduct] = useState<Product | null>(null)
@@ -93,7 +97,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
 
   useEffect(() => {
     async function loadProduct() {
-      const data = await getProductBySlug(slug)
+      const data = await getProductBySlug(slug, subcategory)
       if (!data) {
         notFound()
       }
@@ -109,7 +113,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
       setLoading(false)
     }
     loadProduct()
-  }, [slug])
+  }, [slug, subcategory])
 
   // Get total duration by summing ALL selected options durations
   const getTotalPrestationDuration = (): number => {
