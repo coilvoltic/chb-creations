@@ -111,6 +111,14 @@ export async function POST(request: NextRequest) {
       await Promise.all(updates)
       console.log(`Updated ${updates.length} reservations to CONFIRMED`)
 
+      // Persister le montant payé en ligne sur la commande
+      const amountPaidOnline = session.amount_total ? session.amount_total / 100 : 0
+      await supabase
+        .from('customer_orders')
+        .update({ amount_paid_online: amountPaidOnline })
+        .eq('id', parseInt(customerOrderId))
+      console.log('Amount paid online saved:', amountPaidOnline)
+
       // Récupérer le type de paiement depuis les métadonnées de la session
       const paymentType = session.metadata?.paymentType || 'deposit'
       const isFullPayment = paymentType === 'full'

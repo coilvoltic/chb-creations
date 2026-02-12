@@ -534,25 +534,31 @@ export default function ReservationDetailPage() {
                   <span className="text-sm font-bold text-black">{order.total_price.toFixed(2)} €</span>
                 </div>
 
-                {/* Section globale Montant payé & Caution */}
-                {(firstRental?.deposit || firstRental?.caution) && (
-                  <div className="pt-4 space-y-2 border-t border-stone-200">
-                    {firstRental.deposit && firstRental.deposit > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-stone-600">
-                          {firstReservation?.reservation_status === 'CONFIRMED' ? '✓ Déjà payé' : '💳 Acompte à régler'}
-                        </span>
-                        <span className={`text-sm font-semibold ${firstReservation?.reservation_status === 'CONFIRMED' ? 'text-green-600' : 'text-blue-600'}`}>
-                          {firstRental.deposit.toFixed(2)} €
-                        </span>
-                      </div>
-                    )}
-                    {firstRental.caution && firstRental.caution > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-stone-600">⚠️ Caution</span>
-                        <span className="text-sm font-semibold text-amber-600">{firstRental.caution.toFixed(2)} €</span>
-                      </div>
-                    )}
+                {/* Payé en ligne & Reste à payer */}
+                <div className="pt-4 space-y-2 border-t border-stone-200">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-stone-600">💳 Payé en ligne</span>
+                    <span className={`text-sm font-semibold ${(order.amount_paid_online ?? 0) > 0 ? 'text-green-600' : 'text-stone-400'}`}>
+                      {(order.amount_paid_online ?? 0).toFixed(2)} €
+                    </span>
+                  </div>
+                  {(order.total_price - (order.amount_paid_online ?? 0)) > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-stone-600">Reste à payer</span>
+                      <span className="text-sm font-semibold text-amber-600">
+                        {(order.total_price - (order.amount_paid_online ?? 0)).toFixed(2)} €
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Caution */}
+                {firstRental?.caution && firstRental.caution > 0 && (
+                  <div className="pt-2 space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-stone-600">⚠️ Caution</span>
+                      <span className="text-sm font-semibold text-amber-600">{firstRental.caution.toFixed(2)} €</span>
+                    </div>
                   </div>
                 )}
               </div>
