@@ -111,13 +111,14 @@ export async function POST(request: NextRequest) {
       await Promise.all(updates)
       console.log(`Updated ${updates.length} reservations to CONFIRMED`)
 
-      // Persister le montant payé en ligne sur la commande
+      // Incrémenter le montant déjà payé sur la commande
       const amountPaidOnline = session.amount_total ? session.amount_total / 100 : 0
+      const currentAlreadyPaid = customerOrder.already_paid ?? 0
       await supabase
         .from('customer_orders')
-        .update({ amount_paid_online: amountPaidOnline })
+        .update({ already_paid: currentAlreadyPaid + amountPaidOnline })
         .eq('id', parseInt(customerOrderId))
-      console.log('Amount paid online saved:', amountPaidOnline)
+      console.log('Already paid updated to:', currentAlreadyPaid + amountPaidOnline)
 
       // Récupérer le type de paiement depuis les métadonnées de la session
       const paymentType = session.metadata?.paymentType || 'deposit'
@@ -162,7 +163,8 @@ export async function POST(request: NextRequest) {
         prestationStart: item.prestation_start,
         prestationEnd: item.prestation_end,
         pricePerUnit: 0,
-        selectedOptions: item.options?.selectedOptions as SelectedOption[] | undefined,
+        // Handle both old format (raw array) and new format ({selectedOptions: [...]})
+        selectedOptions: (Array.isArray(item.options) ? item.options : item.options?.selectedOptions) as SelectedOption[] | undefined,
         personalizations: item.personalizations,
       }))
 

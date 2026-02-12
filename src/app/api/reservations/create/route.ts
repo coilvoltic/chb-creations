@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import type { CustomerInfo, ReservationStatus } from '@/lib/supabase'
 import { sendReservationConfirmation } from '@/lib/email'
 import { generateReservationCode } from '@/lib/reservation-code'
+import { buildItemOptionsData } from '@/lib/reservation-utils'
 
 interface SelectedOption {
   option_type_name: string
@@ -25,11 +26,6 @@ interface CartItemPayload {
   selectedOptions?: SelectedOption[] // Array of selected options
   personalizations?: { [key: string]: string } // Map of personalization field name to value
   needsInstallation?: boolean
-  installationFees?: number
-}
-
-interface ReservationItemOptions {
-  selectedOptions?: SelectedOption[]
   installationFees?: number
 }
 
@@ -197,31 +193,16 @@ export async function POST(request: NextRequest) {
       rentalReservationId = rentalReservation.id
 
       // Créer les rental_items
-      const rentalItemsData = rentalItems.map((item) => {
-        let optionsData: ReservationItemOptions | null = null
-
-        if (item.selectedOptions && item.selectedOptions.length > 0) {
-          optionsData = {
-            selectedOptions: item.selectedOptions,
-            installationFees: item.installationFees
-          }
-        } else if (item.installationFees) {
-          optionsData = {
-            installationFees: item.installationFees
-          }
-        }
-
-        return {
-          rental_reservation_id: rentalReservation.id,
-          product_id: item.productId,
-          quantity: item.quantity,
-          rental_start: item.rentalStart,
-          rental_end: item.rentalEnd,
-          options: optionsData,
-          personalizations: item.personalizations || null,
-          needs_installation: item.needsInstallation || false,
-        }
-      })
+      const rentalItemsData = rentalItems.map((item) => ({
+        rental_reservation_id: rentalReservation.id,
+        product_id: item.productId,
+        quantity: item.quantity,
+        rental_start: item.rentalStart,
+        rental_end: item.rentalEnd,
+        options: buildItemOptionsData(item.selectedOptions, item.installationFees),
+        personalizations: item.personalizations || null,
+        needs_installation: item.needsInstallation || false,
+      }))
 
       const { error: itemsError } = await supabase
         .from('rental_items')
@@ -275,29 +256,14 @@ export async function POST(request: NextRequest) {
       purchaseReservationId = purchaseReservation.id
 
       // Créer les purchase_items
-      const purchaseItemsData = purchaseItems.map((item) => {
-        let optionsData: ReservationItemOptions | null = null
-
-        if (item.selectedOptions && item.selectedOptions.length > 0) {
-          optionsData = {
-            selectedOptions: item.selectedOptions,
-            installationFees: item.installationFees
-          }
-        } else if (item.installationFees) {
-          optionsData = {
-            installationFees: item.installationFees
-          }
-        }
-
-        return {
-          purchase_reservation_id: purchaseReservation.id,
-          product_id: item.productId,
-          quantity: item.quantity,
-          estimated_delivery_date: null, // À définir plus tard
-          options: optionsData,
-          personalizations: item.personalizations || null,
-        }
-      })
+      const purchaseItemsData = purchaseItems.map((item) => ({
+        purchase_reservation_id: purchaseReservation.id,
+        product_id: item.productId,
+        quantity: item.quantity,
+        estimated_delivery_date: null, // À définir plus tard
+        options: buildItemOptionsData(item.selectedOptions, item.installationFees),
+        personalizations: item.personalizations || null,
+      }))
 
       const { error: purchaseItemsError } = await supabase
         .from('purchase_items')
@@ -344,18 +310,15 @@ export async function POST(request: NextRequest) {
       prestationReservationId = prestationReservation.id
 
       // Créer les prestation_items
-      const prestationItemsData = prestationItems.map((item) => {
-        // Les dates de prestation sont au format ISO timestamp depuis le panier
-        return {
-          prestation_reservation_id: prestationReservationId,
-          product_id: item.productId,
-          nb_of_people: item.numberOfPeople || 1, // Default to 1 if not specified
-          prestation_start: item.prestationStart || null,
-          prestation_end: item.prestationEnd || null,
-          options: item.selectedOptions || null, // Stocker directement le tableau d'options
-          personalizations: item.personalizations || null,
-        }
-      })
+      const prestationItemsData = prestationItems.map((item) => ({
+        prestation_reservation_id: prestationReservationId,
+        product_id: item.productId,
+        nb_of_people: item.numberOfPeople || 1, // Default to 1 if not specified
+        prestation_start: item.prestationStart || null,
+        prestation_end: item.prestationEnd || null,
+        options: buildItemOptionsData(item.selectedOptions, item.installationFees),
+        personalizations: item.personalizations || null,
+      }))
 
       const { error: prestationItemsError } = await supabase
         .from('prestation_items')

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { generateReservationCode } from '@/lib/reservation-code'
+import { buildItemOptionsData } from '@/lib/reservation-utils'
 import type { CartItemPayload } from '@/types'
 
 const supabase = createClient(
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
         quantity: item.quantity,
         rental_start: item.rentalStart,
         rental_end: item.rentalEnd,
-        options: item.selectedOptions ? { selectedOptions: item.selectedOptions, installationFees: item.installationFees } : null,
+        options: buildItemOptionsData(item.selectedOptions, item.installationFees),
         personalizations: item.personalizations || null,
         needs_installation: item.needsInstallation || false,
       }))
@@ -161,7 +162,7 @@ export async function POST(request: NextRequest) {
         product_id: item.productId,
         quantity: item.quantity,
         estimated_delivery_date: null,
-        options: item.selectedOptions ? { selectedOptions: item.selectedOptions, installationFees: item.installationFees } : null,
+        options: buildItemOptionsData(item.selectedOptions, item.installationFees),
         personalizations: item.personalizations || null,
       }))
 
@@ -211,7 +212,7 @@ export async function POST(request: NextRequest) {
         nb_of_people: item.numberOfPeople || 1,
         prestation_start: item.prestationStart || null,
         prestation_end: item.prestationEnd || null,
-        options: item.selectedOptions || null, // Stocker directement le tableau
+        options: buildItemOptionsData(item.selectedOptions, item.installationFees),
         personalizations: item.personalizations || null,
       }))
 

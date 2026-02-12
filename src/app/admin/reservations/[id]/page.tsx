@@ -2,9 +2,18 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import type { CustomerOrder, RentalReservation, PurchaseReservation, PrestationReservation, Tag } from '@/lib/supabase'
+import type { CustomerOrder, RentalReservation, PurchaseReservation, PrestationReservation, Tag, ItemOption } from '@/lib/supabase'
+import { getSelectedOptionsFromDB, getInstallationFeesFromDB, type ReservationItemOptions } from '@/lib/reservation-utils'
 import Loader from '@/components/Loader'
 import ReservationTagSelector from '@/components/ReservationTagSelector'
+
+interface ProductInfo {
+  name: string
+  slug: string
+  images: string[]
+  price: number
+  new_price?: number
+}
 
 interface RentalItem {
   id: number
@@ -13,24 +22,10 @@ interface RentalItem {
   quantity: number
   rental_start: string
   rental_end: string
-  options: {
-    selectedOptions?: Array<{
-      option_type_name: string
-      name: string
-      description?: string
-      additional_fee: number
-    }>
-    installationFees?: number
-  } | null
+  options: ReservationItemOptions | null
   personalizations: { [key: string]: string } | null
   needs_installation: boolean
-  products: {
-    name: string
-    slug: string
-    images: string[]
-    price: number
-    new_price?: number
-  }
+  products: ProductInfo
 }
 
 interface PurchaseItem {
@@ -39,51 +34,24 @@ interface PurchaseItem {
   product_id: number
   quantity: number
   estimated_delivery_date?: string
-  options: {
-    selectedOptions?: Array<{
-      option_type_name: string
-      name: string
-      description?: string
-      additional_fee: number
-    }>
-    installationFees?: number
-  } | null
+  options: ReservationItemOptions | null
   personalizations: { [key: string]: string } | null
   needs_installation: boolean
-  products: {
-    name: string
-    slug: string
-    images: string[]
-    price: number
-    new_price?: number
-  }
+  products: ProductInfo
 }
 
 interface PrestationItem {
   id: number
   prestation_reservation_id: number
   product_id: number
-  nb_of_people: number // Number of people for the prestation
-  prestation_start?: string // ISO timestamp (date + heure de début)
-  prestation_end?: string // ISO timestamp (date + heure de fin)
-  options: {
-    selectedOptions?: Array<{
-      option_type_name: string
-      name: string
-      description?: string
-      additional_fee: number
-    }>
-    installationFees?: number
-  } | null
+  nb_of_people: number
+  prestation_start?: string
+  prestation_end?: string
+  // Options can be either {selectedOptions: [...]} (new format) or a raw array (old format)
+  options: ReservationItemOptions | ItemOption[] | null
   personalizations: { [key: string]: string } | null
   needs_installation: boolean
-  products: {
-    name: string
-    slug: string
-    images: string[]
-    price: number
-    new_price?: number
-  }
+  products: ProductInfo
 }
 
 interface RentalReservationWithItems extends RentalReservation {
@@ -112,7 +80,10 @@ export default function ReservationDetailPage() {
   const [data, setData] = useState<OrderDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [isConfirmingPayment, setIsConfirmingPayment] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [modalAmount, setModalAmount] = useState('')
+  const [modalConfirmOrder, setModalConfirmOrder] = useState(false)
+  const [isSubmittingModal, setIsSubmittingModal] = useState(false)
   const [notes, setNotes] = useState('')
   const [savedNotes, setSavedNotes] = useState('')
   const [isSavingNotes, setIsSavingNotes] = useState(false)
@@ -183,20 +154,27 @@ export default function ReservationDetailPage() {
     }
   }
 
-  const handleConfirmPayment = async () => {
-    if (!window.confirm('Confirmer le paiement de l\'acompte pour TOUTE la commande ?\n\nToutes les sous-réservations (locations, achats, prestations) seront marquées comme confirmées.')) {
+  const handlePaymentModalSubmit = async () => {
+    const amount = parseFloat(modalAmount)
+    if (modalAmount !== '' && (isNaN(amount) || amount < 0)) {
+      alert('Veuillez entrer un montant valide')
       return
     }
 
-    setIsConfirmingPayment(true)
+    const amountChanged = modalAmount !== '' && amount !== data?.order.already_paid
+    if (!amountChanged && !modalConfirmOrder) {
+      alert('Aucune modification à enregistrer')
+      return
+    }
+
+    setIsSubmittingModal(true)
     try {
       const response = await fetch(`/api/admin/reservations/${id}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          new_status: 'CONFIRMED'
+          ...(amountChanged ? { amount_paid: amount } : {}),
+          ...(modalConfirmOrder ? { confirm_order: true } : {}),
         })
       })
 
@@ -210,14 +188,15 @@ export default function ReservationDetailPage() {
         throw new Error(errorData.error || 'Erreur lors de la mise à jour')
       }
 
-      // Recharger les données
       await loadOrderDetail()
-      alert('Statut mis à jour avec succès pour toute la commande !')
+      setShowPaymentModal(false)
+      setModalAmount('')
+      setModalConfirmOrder(false)
     } catch (err) {
       console.error('Erreur:', err)
-      alert('Erreur lors de la mise à jour du statut')
+      alert('Erreur lors de la mise à jour')
     } finally {
-      setIsConfirmingPayment(false)
+      setIsSubmittingModal(false)
     }
   }
 
@@ -241,8 +220,9 @@ export default function ReservationDetailPage() {
 
   const calculateItemPrice = (item: RentalItem | PurchaseItem | PrestationItem) => {
     const basePrice = item.products.new_price ?? item.products.price
-    const optionsFees = item.options?.selectedOptions?.reduce((sum, opt) => sum + opt.additional_fee, 0) ?? 0
-    const installationFees = item.needs_installation ? (item.options?.installationFees ?? 0) : 0
+    const selectedOptions = getSelectedOptionsFromDB(item.options)
+    const optionsFees = selectedOptions.reduce((sum: number, opt) => sum + opt.additional_fee, 0)
+    const installationFees = item.needs_installation ? getInstallationFeesFromDB(item.options) : 0
     // Use nb_of_people for prestation items, quantity for others
     const multiplier = 'nb_of_people' in item ? item.nb_of_people : item.quantity
     return (basePrice + optionsFees + installationFees) * multiplier
@@ -262,17 +242,18 @@ export default function ReservationDetailPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      CONFIRMED: { label: 'Confirmée', color: 'bg-green-100 text-green-800 border-green-200' },
-      PENDING: { label: 'En attente de paiement', color: 'bg-amber-100 text-amber-800 border-amber-200' },
-      CANCELLED: { label: 'Annulée', color: 'bg-red-100 text-red-800 border-red-200' },
-      DONE: { label: 'Terminée', color: 'bg-gray-100 text-gray-800 border-gray-200' },
+      CONFIRMED: { label: 'Confirmée', color: 'bg-green-100 text-green-800 border-green-200', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /> },
+      PENDING: { label: 'En attente de paiement', color: 'bg-amber-100 text-amber-800 border-amber-200', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /> },
+      CANCELLED: { label: 'Annulée', color: 'bg-red-100 text-red-800 border-red-200', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /> },
+      DONE: { label: 'Terminée', color: 'bg-gray-100 text-gray-800 border-gray-200', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /> },
     }
 
-    const config = statusConfig[status as keyof typeof statusConfig] || { label: status, color: 'bg-gray-100 text-gray-800 border-gray-200' }
+    const config = statusConfig[status as keyof typeof statusConfig] || { label: status, color: 'bg-gray-100 text-gray-800 border-gray-200', icon: null }
 
     return (
-      <span className={`px-4 py-2 rounded-lg text-sm font-medium border ${config.color}`}>
-        {config.label}
+      <span className={`rounded-lg font-medium border ${config.color} p-2 md:px-4 md:py-2 flex items-center gap-1.5`}>
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">{config.icon}</svg>
+        <span className="hidden md:inline text-sm">{config.label}</span>
       </span>
     )
   }
@@ -338,19 +319,19 @@ export default function ReservationDetailPage() {
             </div>
             <div className="flex items-center gap-3">
               {firstReservation && getStatusBadge(firstReservation.reservation_status)}
-              {firstReservation && firstReservation.reservation_status === 'PENDING' && (
-                <button
-                  onClick={handleConfirmPayment}
-                  disabled={isConfirmingPayment}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  title="Confirmer le paiement de l'acompte pour toute la commande"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {isConfirmingPayment ? 'Confirmation...' : 'Confirmer le paiement'}
-                </button>
-              )}
+              <button
+                onClick={() => {
+                  setModalAmount(order.already_paid > 0 ? order.already_paid.toString() : '')
+                  setShowPaymentModal(true)
+                }}
+                className="p-2 md:px-4 md:py-2 bg-stone-800 hover:bg-stone-900 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                title="Enregistrer un paiement"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span className="hidden md:inline">Enregistrer un paiement</span>
+              </button>
             </div>
           </div>
         </div>
@@ -534,19 +515,19 @@ export default function ReservationDetailPage() {
                   <span className="text-sm font-bold text-black">{order.total_price.toFixed(2)} €</span>
                 </div>
 
-                {/* Payé en ligne & Reste à payer */}
+                {/* Déjà payé & Reste à payer */}
                 <div className="pt-4 space-y-2 border-t border-stone-200">
                   <div className="flex justify-between">
-                    <span className="text-sm text-stone-600">💳 Payé en ligne</span>
-                    <span className={`text-sm font-semibold ${(order.amount_paid_online ?? 0) > 0 ? 'text-green-600' : 'text-stone-400'}`}>
-                      {(order.amount_paid_online ?? 0).toFixed(2)} €
+                    <span className="text-sm text-stone-600">Déjà payé</span>
+                    <span className={`text-sm font-semibold ${order.already_paid > 0 ? 'text-green-600' : 'text-stone-400'}`}>
+                      {order.already_paid.toFixed(2)} €
                     </span>
                   </div>
-                  {(order.total_price - (order.amount_paid_online ?? 0)) > 0 && (
+                  {(order.total_price - order.already_paid) > 0 && (
                     <div className="flex justify-between">
                       <span className="text-sm text-stone-600">Reste à payer</span>
                       <span className="text-sm font-semibold text-amber-600">
-                        {(order.total_price - (order.amount_paid_online ?? 0)).toFixed(2)} €
+                        {(order.total_price - order.already_paid).toFixed(2)} €
                       </span>
                     </div>
                   )}
@@ -680,9 +661,9 @@ export default function ReservationDetailPage() {
                               </p>
 
                               {/* Options sélectionnées */}
-                              {item.options?.selectedOptions && item.options.selectedOptions.length > 0 && (
+                              {getSelectedOptionsFromDB(item.options).length > 0 && (
                                 <div className="space-y-1">
-                                  {item.options.selectedOptions.map((option, idx) => (
+                                  {getSelectedOptionsFromDB(item.options).map((option, idx) => (
                                     <p key={idx} className="text-blue-700 break-words">
                                       <span className="font-medium">{option.option_type_name} :</span> {option.name}
                                       {option.additional_fee > 0 && ` (+${option.additional_fee.toFixed(2)} €)`}
@@ -705,7 +686,7 @@ export default function ReservationDetailPage() {
                               {/* Installation */}
                               {item.needs_installation && (
                                 <p className="text-green-700">
-                                  <span className="font-medium">Installation :</span> +{(item.options?.installationFees ?? 0).toFixed(2)}€
+                                  <span className="font-medium">Installation :</span> +{getInstallationFeesFromDB(item.options).toFixed(2)}€
                                 </p>
                               )}
 
@@ -773,9 +754,9 @@ export default function ReservationDetailPage() {
                               </p>
 
                               {/* Options sélectionnées */}
-                              {item.options?.selectedOptions && item.options.selectedOptions.length > 0 && (
+                              {getSelectedOptionsFromDB(item.options).length > 0 && (
                                 <div className="space-y-1">
-                                  {item.options.selectedOptions.map((option, idx) => (
+                                  {getSelectedOptionsFromDB(item.options).map((option, idx) => (
                                     <p key={idx} className="text-green-700 break-words">
                                       <span className="font-medium">{option.option_type_name} :</span> {option.name}
                                       {option.additional_fee > 0 && ` (+${option.additional_fee.toFixed(2)} €)`}
@@ -798,7 +779,7 @@ export default function ReservationDetailPage() {
                               {/* Installation */}
                               {item.needs_installation && (
                                 <p className="text-green-700">
-                                  <span className="font-medium">Installation :</span> +{(item.options?.installationFees ?? 0).toFixed(2)}€
+                                  <span className="font-medium">Installation :</span> +{getInstallationFeesFromDB(item.options).toFixed(2)}€
                                 </p>
                               )}
 
@@ -874,9 +855,9 @@ export default function ReservationDetailPage() {
                               </p>
 
                               {/* Options sélectionnées */}
-                              {item.options?.selectedOptions && item.options.selectedOptions.length > 0 && (
+                              {getSelectedOptionsFromDB(item.options).length > 0 && (
                                 <div className="space-y-1">
-                                  {item.options.selectedOptions.map((option, idx) => (
+                                  {getSelectedOptionsFromDB(item.options).map((option, idx) => (
                                     <p key={idx} className="text-purple-700 break-words">
                                       <span className="font-medium">{option.option_type_name} :</span> {option.name}
                                       {option.additional_fee > 0 && ` (+${option.additional_fee.toFixed(2)} €)`}
@@ -922,6 +903,131 @@ export default function ReservationDetailPage() {
           </div>
         </div>
       </main>
+
+      {/* Modale de paiement */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-black">Enregistrer un paiement</h3>
+              <button
+                onClick={() => {
+                  setShowPaymentModal(false)
+                  setModalAmount('')
+                  setModalConfirmOrder(false)
+                }}
+                className="p-1 hover:bg-stone-100 rounded-lg transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {(() => {
+              const newAlreadyPaid = parseFloat(modalAmount) || 0
+              const previewRemaining = Math.max(0, order.total_price - newAlreadyPaid)
+
+              return (
+                <div className="space-y-5">
+                  {/* Résumé financier */}
+                  <div className="bg-stone-50 rounded-xl p-4 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-stone-600">Montant total</span>
+                      <span className="font-semibold text-black">{order.total_price.toFixed(2)} €</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-stone-600">Déjà payé</span>
+                      <span className={`font-semibold ${newAlreadyPaid > 0 ? 'text-green-600' : 'text-stone-400'}`}>
+                        {newAlreadyPaid.toFixed(2)} €
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm border-t border-stone-200 pt-2">
+                      <span className="text-stone-600 font-medium">Reste à payer</span>
+                      <span className={`font-bold ${previewRemaining === 0 ? 'text-green-600' : 'text-amber-600'}`}>
+                        {previewRemaining.toFixed(2)} €
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Montant payé */}
+                  <div>
+                    <label className="block text-sm font-medium text-stone-700 mb-2">
+                      Montant total déjà payé par le client
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        max={order.total_price}
+                        step="0.01"
+                        value={modalAmount}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value)
+                          if (e.target.value === '' || isNaN(val)) {
+                            setModalAmount(e.target.value)
+                            return
+                          }
+                          if (val > order.total_price) {
+                            setModalAmount(order.total_price.toFixed(2))
+                          } else {
+                            setModalAmount(e.target.value)
+                          }
+                        }}
+                        placeholder="0.00"
+                        className="w-full border border-stone-300 rounded-lg px-4 py-3 text-black text-lg font-medium focus:outline-none focus:ring-2 focus:ring-stone-400 placeholder:text-stone-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 font-medium">€</span>
+                    </div>
+                    <p className="text-xs text-stone-400 mt-1">Maximum : {order.total_price.toFixed(2)} €</p>
+                  </div>
+
+                  {/* Toggle confirmer la réservation */}
+                  <div className="flex items-center justify-between p-4 bg-stone-50 rounded-xl">
+                    <div>
+                      <p className="text-sm font-medium text-stone-900">Confirmer la réservation</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setModalConfirmOrder(!modalConfirmOrder)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        modalConfirmOrder ? 'bg-green-600' : 'bg-stone-300'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          modalConfirmOrder ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Boutons */}
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => {
+                        setShowPaymentModal(false)
+                        setModalAmount('')
+                        setModalConfirmOrder(false)
+                      }}
+                      className="flex-1 px-4 py-3 border border-stone-300 text-stone-700 text-sm font-medium rounded-lg hover:bg-stone-50 transition-colors"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      onClick={handlePaymentModalSubmit}
+                      disabled={isSubmittingModal || (!modalAmount && !modalConfirmOrder)}
+                      className="flex-1 px-4 py-3 bg-stone-800 hover:bg-stone-900 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmittingModal ? 'Enregistrement...' : 'Valider'}
+                    </button>
+                  </div>
+                </div>
+              )
+            })()}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

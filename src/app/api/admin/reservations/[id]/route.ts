@@ -222,12 +222,12 @@ export async function PATCH(
     const cookieStore = await cookies()
     const body = await request.json()
 
-    const { new_status, notes } = body
+    const { new_status, notes, amount_paid, confirm_order } = body
 
     // Validation: au moins un champ à mettre à jour
-    if (!new_status && notes === undefined) {
+    if (!new_status && notes === undefined && amount_paid === undefined && confirm_order === undefined) {
       return NextResponse.json({
-        error: 'Paramètres manquants. Requis: new_status ou notes'
+        error: 'Paramètres manquants. Requis: new_status, notes, amount_paid ou confirm_order'
       }, { status: 400 })
     }
 
@@ -239,6 +239,13 @@ export async function PATCH(
           error: `new_status invalide. Valeurs acceptées: ${validStatuses.join(', ')}`
         }, { status: 400 })
       }
+    }
+
+    // Valider le montant si fourni
+    if (amount_paid !== undefined && (typeof amount_paid !== 'number' || amount_paid < 0)) {
+      return NextResponse.json({
+        error: 'amount_paid doit être un nombre positif'
+      }, { status: 400 })
     }
 
     // Authentification
@@ -296,29 +303,49 @@ export async function PATCH(
       }
 
       // Si seules les notes sont mises à jour, retourner directement
-      if (!new_status) {
+      if (!new_status && amount_paid === undefined && confirm_order === undefined) {
         return NextResponse.json({ success: true, message: 'Notes mises à jour' })
       }
+    }
+
+    // Mettre à jour already_paid si amount_paid est fourni (remplacement, pas incrément)
+    if (amount_paid !== undefined) {
+      const { error: updateError } = await supabase
+        .from('customer_orders')
+        .update({ already_paid: amount_paid })
+        .eq('id', id)
+
+      if (updateError) {
+        console.error('Erreur mise à jour already_paid:', updateError)
+        return NextResponse.json({ error: 'Erreur lors de la mise à jour du montant payé' }, { status: 500 })
+      }
+
+      console.log(`[PATCH] already_paid set to: ${amount_paid}`)
+    }
+
+    // Déterminer le statut à appliquer
+    const statusToApply = new_status || (confirm_order ? 'CONFIRMED' : null)
+
+    // Si pas de changement de statut, retourner
+    if (!statusToApply) {
+      return NextResponse.json({
+        success: true,
+        message: amount_paid ? `Montant de ${amount_paid} € enregistré` : 'Mise à jour effectuée'
+      })
     }
 
     // Mettre à jour TOUTES les sous-réservations de cette commande
     const updates = []
     const errors = []
 
-    console.log(`[PATCH] Updating order ${id} to status: ${new_status}`)
+    console.log(`[PATCH] Updating order ${id} to status: ${statusToApply}`)
 
     // Mettre à jour rental_reservations
     const { data: rentalData, error: rentalError } = await supabase
       .from('rental_reservations')
-      .update({ reservation_status: new_status })
+      .update({ reservation_status: statusToApply })
       .eq('customer_order_id', id)
       .select()
-
-    console.log(`[PATCH] rental_reservations update result:`, {
-      data: rentalData,
-      error: rentalError,
-      rowCount: rentalData?.length || 0
-    })
 
     if (rentalError) {
       console.error('Erreur mise à jour rental_reservations:', rentalError)
@@ -330,15 +357,9 @@ export async function PATCH(
     // Mettre à jour purchase_reservations
     const { data: purchaseData, error: purchaseError } = await supabase
       .from('purchase_reservations')
-      .update({ reservation_status: new_status })
+      .update({ reservation_status: statusToApply })
       .eq('customer_order_id', id)
       .select()
-
-    console.log(`[PATCH] purchase_reservations update result:`, {
-      data: purchaseData,
-      error: purchaseError,
-      rowCount: purchaseData?.length || 0
-    })
 
     if (purchaseError) {
       console.error('Erreur mise à jour purchase_reservations:', purchaseError)
@@ -350,15 +371,9 @@ export async function PATCH(
     // Mettre à jour prestation_reservations
     const { data: prestationData, error: prestationError } = await supabase
       .from('prestation_reservations')
-      .update({ reservation_status: new_status })
+      .update({ reservation_status: statusToApply })
       .eq('customer_order_id', id)
       .select()
-
-    console.log(`[PATCH] prestation_reservations update result:`, {
-      data: prestationData,
-      error: prestationError,
-      rowCount: prestationData?.length || 0
-    })
 
     if (prestationError) {
       console.error('Erreur mise à jour prestation_reservations:', prestationError)
@@ -366,6 +381,11 @@ export async function PATCH(
     } else {
       updates.push('prestation_reservations')
     }
+
+    // Suppress unused variable warnings
+    void rentalData
+    void purchaseData
+    void prestationData
 
     // Si toutes les mises à jour ont échoué
     if (errors.length === 3) {
@@ -377,7 +397,9 @@ export async function PATCH(
 
     return NextResponse.json({
       success: true,
-      message: `Statut mis à jour avec succès: ${new_status}`,
+      message: confirm_order
+        ? `Commande confirmée${amount_paid ? ` et ${amount_paid} € enregistrés` : ''}`
+        : `Statut mis à jour: ${statusToApply}`,
       updatedTables: updates,
       errors: errors.length > 0 ? errors : undefined
     })
