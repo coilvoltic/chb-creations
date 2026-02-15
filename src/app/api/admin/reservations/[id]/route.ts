@@ -88,31 +88,40 @@ export async function GET(
 
     console.log('Rental reservations trouvées:', rentalReservations?.length || 0)
 
-    // Pour chaque rental_reservation, récupérer ses items
+    // Pour chaque rental_reservation, récupérer ses items et tags
     const rentalReservationsWithItems = await Promise.all(
       (rentalReservations || []).map(async (reservation) => {
-        const { data: items, error: itemsError } = await supabase
-          .from('rental_items')
-          .select(`
-            *,
-            products (
-              name,
-              slug,
-              images,
-              price,
-              new_price
-            )
-          `)
-          .eq('rental_reservation_id', reservation.id)
-          .order('id', { ascending: true })
+        const [{ data: items, error: itemsError }, { data: reservationTags }] = await Promise.all([
+          supabase
+            .from('rental_items')
+            .select(`
+              *,
+              products (
+                name,
+                slug,
+                images,
+                price,
+                new_price
+              )
+            `)
+            .eq('rental_reservation_id', reservation.id)
+            .order('id', { ascending: true }),
+          supabase
+            .from('reservation_tags')
+            .select('*, tag:tags(*)')
+            .eq('rental_reservation_id', reservation.id)
+        ])
 
         if (itemsError) {
           console.error('Erreur récupération rental_items:', itemsError)
         }
 
+        const tags = reservationTags?.map(rt => rt.tag).filter(Boolean) || []
+
         return {
           ...reservation,
           items: items || [],
+          tags,
         }
       })
     )
@@ -130,31 +139,40 @@ export async function GET(
 
     console.log('Purchase reservations trouvées:', purchaseReservations?.length || 0)
 
-    // Pour chaque purchase_reservation, récupérer ses items
+    // Pour chaque purchase_reservation, récupérer ses items et tags
     const purchaseReservationsWithItems = await Promise.all(
       (purchaseReservations || []).map(async (reservation) => {
-        const { data: items, error: itemsError } = await supabase
-          .from('purchase_items')
-          .select(`
-            *,
-            products (
-              name,
-              slug,
-              images,
-              price,
-              new_price
-            )
-          `)
-          .eq('purchase_reservation_id', reservation.id)
-          .order('id', { ascending: true })
+        const [{ data: items, error: itemsError }, { data: reservationTags }] = await Promise.all([
+          supabase
+            .from('purchase_items')
+            .select(`
+              *,
+              products (
+                name,
+                slug,
+                images,
+                price,
+                new_price
+              )
+            `)
+            .eq('purchase_reservation_id', reservation.id)
+            .order('id', { ascending: true }),
+          supabase
+            .from('reservation_tags')
+            .select('*, tag:tags(*)')
+            .eq('purchase_reservation_id', reservation.id)
+        ])
 
         if (itemsError) {
           console.error('Erreur récupération purchase_items:', itemsError)
         }
 
+        const tags = reservationTags?.map(rt => rt.tag).filter(Boolean) || []
+
         return {
           ...reservation,
           items: items || [],
+          tags,
         }
       })
     )
@@ -172,31 +190,40 @@ export async function GET(
 
     console.log('Prestation reservations trouvées:', prestationReservations?.length || 0)
 
-    // Pour chaque prestation_reservation, récupérer ses items
+    // Pour chaque prestation_reservation, récupérer ses items et tags
     const prestationReservationsWithItems = await Promise.all(
       (prestationReservations || []).map(async (reservation) => {
-        const { data: items, error: itemsError } = await supabase
-          .from('prestation_items')
-          .select(`
-            *,
-            products (
-              name,
-              slug,
-              images,
-              price,
-              new_price
-            )
-          `)
-          .eq('prestation_reservation_id', reservation.id)
-          .order('id', { ascending: true })
+        const [{ data: items, error: itemsError }, { data: reservationTags }] = await Promise.all([
+          supabase
+            .from('prestation_items')
+            .select(`
+              *,
+              products (
+                name,
+                slug,
+                images,
+                price,
+                new_price
+              )
+            `)
+            .eq('prestation_reservation_id', reservation.id)
+            .order('id', { ascending: true }),
+          supabase
+            .from('reservation_tags')
+            .select('*, tag:tags(*)')
+            .eq('prestation_reservation_id', reservation.id)
+        ])
 
         if (itemsError) {
           console.error('Erreur récupération prestation_items:', itemsError)
         }
 
+        const tags = reservationTags?.map(rt => rt.tag).filter(Boolean) || []
+
         return {
           ...reservation,
           items: items || [],
+          tags,
         }
       })
     )

@@ -171,13 +171,19 @@ export default function ReservationTagSelector({
                           addTag(tag.id)
                           setIsOpen(false)
                         }}
-                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-stone-50 transition-colors text-left"
+                        className="w-full px-3 py-2 hover:bg-stone-50 transition-colors text-left"
                       >
-                        <div
-                          className="w-4 h-4 rounded flex-shrink-0"
-                          style={{ backgroundColor: tag.color }}
-                        />
-                        <span className="text-sm text-stone-900">{tag.name}</span>
+                        <span
+                          className="inline-flex items-center px-2 py-1 rounded text-xs font-medium"
+                          style={{
+                            backgroundColor: tag.color + '20',
+                            color: tag.color,
+                            borderColor: tag.color,
+                            borderWidth: '1px'
+                          }}
+                        >
+                          {tag.name}
+                        </span>
                       </button>
                     ))
                   )}

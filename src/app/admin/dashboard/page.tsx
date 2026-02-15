@@ -33,8 +33,17 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'tags'>('list')
+  const [searchQuery, setSearchQuery] = useState('')
   const router = useRouter()
   const supabase = createClientComponentClient()
+
+  const filteredOrders = orders.filter((order) => {
+    if (!searchQuery.trim()) return true
+    const query = searchQuery.trim().toLowerCase()
+    const fullName = `${order.customer_infos.firstName} ${order.customer_infos.lastName}`.toLowerCase()
+    const orderNumber = String(order.order_number).toLowerCase()
+    return fullName.includes(query) || orderNumber.includes(query)
+  })
 
   useEffect(() => {
     loadOrders()
@@ -155,7 +164,7 @@ export default function AdminDashboardPage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold text-black">
-                {viewMode === 'tags' ? 'Gestion des tags' : `Commandes (${orders.length})`}
+                {viewMode === 'tags' ? 'Gestion des tags' : `Commandes (${filteredOrders.length}${searchQuery.trim() ? ` / ${orders.length}` : ''})`}
               </h2>
               <p className="text-sm text-stone-600 mt-1">
                 {viewMode === 'list'
@@ -165,7 +174,7 @@ export default function AdminDashboardPage() {
                   : 'Créez et gérez les tags pour vos réservations'}
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
               <button
                 onClick={() => setViewMode('list')}
                 className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
@@ -207,6 +216,36 @@ export default function AdminDashboardPage() {
               </button>
             </div>
           </div>
+          {viewMode === 'list' && (
+            <div className="relative mt-4">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Nom client ou n° commande..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-8 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-stone-400 w-full placeholder:text-stone-400"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {viewMode === 'tags' ? (
@@ -297,16 +336,6 @@ export default function AdminDashboardPage() {
                                 <span>Prestation</span>
                               )}
                             </div>
-                            {firstReservation && firstReservation.delivery_address && (
-                              <div className="text-xs">
-                                <span className="text-green-700" title={firstReservation.delivery_address}>📦 Livraison</span>
-                              </div>
-                            )}
-                            {firstReservation && !firstReservation.delivery_address && (
-                              <div className="text-xs">
-                                <span className="text-stone-500">🏪 Retrait</span>
-                              </div>
-                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">

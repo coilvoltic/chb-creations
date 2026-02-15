@@ -88,6 +88,11 @@ export default function ReservationDetailPage() {
   const [savedNotes, setSavedNotes] = useState('')
   const [isSavingNotes, setIsSavingNotes] = useState(false)
   const [notesStatus, setNotesStatus] = useState<'idle' | 'saved'>('idle')
+  const [showDatesModal, setShowDatesModal] = useState(false)
+  const [dateEdits, setDateEdits] = useState<Record<string, string>>({})
+  const [isSubmittingDates, setIsSubmittingDates] = useState(false)
+  const [notifyCustomer, setNotifyCustomer] = useState(false)
+  const [dateErrors, setDateErrors] = useState<Record<string, string>>({})
   const router = useRouter()
   const params = useParams()
   const id = params?.id
@@ -197,6 +202,161 @@ export default function ReservationDetailPage() {
       alert('Erreur lors de la mise à jour')
     } finally {
       setIsSubmittingModal(false)
+    }
+  }
+
+  const toDateInputValue = (dateString: string) => {
+    return dateString ? dateString.slice(0, 10) : ''
+  }
+
+  const toDatetimeLocalValue = (dateString: string) => {
+    if (!dateString) return ''
+    const d = new Date(dateString)
+    const pad = (n: number) => n.toString().padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+
+  const openDatesModal = () => {
+    if (!data) return
+    const edits: Record<string, string> = {}
+
+    data.rental_reservations.flatMap(r => r.items).forEach(item => {
+      edits[`rental_${item.id}_start`] = toDateInputValue(item.rental_start)
+      edits[`rental_${item.id}_end`] = toDateInputValue(item.rental_end)
+    })
+
+    data.purchase_reservations.flatMap(p => p.items).forEach(item => {
+      edits[`purchase_${item.id}_date`] = item.estimated_delivery_date ? toDateInputValue(item.estimated_delivery_date) : ''
+    })
+
+    data.prestation_reservations.flatMap(p => p.items).forEach(item => {
+      edits[`prestation_${item.id}_start`] = item.prestation_start ? toDatetimeLocalValue(item.prestation_start) : ''
+      edits[`prestation_${item.id}_end`] = item.prestation_end ? toDatetimeLocalValue(item.prestation_end) : ''
+    })
+
+    setDateEdits(edits)
+    setDateErrors({})
+    setNotifyCustomer(false)
+    setShowDatesModal(true)
+  }
+
+  const handleDatesSubmit = async () => {
+    if (!data) return
+    setIsSubmittingDates(true)
+
+    interface DateUpdate {
+      table: string
+      id: number
+      rental_start?: string
+      rental_end?: string
+      estimated_delivery_date?: string
+      prestation_start?: string
+      prestation_end?: string
+    }
+
+    const updates: DateUpdate[] = []
+
+    data.rental_reservations.flatMap(r => r.items).forEach(item => {
+      const start = dateEdits[`rental_${item.id}_start`]
+      const end = dateEdits[`rental_${item.id}_end`]
+      const origStart = toDateInputValue(item.rental_start)
+      const origEnd = toDateInputValue(item.rental_end)
+
+      if (start !== origStart || end !== origEnd) {
+        updates.push({
+          table: 'rental_items',
+          id: item.id,
+          rental_start: start,
+          rental_end: end,
+        })
+      }
+    })
+
+    data.purchase_reservations.flatMap(p => p.items).forEach(item => {
+      const date = dateEdits[`purchase_${item.id}_date`]
+      const origDate = item.estimated_delivery_date ? toDateInputValue(item.estimated_delivery_date) : ''
+
+      if (date !== origDate) {
+        updates.push({
+          table: 'purchase_items',
+          id: item.id,
+          estimated_delivery_date: date || undefined,
+        })
+      }
+    })
+
+    data.prestation_reservations.flatMap(p => p.items).forEach(item => {
+      const start = dateEdits[`prestation_${item.id}_start`]
+      const end = dateEdits[`prestation_${item.id}_end`]
+      const origStart = item.prestation_start ? toDatetimeLocalValue(item.prestation_start) : ''
+      const origEnd = item.prestation_end ? toDatetimeLocalValue(item.prestation_end) : ''
+
+      if (start !== origStart || end !== origEnd) {
+        updates.push({
+          table: 'prestation_items',
+          id: item.id,
+          prestation_start: start ? new Date(start).toISOString() : undefined,
+          prestation_end: end ? new Date(end).toISOString() : undefined,
+        })
+      }
+    })
+
+    if (updates.length === 0) {
+      setShowDatesModal(false)
+      setIsSubmittingDates(false)
+      return
+    }
+
+    try {
+      // Vérifier la disponibilité avant de mettre à jour
+      const checkResponse = await fetch('/api/admin/items/check-availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates })
+      })
+
+      if (checkResponse.status === 401) {
+        router.push('/admin/login')
+        return
+      }
+
+      const checkResult = await checkResponse.json()
+
+      if (!checkResult.available) {
+        const newErrors: Record<string, string> = {}
+        for (const err of checkResult.errors as { item_id: number; table: string; message: string }[]) {
+          const prefix = err.table === 'rental_items' ? 'rental' : 'prestation'
+          newErrors[`${prefix}_${err.item_id}`] = err.message
+        }
+        setDateErrors(newErrors)
+        setIsSubmittingDates(false)
+        return
+      }
+
+      setDateErrors({})
+
+      const response = await fetch('/api/admin/items/update-dates', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates, notify_customer: notifyCustomer, order_id: id })
+      })
+
+      if (response.status === 401) {
+        router.push('/admin/login')
+        return
+      }
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la mise à jour des dates')
+      }
+
+      await loadOrderDetail()
+      setShowDatesModal(false)
+    } catch (err) {
+      console.error('Erreur:', err)
+      alert('Erreur lors de la mise à jour des dates')
+    } finally {
+      setIsSubmittingDates(false)
     }
   }
 
@@ -320,6 +480,16 @@ export default function ReservationDetailPage() {
             <div className="flex items-center gap-3">
               {firstReservation && getStatusBadge(firstReservation.reservation_status)}
               <button
+                onClick={openDatesModal}
+                className="p-2 md:px-4 md:py-2 bg-stone-800 hover:bg-stone-900 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                title="Modifier les dates"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 lg:h-4 lg:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="hidden lg:inline">Modifier les dates</span>
+              </button>
+              <button
                 onClick={() => {
                   setModalAmount(order.already_paid > 0 ? order.already_paid.toString() : '')
                   setShowPaymentModal(true)
@@ -327,10 +497,10 @@ export default function ReservationDetailPage() {
                 className="p-2 md:px-4 md:py-2 bg-stone-800 hover:bg-stone-900 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
                 title="Enregistrer un paiement"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 lg:h-4 lg:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
-                <span className="hidden md:inline">Enregistrer un paiement</span>
+                <span className="hidden lg:inline">Enregistrer un paiement</span>
               </button>
             </div>
           </div>
@@ -1025,6 +1195,198 @@ export default function ReservationDetailPage() {
                 </div>
               )
             })()}
+          </div>
+        </div>
+      )}
+
+      {/* Modale de modification des dates */}
+      {showDatesModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-black">Modifier les dates</h3>
+              <button
+                onClick={() => setShowDatesModal(false)}
+                className="p-1 hover:bg-stone-100 rounded-lg transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {Object.keys(dateErrors).length > 0 && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm font-medium text-red-800">Certaines dates ne sont pas disponibles</p>
+              </div>
+            )}
+
+            <div className="space-y-6">
+              {/* Locations */}
+              {rentalItems.length > 0 && (
+                <div className="border-l-4 border-blue-500 pl-4 space-y-4">
+                  <p className="text-xs font-semibold text-blue-900 uppercase tracking-wide">Locations</p>
+                  {rentalItems.map((item) => (
+                    <div key={item.id} className="space-y-2">
+                      <p className="text-sm font-medium text-black">{item.products.name}</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs text-stone-500 mb-1">Début</label>
+                          <input
+                            type="date"
+                            value={dateEdits[`rental_${item.id}_start`] || ''}
+                            onChange={(e) => {
+                              const newStart = e.target.value
+                              setDateEdits(prev => {
+                                const oldStart = prev[`rental_${item.id}_start`]
+                                const oldEnd = prev[`rental_${item.id}_end`]
+                                const next: Record<string, string> = { ...prev, [`rental_${item.id}_start`]: newStart }
+                                if (oldStart && oldEnd) {
+                                  const diffMs = new Date(oldEnd).getTime() - new Date(oldStart).getTime()
+                                  const newEnd = new Date(new Date(newStart).getTime() + diffMs)
+                                  const pad = (n: number) => n.toString().padStart(2, '0')
+                                  next[`rental_${item.id}_end`] = `${newEnd.getFullYear()}-${pad(newEnd.getMonth() + 1)}-${pad(newEnd.getDate())}`
+                                }
+                                return next
+                              })
+                              setDateErrors(prev => { const next = { ...prev }; delete next[`rental_${item.id}`]; return next })
+                            }}
+                            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-400"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-stone-500 mb-1">Fin</label>
+                          <input
+                            type="date"
+                            value={dateEdits[`rental_${item.id}_end`] || ''}
+                            onChange={(e) => {
+                              setDateEdits(prev => ({ ...prev, [`rental_${item.id}_end`]: e.target.value }))
+                              setDateErrors(prev => { const next = { ...prev }; delete next[`rental_${item.id}`]; return next })
+                            }}
+                            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-400"
+                          />
+                        </div>
+                      </div>
+                      {dateErrors[`rental_${item.id}`] && (
+                        <p className="text-xs text-red-600 mt-1">{dateErrors[`rental_${item.id}`]}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Achats */}
+              {purchaseItems.length > 0 && (
+                <div className="border-l-4 border-green-500 pl-4 space-y-4">
+                  <p className="text-xs font-semibold text-green-900 uppercase tracking-wide">Achats</p>
+                  {purchaseItems.map((item) => (
+                    <div key={item.id} className="space-y-2">
+                      <p className="text-sm font-medium text-black">{item.products.name}</p>
+                      <div>
+                        <label className="block text-xs text-stone-500 mb-1">Date de livraison estimée</label>
+                        <input
+                          type="date"
+                          value={dateEdits[`purchase_${item.id}_date`] || ''}
+                          onChange={(e) => setDateEdits(prev => ({ ...prev, [`purchase_${item.id}_date`]: e.target.value }))}
+                          className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-green-400"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Prestations */}
+              {prestationItems.length > 0 && (
+                <div className="border-l-4 border-purple-500 pl-4 space-y-4">
+                  <p className="text-xs font-semibold text-purple-900 uppercase tracking-wide">Prestations</p>
+                  {prestationItems.map((item) => (
+                    <div key={item.id} className="space-y-2">
+                      <p className="text-sm font-medium text-black">{item.products.name}</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs text-stone-500 mb-1">Début</label>
+                          <input
+                            type="datetime-local"
+                            value={dateEdits[`prestation_${item.id}_start`] || ''}
+                            onChange={(e) => {
+                              const newStart = e.target.value
+                              setDateEdits(prev => {
+                                const oldStart = prev[`prestation_${item.id}_start`]
+                                const oldEnd = prev[`prestation_${item.id}_end`]
+                                const next: Record<string, string> = { ...prev, [`prestation_${item.id}_start`]: newStart }
+                                if (oldStart && oldEnd) {
+                                  const diffMs = new Date(oldEnd).getTime() - new Date(oldStart).getTime()
+                                  const newEnd = new Date(new Date(newStart).getTime() + diffMs)
+                                  const pad = (n: number) => n.toString().padStart(2, '0')
+                                  next[`prestation_${item.id}_end`] = `${newEnd.getFullYear()}-${pad(newEnd.getMonth() + 1)}-${pad(newEnd.getDate())}T${pad(newEnd.getHours())}:${pad(newEnd.getMinutes())}`
+                                }
+                                return next
+                              })
+                              setDateErrors(prev => { const next = { ...prev }; delete next[`prestation_${item.id}`]; return next })
+                            }}
+                            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-purple-400"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-stone-500 mb-1">Fin</label>
+                          <input
+                            type="datetime-local"
+                            value={dateEdits[`prestation_${item.id}_end`] || ''}
+                            onChange={(e) => {
+                              setDateEdits(prev => ({ ...prev, [`prestation_${item.id}_end`]: e.target.value }))
+                              setDateErrors(prev => { const next = { ...prev }; delete next[`prestation_${item.id}`]; return next })
+                            }}
+                            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-purple-400"
+                          />
+                        </div>
+                      </div>
+                      {dateErrors[`prestation_${item.id}`] && (
+                        <p className="text-xs text-red-600 mt-1">{dateErrors[`prestation_${item.id}`]}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Toggle notifier le client */}
+            <div className="flex items-center justify-between p-4 bg-stone-50 rounded-xl mt-6">
+              <div>
+                <p className="text-sm font-medium text-stone-900">Notifier le client</p>
+                <p className="text-xs text-stone-500">Envoyer un email avec la confirmation mise à jour</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNotifyCustomer(!notifyCustomer)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  notifyCustomer ? 'bg-green-600' : 'bg-stone-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    notifyCustomer ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Boutons */}
+            <div className="flex gap-3 pt-4">
+              <button
+                onClick={() => setShowDatesModal(false)}
+                className="flex-1 px-4 py-3 border border-stone-300 text-stone-700 text-sm font-medium rounded-lg hover:bg-stone-50 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleDatesSubmit}
+                disabled={isSubmittingDates}
+                className="flex-1 px-4 py-3 bg-stone-800 hover:bg-stone-900 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmittingDates ? 'Enregistrement...' : 'Enregistrer'}
+              </button>
+            </div>
           </div>
         </div>
       )}
