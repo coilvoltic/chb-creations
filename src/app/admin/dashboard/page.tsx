@@ -289,7 +289,13 @@ export default function AdminDashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-stone-200">
-                  {orders.map((order) => {
+                  {filteredOrders.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center text-stone-500">
+                        Aucune commande ne correspond à votre recherche
+                      </td>
+                    </tr>
+                  ) : filteredOrders.map((order) => {
                     // Get first reservation (rental, purchase or prestation) for display
                     const firstRental = order.rental_reservations[0]
                     const firstPurchase = order.purchase_reservations[0]
