@@ -79,7 +79,7 @@ export async function PATCH(request: Request) {
           return
         }
 
-        let updateData: Record<string, string> = {}
+        const updateData: Record<string, string> = {}
 
         if (update.table === 'rental_items') {
           if (update.rental_start) updateData.rental_start = update.rental_start
