@@ -63,9 +63,41 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // La réservation a déjà été créée par /api/create-checkout-session
-    // Le webhook s'occupera de mettre à jour le statut et d'envoyer l'email
-    // Cette route sert juste à confirmer à l'utilisateur que tout est OK
+    // Mettre à jour already_paid avec le montant payé en ligne
+    const amountPaidOnline = session.amount_total ? session.amount_total / 100 : 0
+    if (amountPaidOnline > 0) {
+      const currentAlreadyPaid = customerOrder.already_paid ?? 0
+      // Ne mettre à jour que si le webhook ne l'a pas déjà fait
+      if (currentAlreadyPaid < amountPaidOnline) {
+        await supabase
+          .from('customer_orders')
+          .update({ already_paid: amountPaidOnline })
+          .eq('id', parseInt(customerOrderId))
+        console.log('already_paid mis à jour à:', amountPaidOnline)
+      }
+    }
+
+    // Mettre à jour les statuts des réservations à CONFIRMED si pas déjà fait par le webhook
+    const updates = []
+    if (customerOrder.rental_reservations) {
+      for (const r of customerOrder.rental_reservations) {
+        updates.push(supabase.from('rental_reservations').update({ reservation_status: 'CONFIRMED' }).eq('id', r.id))
+      }
+    }
+    if (customerOrder.purchase_reservations) {
+      for (const p of customerOrder.purchase_reservations) {
+        updates.push(supabase.from('purchase_reservations').update({ reservation_status: 'CONFIRMED' }).eq('id', p.id))
+      }
+    }
+    if (customerOrder.prestation_reservations) {
+      for (const pr of customerOrder.prestation_reservations) {
+        updates.push(supabase.from('prestation_reservations').update({ reservation_status: 'CONFIRMED' }).eq('id', pr.id))
+      }
+    }
+    if (updates.length > 0) {
+      await Promise.all(updates)
+      console.log(`${updates.length} réservations confirmées via process-payment`)
+    }
 
     return NextResponse.json({
       success: true,
