@@ -218,6 +218,7 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString('fr-FR', {
+      timeZone: 'Europe/Paris',
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -227,6 +228,7 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString('fr-FR', {
+      timeZone: 'Europe/Paris',
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -238,6 +240,7 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
   const formatTime = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleTimeString('fr-FR', {
+      timeZone: 'Europe/Paris',
       hour: '2-digit',
       minute: '2-digit',
     })
