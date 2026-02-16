@@ -102,5 +102,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/((?!_next/static|_next/image|favicon.ico|admin).*)'],
+  matcher: ['/admin/:path*', '/((?!_next/static|_next/image|favicon.ico|admin|api).*)'],
 }
