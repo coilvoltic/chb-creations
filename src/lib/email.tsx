@@ -2,6 +2,8 @@ import { Resend } from 'resend'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { ReservationPDF } from './pdf-generator'
 import React from 'react'
+import fs from 'fs'
+import path from 'path'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -85,6 +87,10 @@ export async function sendReservationConfirmation(reservation: ReservationData) 
     // Convertir le buffer en base64 pour l'attachment
     const pdfBase64 = pdfBuffer.toString('base64')
     console.log('PDF base64 length:', pdfBase64.length)
+
+    // Lire le fichier CGU.pdf
+    const cguPath = path.join(process.cwd(), 'public', 'docs', 'CGU.pdf')
+    const cguBase64 = fs.readFileSync(cguPath).toString('base64')
 
     // Envoyer l'email avec le PDF en pièce jointe
     console.log('Sending email via Resend...')
@@ -212,6 +218,10 @@ export async function sendReservationConfirmation(reservation: ReservationData) 
         {
           filename: `reservation-${reservation.reservation_code}.pdf`,
           content: pdfBase64,
+        },
+        {
+          filename: 'CGU-CHB-Creations.pdf',
+          content: cguBase64,
         },
       ],
     })

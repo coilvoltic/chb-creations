@@ -554,10 +554,16 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                   Prix (€) <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
+                  pattern="[0-9]*[.,]?[0-9]*"
                   value={price}
-                  onChange={(e) => setPrice(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(',', '.')
+                    if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                      setPrice(val)
+                    }
+                  }}
                   className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
                   required
                 />
@@ -568,10 +574,16 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                   Prix promotionnel (€)
                 </label>
                 <input
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
+                  pattern="[0-9]*[.,]?[0-9]*"
                   value={newPrice}
-                  onChange={(e) => setNewPrice(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(',', '.')
+                    if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                      setNewPrice(val)
+                    }
+                  }}
                   className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
                   placeholder="Optionnel"
                 />
