@@ -65,10 +65,27 @@ export async function GET() {
       // Ne pas bloquer si l'update échoue, continuer avec la récupération
     }
 
-    // Récupérer toutes les commandes avec leurs sous-réservations
+    // Récupérer toutes les commandes avec leurs sous-réservations en une seule requête
     const { data: orders, error: ordersError } = await supabase
       .from('customer_orders')
-      .select('*')
+      .select(`
+        *,
+        rental_reservations(
+          *,
+          rental_items(*),
+          reservation_tags(*, tag:tags(*))
+        ),
+        purchase_reservations(
+          *,
+          purchase_items(*),
+          reservation_tags(*, tag:tags(*))
+        ),
+        prestation_reservations(
+          *,
+          prestation_items(*),
+          reservation_tags(*, tag:tags(*))
+        )
+      `)
       .order('created_at', { ascending: false })
 
     if (ordersError) {
@@ -76,106 +93,27 @@ export async function GET() {
       return NextResponse.json({ error: ordersError.message }, { status: 500 })
     }
 
-    // Pour chaque commande, récupérer ses rental_reservations, purchase_reservations ET prestation_reservations
-    // AVEC leurs items imbriqués pour le calendrier
-    const ordersWithReservations = await Promise.all(
-      (orders || []).map(async (order) => {
-        // Récupérer rental_reservations avec rental_items
-        const { data: rentalReservations } = await supabase
-          .from('rental_reservations')
-          .select('*')
-          .eq('customer_order_id', order.id)
-
-        // Pour chaque rental_reservation, récupérer ses rental_items et tags
-        const rentalReservationsWithItems = await Promise.all(
-          (rentalReservations || []).map(async (rental) => {
-            const { data: rentalItems } = await supabase
-              .from('rental_items')
-              .select('*')
-              .eq('rental_reservation_id', rental.id)
-
-            // Récupérer les tags associés
-            const { data: reservationTags } = await supabase
-              .from('reservation_tags')
-              .select('*, tag:tags(*)')
-              .eq('rental_reservation_id', rental.id)
-
-            const tags = reservationTags?.map(rt => rt.tag).filter(Boolean) || []
-
-            return {
-              ...rental,
-              rental_items: rentalItems || [],
-              tags
-            }
-          })
-        )
-
-        // Récupérer purchase_reservations avec purchase_items
-        const { data: purchaseReservations } = await supabase
-          .from('purchase_reservations')
-          .select('*')
-          .eq('customer_order_id', order.id)
-
-        const purchaseReservationsWithItems = await Promise.all(
-          (purchaseReservations || []).map(async (purchase) => {
-            const { data: purchaseItems } = await supabase
-              .from('purchase_items')
-              .select('*')
-              .eq('purchase_reservation_id', purchase.id)
-
-            // Récupérer les tags associés
-            const { data: reservationTags } = await supabase
-              .from('reservation_tags')
-              .select('*, tag:tags(*)')
-              .eq('purchase_reservation_id', purchase.id)
-
-            const tags = reservationTags?.map(rt => rt.tag).filter(Boolean) || []
-
-            return {
-              ...purchase,
-              purchase_items: purchaseItems || [],
-              tags
-            }
-          })
-        )
-
-        // Récupérer prestation_reservations avec prestation_items
-        const { data: prestationReservations } = await supabase
-          .from('prestation_reservations')
-          .select('*')
-          .eq('customer_order_id', order.id)
-
-        const prestationReservationsWithItems = await Promise.all(
-          (prestationReservations || []).map(async (prestation) => {
-            const { data: prestationItems } = await supabase
-              .from('prestation_items')
-              .select('*')
-              .eq('prestation_reservation_id', prestation.id)
-
-            // Récupérer les tags associés
-            const { data: reservationTags } = await supabase
-              .from('reservation_tags')
-              .select('*, tag:tags(*)')
-              .eq('prestation_reservation_id', prestation.id)
-
-            const tags = reservationTags?.map(rt => rt.tag).filter(Boolean) || []
-
-            return {
-              ...prestation,
-              prestation_items: prestationItems || [],
-              tags
-            }
-          })
-        )
-
-        return {
-          ...order,
-          rental_reservations: rentalReservationsWithItems,
-          purchase_reservations: purchaseReservationsWithItems,
-          prestation_reservations: prestationReservationsWithItems,
-        }
-      })
-    )
+    // Transformer reservation_tags en tags pour garder le même format de réponse
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    const ordersWithReservations = (orders || []).map((order: any) => ({
+      ...order,
+      rental_reservations: (order.rental_reservations || []).map((rental: any) => ({
+        ...rental,
+        tags: (rental.reservation_tags || []).map((rt: any) => rt.tag).filter(Boolean),
+        reservation_tags: undefined,
+      })),
+      purchase_reservations: (order.purchase_reservations || []).map((purchase: any) => ({
+        ...purchase,
+        tags: (purchase.reservation_tags || []).map((rt: any) => rt.tag).filter(Boolean),
+        reservation_tags: undefined,
+      })),
+      prestation_reservations: (order.prestation_reservations || []).map((prestation: any) => ({
+        ...prestation,
+        tags: (prestation.reservation_tags || []).map((rt: any) => rt.tag).filter(Boolean),
+        reservation_tags: undefined,
+      })),
+    }))
+    /* eslint-enable @typescript-eslint/no-explicit-any */
 
     return NextResponse.json({ orders: ordersWithReservations })
   } catch (error) {

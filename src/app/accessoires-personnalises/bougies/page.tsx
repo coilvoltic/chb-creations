@@ -1,7 +1,7 @@
 import ProductListingPage from '@/components/ProductListingPage'
 import { getBougiesProducts } from '@/actions/products'
 
-export const revalidate = 60
+export const revalidate = 3600
 
 export default async function BougiesPage() {
   const bougiesData = await getBougiesProducts()

@@ -1,6 +1,6 @@
 import ProductListingPage from '@/components/ProductListingPage'
 import { getHenneDomicileProducts } from '@/actions/products'
-export const revalidate = 60
+export const revalidate = 3600
 
 export default async function HenneDomicilePage() {
   const henneDomicileData = await getHenneDomicileProducts()

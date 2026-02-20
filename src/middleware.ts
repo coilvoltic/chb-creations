@@ -2,6 +2,10 @@ import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+// Cache en mémoire pour le statut de maintenance (réduit les appels Supabase)
+let maintenanceCache: { value: boolean; expiry: number } | null = null
+const MAINTENANCE_CACHE_TTL = 60_000 // 60 secondes
+
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   const supabase = createMiddlewareClient({ req, res })
@@ -27,12 +31,19 @@ export async function middleware(req: NextRequest) {
 
   if (!isExcluded && !isDevelopment) {
     try {
-      // Vérifier le mode maintenance
-      const { data: maintenanceStatus } = await supabase
-        .rpc('get_maintenance_status')
-        .single()
+      // Vérifier le mode maintenance (avec cache mémoire de 60s)
+      let isMaintenance = false
+      if (maintenanceCache && Date.now() < maintenanceCache.expiry) {
+        isMaintenance = maintenanceCache.value
+      } else {
+        const { data: maintenanceStatus } = await supabase
+          .rpc('get_maintenance_status')
+          .single()
+        isMaintenance = (maintenanceStatus as { is_maintenance: boolean })?.is_maintenance ?? false
+        maintenanceCache = { value: isMaintenance, expiry: Date.now() + MAINTENANCE_CACHE_TTL }
+      }
 
-      if ((maintenanceStatus as { is_maintenance: boolean })?.is_maintenance) {
+      if (isMaintenance) {
         // Vérifier si l'utilisateur est admin
         const { data: { session } } = await supabase.auth.getSession()
 

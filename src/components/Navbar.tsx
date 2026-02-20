@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 import { useCart } from '@/contexts/CartContext'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { getPromotionalMessages, type PromotionalMessage } from '@/lib/supabase'
+import type { PromotionalMessage } from '@/lib/supabase'
 
 export default function Navbar() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
@@ -49,11 +49,18 @@ export default function Navbar() {
     }
   }, [supabase])
 
-  // Fetch promotional messages
+  // Fetch promotional messages via cached API route (reduces Supabase egress)
   useEffect(() => {
     const fetchMessages = async () => {
-      const messages = await getPromotionalMessages()
-      setPromotionalMessages(messages)
+      try {
+        const res = await fetch('/api/promotional-messages')
+        if (res.ok) {
+          const messages = await res.json()
+          setPromotionalMessages(messages)
+        }
+      } catch (error) {
+        console.error('Error fetching promotional messages:', error)
+      }
     }
     fetchMessages()
   }, [])
