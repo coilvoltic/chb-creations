@@ -101,7 +101,9 @@ export async function GET(
                 slug,
                 images,
                 price,
-                new_price
+                new_price,
+                category,
+                subcategory
               )
             `)
             .eq('rental_reservation_id', reservation.id)
@@ -152,7 +154,9 @@ export async function GET(
                 slug,
                 images,
                 price,
-                new_price
+                new_price,
+                category,
+                subcategory
               )
             `)
             .eq('purchase_reservation_id', reservation.id)
@@ -203,7 +207,9 @@ export async function GET(
                 slug,
                 images,
                 price,
-                new_price
+                new_price,
+                category,
+                subcategory
               )
             `)
             .eq('prestation_reservation_id', reservation.id)

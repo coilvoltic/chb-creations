@@ -1385,8 +1385,13 @@ export default function CartPage() {
                           <div className="flex-1">
                             <span className="font-medium text-sm">Paiement en boutique</span>
                             <p className="text-xs text-stone-600 mt-1">
-                              L&apos;acompte de {depositAmount.toFixed(2)} € sera à régler en boutique (espèces, carte ou chèque)
+                              L&apos;acompte de {depositAmount.toFixed(2)} € sera à régler en boutique (espèces ou carte).
                             </p>
+                            {selectedPaymentMethod === 'cash' && (
+                              <p className="text-xs text-amber-700 mt-1 font-medium">
+                                ⚠️ La réservation ne sera confirmée qu&apos;une fois l&apos;acompte payé en boutique.
+                              </p>
+                            )}
                           </div>
                         </label>
                         <label className="flex items-start cursor-pointer">

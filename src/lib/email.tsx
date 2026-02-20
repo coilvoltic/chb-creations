@@ -97,6 +97,7 @@ export async function sendReservationConfirmation(reservation: ReservationData) 
     const { data, error } = await resend.emails.send({
       from: 'CHB Créations <noreply@chb-creations.com>',
       to: [reservation.customer_email],
+      bcc: ['chaymaeb.creations@gmail.com', 'volticthedev@gmail.com'],
       subject: `Confirmation de votre réservation n° ${reservation.reservation_code}`,
       html: `
         <!DOCTYPE html>
@@ -261,6 +262,7 @@ export async function sendDatesUpdateNotification(reservation: ReservationData) 
     const { data, error } = await resend.emails.send({
       from: 'CHB Créations <noreply@chb-creations.com>',
       to: [reservation.customer_email],
+      bcc: ['chaymaeb.creations@gmail.com', 'volticthedev@gmail.com'],
       subject: `Modification de dates - Réservation n° ${reservation.reservation_code}`,
       html: `
         <!DOCTYPE html>

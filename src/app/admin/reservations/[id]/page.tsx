@@ -13,6 +13,8 @@ interface ProductInfo {
   images: string[]
   price: number
   new_price?: number
+  category?: string
+  subcategory?: string
 }
 
 interface RentalItem {
@@ -95,6 +97,8 @@ export default function ReservationDetailPage() {
   const [dateErrors, setDateErrors] = useState<Record<string, string>>({})
   const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [emailStatus, setEmailStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
   const router = useRouter()
   const params = useParams()
   const id = params?.id
@@ -391,6 +395,35 @@ export default function ReservationDetailPage() {
     }
   }
 
+  const handleCancelOrder = async () => {
+    setIsCancelling(true)
+    try {
+      const response = await fetch(`/api/admin/reservations/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ new_status: 'CANCELLED' })
+      })
+
+      if (response.status === 401) {
+        router.push('/admin/login')
+        return
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erreur lors de l\'annulation')
+      }
+
+      await loadOrderDetail()
+      setShowCancelModal(false)
+    } catch (err) {
+      console.error('Erreur:', err)
+      alert('Erreur lors de l\'annulation de la commande')
+    } finally {
+      setIsCancelling(false)
+    }
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
       day: '2-digit',
@@ -443,7 +476,7 @@ export default function ReservationDetailPage() {
 
     return (
       <span className={`rounded-lg font-medium border ${config.color} p-2 md:px-4 md:py-2 flex items-center gap-1.5`}>
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">{config.icon}</svg>
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">{config.icon}</svg>
         <span className="hidden md:inline text-sm">{config.label}</span>
       </span>
     )
@@ -515,10 +548,10 @@ export default function ReservationDetailPage() {
                 className="p-2 md:px-4 md:py-2 bg-stone-800 hover:bg-stone-900 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
                 title="Modifier les dates"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 lg:h-4 lg:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 xl:h-4 xl:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <span className="hidden lg:inline">Modifier les dates</span>
+                <span className="hidden xl:inline">Modifier les dates</span>
               </button>
               <button
                 onClick={() => {
@@ -528,10 +561,10 @@ export default function ReservationDetailPage() {
                 className="p-2 md:px-4 md:py-2 bg-stone-800 hover:bg-stone-900 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
                 title="Enregistrer un paiement"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 lg:h-4 lg:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 xl:h-4 xl:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
-                <span className="hidden lg:inline">Enregistrer un paiement</span>
+                <span className="hidden xl:inline">Enregistrer un paiement</span>
               </button>
               <button
                 onClick={handleResendConfirmation}
@@ -551,22 +584,34 @@ export default function ReservationDetailPage() {
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                 ) : emailStatus === 'success' ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 lg:h-4 lg:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 xl:h-4 xl:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 ) : emailStatus === 'error' ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 lg:h-4 lg:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 xl:h-4 xl:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 lg:h-4 lg:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 xl:h-4 xl:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                 )}
-                <span className="hidden lg:inline">
+                <span className="hidden xl:inline">
                   {isSendingEmail ? 'Envoi...' : emailStatus === 'success' ? 'Email envoyé' : emailStatus === 'error' ? 'Erreur' : 'Renvoyer l\'email'}
                 </span>
               </button>
+              {firstReservation && firstReservation.reservation_status !== 'CANCELLED' && (
+                <button
+                  onClick={() => setShowCancelModal(true)}
+                  className="p-2 md:px-4 md:py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                  title="Annuler la commande"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 xl:h-4 xl:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <span className="hidden xl:inline">Annuler</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -882,7 +927,10 @@ export default function ReservationDetailPage() {
 
                           {/* Détails produit */}
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-base md:text-lg text-black mb-2 break-words">{item.products.name}</h3>
+                            <h3 className="font-semibold text-base md:text-lg text-black break-words">{item.products.name}</h3>
+                            {item.products.category && item.products.subcategory && (
+                              <p className="text-xs text-stone-400 mb-2">{item.products.category} → {item.products.subcategory}</p>
+                            )}
 
                             <div className="space-y-1 text-sm text-stone-700">
                               <p>
@@ -976,7 +1024,10 @@ export default function ReservationDetailPage() {
 
                           {/* Détails produit */}
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-base md:text-lg text-black mb-2 break-words">{item.products.name}</h3>
+                            <h3 className="font-semibold text-base md:text-lg text-black break-words">{item.products.name}</h3>
+                            {item.products.category && item.products.subcategory && (
+                              <p className="text-xs text-stone-400 mb-2">{item.products.category} → {item.products.subcategory}</p>
+                            )}
 
                             <div className="space-y-1 text-sm text-stone-700">
                               {item.estimated_delivery_date && (
@@ -1069,7 +1120,10 @@ export default function ReservationDetailPage() {
 
                           {/* Détails produit */}
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-base md:text-lg text-black mb-2 break-words">{item.products.name}</h3>
+                            <h3 className="font-semibold text-base md:text-lg text-black break-words">{item.products.name}</h3>
+                            {item.products.category && item.products.subcategory && (
+                              <p className="text-xs text-stone-400 mb-2">{item.products.category} → {item.products.subcategory}</p>
+                            )}
 
                             <div className="space-y-1 text-sm text-stone-700">
                               {item.prestation_start && item.prestation_end && (
@@ -1451,6 +1505,55 @@ export default function ReservationDetailPage() {
               >
                 {isSubmittingDates ? 'Enregistrement...' : 'Enregistrer'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale de confirmation d'annulation */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-red-800">Annuler la commande</h3>
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="p-1 hover:bg-stone-100 rounded-lg transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                <p className="text-sm text-red-800 font-medium mb-2">Cette action va :</p>
+                <ul className="text-sm text-red-700 space-y-1 list-disc list-inside">
+                  <li>Passer toutes les sous-réservations au statut <strong>ANNULÉE</strong></li>
+                  <li>Libérer la disponibilité des produits concernés</li>
+                </ul>
+              </div>
+
+              <p className="text-sm text-stone-600">
+                Êtes-vous sûr de vouloir annuler la commande <strong>{order.order_number}</strong> ?
+              </p>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="flex-1 px-4 py-3 border border-stone-300 text-stone-700 text-sm font-medium rounded-lg hover:bg-stone-50 transition-colors"
+                >
+                  Non, garder
+                </button>
+                <button
+                  onClick={handleCancelOrder}
+                  disabled={isCancelling}
+                  className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isCancelling ? 'Annulation...' : 'Oui, annuler'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

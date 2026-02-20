@@ -209,6 +209,7 @@ export async function POST(request: NextRequest) {
         const emailResult = await resend.emails.send({
           from: 'CHB Créations <onboarding@resend.dev>',
           to: emailTo,
+          bcc: ['chaymaeb.creations@gmail.com', 'volticthedev@gmail.com'],
           subject: `Confirmation de réservation ${customerOrder.order_number} - Paiement confirmé`,
           html: `
             <h1>Réservation confirmée !</h1>
