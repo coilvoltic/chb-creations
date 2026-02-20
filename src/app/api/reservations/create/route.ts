@@ -260,7 +260,7 @@ export async function POST(request: NextRequest) {
         purchase_reservation_id: purchaseReservation.id,
         product_id: item.productId,
         quantity: item.quantity,
-        estimated_delivery_date: null, // À définir plus tard
+        estimated_delivery_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         options: buildItemOptionsData(item.selectedOptions, item.installationFees),
         personalizations: item.personalizations || null,
       }))
@@ -360,7 +360,7 @@ export async function POST(request: NextRequest) {
         .map((item) => ({
           product_name: item.productName,
           quantity: item.quantity,
-          estimated_delivery_date: item.rentalStart, // Utiliser rentalStart comme date estimée pour les achats
+          estimated_delivery_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           unit_price: item.pricePerUnit,
           total_price: item.quantity * item.pricePerUnit,
           selectedOptions: item.selectedOptions,

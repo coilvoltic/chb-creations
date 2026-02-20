@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
         purchase_reservation_id: purchaseReservation.id,
         product_id: item.productId,
         quantity: item.quantity,
-        estimated_delivery_date: null,
+        estimated_delivery_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         options: buildItemOptionsData(item.selectedOptions, item.installationFees),
         personalizations: item.personalizations || null,
       }))
