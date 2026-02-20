@@ -425,6 +425,7 @@ export async function POST(request: NextRequest) {
         console.error('Error message:', emailError.message)
         console.error('Error stack:', emailError.stack)
       }
+    }
     } // fin else (pas cash)
 
     // 5. Retourner le succès avec les IDs
