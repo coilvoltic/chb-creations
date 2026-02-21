@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
         console.log('Balance remaining:', balanceRemaining)
 
         const emailResult = await resend.emails.send({
-          from: 'CHB Créations <onboarding@resend.dev>',
+          from: 'CHB Créations <noreply@chb-creations.com>',
           to: emailTo,
           bcc: ['chaymaeb.creations@gmail.com', 'volticthedev@gmail.com'],
           subject: `Confirmation de réservation ${customerOrder.order_number} - Paiement confirmé`,
