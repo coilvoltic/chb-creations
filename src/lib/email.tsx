@@ -171,7 +171,7 @@ export async function sendReservationConfirmation(reservation: ReservationData) 
             <div class="content">
               <p>Bonjour ${reservation.customer_name},</p>
 
-              <p>Nous vous confirmons votre réservation pour vos articles de location.</p>
+              <p>Nous vous confirmons votre réservation${reservation.rentalItems?.length ? ' de location' : ''}${reservation.purchaseItems?.length ? (reservation.rentalItems?.length ? ', ' : ' d\'') + 'accessoires personnalisés' : ''}${reservation.prestationItems?.length ? ((reservation.rentalItems?.length || reservation.purchaseItems?.length) ? ' et ' : ' de ') + 'prestation henné' : ''}.</p>
 
               <div class="reservation-number">
                 Numéro de réservation: ${reservation.reservation_code}
