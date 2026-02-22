@@ -28,7 +28,7 @@ BEGIN
     JOIN rental_reservations rr ON ri.rental_reservation_id = rr.id
     WHERE ri.product_id = product_id_param
       -- Exclude cancelled reservations
-      AND rr.reservation_status != 'CANCELLED'
+      AND rr.reservation_status IN ('CONFIRMED', 'DONE')
   )
   SELECT
     TO_CHAR(reservation_date, 'YYYY-MM-DD') AS date,

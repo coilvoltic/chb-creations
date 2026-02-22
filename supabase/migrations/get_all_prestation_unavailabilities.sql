@@ -27,7 +27,7 @@ BEGIN
   WHERE pi.prestation_start IS NOT NULL
     AND pi.prestation_end IS NOT NULL
     -- Exclure les réservations annulées
-    AND pr.reservation_status IN ('CONFIRMED', 'DONE', 'PENDING')
+    AND pr.reservation_status IN ('CONFIRMED', 'DONE')
     -- Filtrer uniquement les créneaux futurs ou en cours
     AND pi.prestation_end >= NOW()
   ORDER BY pi.prestation_start;
@@ -60,7 +60,7 @@ BEGIN
   JOIN prestation_reservations pr ON pi.prestation_reservation_id = pr.id
   WHERE pi.prestation_start IS NOT NULL
     AND pi.prestation_end IS NOT NULL
-    AND pr.reservation_status IN ('CONFIRMED', 'DONE', 'PENDING')
+    AND pr.reservation_status IN ('CONFIRMED', 'DONE')
     -- Détection de chevauchement: les créneaux se chevauchent si
     -- le début du nouveau créneau est avant la fin d'un créneau existant
     -- ET la fin du nouveau créneau est après le début d'un créneau existant
