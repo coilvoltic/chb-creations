@@ -14,6 +14,17 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseAnonKey)
 }
 
+function getSupabaseServiceClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error('Missing Supabase environment variables')
+  }
+
+  return createClient(supabaseUrl, serviceRoleKey)
+}
+
 /**
  * Generic function to fetch products by subcategory
  * Replaces 14 duplicate functions with a single reusable implementation
@@ -120,8 +131,10 @@ export async function getProductBySlug(slug: string, subcategory?: string): Prom
 
     const product = data as Product
 
-    // Fetch unavailabilities dynamically using the SQL function (for rental products)
-    const { data: unavailabilities, error: unavailError } = await supabase.rpc(
+    // Fetch unavailabilities using service_role to bypass RLS on rental_reservations
+    const serviceClient = getSupabaseServiceClient()
+
+    const { data: unavailabilities, error: unavailError } = await serviceClient.rpc(
       'get_product_unavailabilities',
       { product_id_param: product.id }
     )
@@ -135,7 +148,7 @@ export async function getProductBySlug(slug: string, subcategory?: string): Prom
 
     // For prestation products (henne), fetch ALL unavailable time slots (centralized)
     if (product.category === 'prestations') {
-      const { data: prestationSlots, error: slotsError } = await supabase.rpc(
+      const { data: prestationSlots, error: slotsError } = await serviceClient.rpc(
         'get_all_prestation_unavailabilities'
       )
 

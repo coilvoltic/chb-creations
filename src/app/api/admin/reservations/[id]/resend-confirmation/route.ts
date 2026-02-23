@@ -180,7 +180,7 @@ export async function POST(
       purchaseDeliveryFees: firstPurchase?.delivery_fees || 0,
       prestationDeliveryAddress: firstPrestation?.delivery_address || null,
       prestationDeliveryFees: firstPrestation?.delivery_fees || 0,
-      deposit: order.already_paid || firstRental?.deposit || 0,
+      deposit: firstRental?.deposit || 0,
       caution: firstRental?.caution || 0,
       amountPaid: order.already_paid || 0,
       paymentType: (order.already_paid && order.already_paid >= order.total_price) ? 'full' as const

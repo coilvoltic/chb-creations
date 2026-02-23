@@ -6,7 +6,8 @@ import DateRangePicker from '@/components/DateRangePicker'
 import PrestationDatePicker from '@/components/PrestationDatePicker'
 import TimePickerBoutique from '@/components/TimePickerBoutique'
 import TimeSlotPickerFixed, { getSlotTimes } from '@/components/TimeSlotPickerFixed'
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, useMemo, use } from 'react'
+import { eachDayOfInterval, format } from 'date-fns'
 import { getProductBySlug } from '@/actions/products'
 import type { Product } from '@/lib/supabase'
 import { notFound, useRouter } from 'next/navigation'
@@ -133,6 +134,36 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
     // If no duration found in any option, return default
     return foundAnyDuration ? totalDuration : 60
   }
+
+  // Calculate max available quantity based on selected rental dates and existing reservations
+  const maxAvailableQuantity = useMemo(() => {
+    if (!product || !isRentalProduct || !rentalPeriod?.from || !rentalPeriod?.to) {
+      return product?.stock ?? 1
+    }
+
+    const datesInRange = eachDayOfInterval({ start: rentalPeriod.from, end: rentalPeriod.to })
+    const unavailabilities = product.unavailabilities || []
+
+    console.log(unavailabilities);
+    // Find the maximum reserved quantity across all selected dates
+    let maxReserved = 0
+    for (const date of datesInRange) {
+      const dateStr = format(date, 'yyyy-MM-dd')
+      const entry = unavailabilities.find((u) => u.date === dateStr)
+      if (entry) {
+        maxReserved = Math.max(maxReserved, entry.reserved_products)
+      }
+    }
+
+    return product.stock - maxReserved
+  }, [product, isRentalProduct, rentalPeriod, product?.unavailabilities, product?.stock])
+
+  // Clamp quantity when maxAvailableQuantity changes (e.g. after selecting dates)
+  useEffect(() => {
+    if (isRentalProduct && quantity > maxAvailableQuantity) {
+      setQuantity(Math.max(1, maxAvailableQuantity))
+    }
+  }, [maxAvailableQuantity, isRentalProduct, quantity])
 
   // Check if product is already in cart (not applicable for prestations - they use time slot blocking instead)
   const isInCart = product
@@ -658,7 +689,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                                 if (isPurchaseProduct) {
                                   setQuantity(parseInt(value))
                                 } else {
-                                  setQuantity(Math.min(product.stock, parseInt(value)))
+                                  setQuantity(Math.min(maxAvailableQuantity, parseInt(value)))
                                 }
                               }
                             }}
@@ -675,7 +706,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
                               if (isPurchaseProduct) {
                                 setQuantity(quantity + 1)
                               } else {
-                                setQuantity(Math.min(product.stock, quantity + 1))
+                                setQuantity(Math.min(maxAvailableQuantity, quantity + 1))
                               }
                             }}
                             disabled={isInCart}

@@ -198,10 +198,10 @@ export async function POST(request: NextRequest) {
           purchaseDeliveryFees: purchaseRes?.delivery_fees || 0,
           prestationDeliveryAddress: prestationRes?.delivery_address || null,
           prestationDeliveryFees: prestationRes?.delivery_fees || 0,
-          deposit: amountPaid,
+          deposit: rentalRes?.deposit || 0,
           caution: rentalRes?.caution || 0,
           paymentType: paymentType as 'cash' | 'deposit' | 'full',
-          amountPaid,
+          amountPaid: currentAlreadyPaid + amountPaid,
           promoCode: customerOrder.promotional_code_name || null,
           promoDiscount: customerOrder.promotional_code_discount || null,
         })

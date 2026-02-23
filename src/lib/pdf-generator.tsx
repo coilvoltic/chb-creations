@@ -526,70 +526,39 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
         </View>
 
         {/* Montant déjà payé et Caution */}
-        {(reservation.deposit > 0 || reservation.caution > 0 || reservation.paymentType === 'full') && (
-          <View style={[styles.section, { marginTop: 15, paddingTop: 15, borderTop: '1pt solid #e5e7eb' }]}>
-            {/* Afficher le paiement intégral si applicable */}
-            {reservation.paymentType === 'full' && (
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text style={{ fontSize: 11, color: '#16a34a', fontWeight: 'bold' }}>
-                  ✓ Déjà payé (Totalité) :
-                </Text>
-                <Text style={{ fontSize: 11, color: '#16a34a', fontWeight: 'bold' }}>
-                  {(reservation.amountPaid || reservation.total_amount).toFixed(2)} €
-                </Text>
-              </View>
-            )}
-            {/* Afficher le montant déjà payé si paiement d'acompte */}
-            {reservation.paymentType === 'deposit' && reservation.deposit > 0 && (
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text style={{ fontSize: 11, color: '#16a34a', fontWeight: 'bold' }}>
-                  ✓ Déjà payé :
-                </Text>
-                <Text style={{ fontSize: 11, color: '#16a34a', fontWeight: 'bold' }}>
-                  {reservation.deposit.toFixed(2)} €
-                </Text>
-              </View>
-            )}
-            {/* Afficher l'acompte à payer si paiement en boutique */}
-            {reservation.paymentType === 'cash' && reservation.deposit > 0 && (
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text style={{ fontSize: 11, color: '#2563eb', fontWeight: 'bold' }}>
-                  💳 Acompte à régler en boutique :
-                </Text>
-                <Text style={{ fontSize: 11, color: '#2563eb', fontWeight: 'bold' }}>
-                  {reservation.deposit.toFixed(2)} €
-                </Text>
-              </View>
-            )}
-            {/* Afficher le solde restant si non paiement intégral */}
-            {reservation.paymentType !== 'full' && reservation.deposit > 0 && (
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text style={{ fontSize: 11, color: '#6b7280' }}>
-                  Solde restant :
-                </Text>
-                <Text style={{ fontSize: 11, color: '#6b7280', fontWeight: 'bold' }}>
-                  {(reservation.total_amount - reservation.deposit).toFixed(2)} €
-                </Text>
-              </View>
-            )}
-            {reservation.caution > 0 && (
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text style={{ fontSize: 11, color: '#d97706', fontWeight: 'bold' }}>
-                  ⚠️ Caution :
-                </Text>
-                <Text style={{ fontSize: 11, color: '#d97706', fontWeight: 'bold' }}>
-                  {reservation.caution.toFixed(2)} €
-                </Text>
-              </View>
-            )}
-            <Text style={{ fontSize: 9, color: '#6b7280', fontStyle: 'italic', marginTop: 8 }}>
-              {reservation.paymentType === 'full' && "Paiement intégral effectué - Plus rien à payer ! "}
-              {reservation.paymentType === 'deposit' && reservation.deposit > 0 && `Le solde de ${(reservation.total_amount - reservation.deposit).toFixed(2)} € sera à régler lors de la récupération ou livraison. `}
-              {reservation.paymentType === 'cash' && reservation.deposit > 0 && "L'acompte est à payer en boutique pour valider la commande. "}
-              {reservation.caution > 0 && "La caution sera demandée à la récupération (non encaissée sauf dommage)."}
+        <View style={[styles.section, { marginTop: 15, paddingTop: 15, borderTop: '1pt solid #e5e7eb' }]}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+            <Text style={{ fontSize: 11, color: '#16a34a', fontWeight: 'bold' }}>
+              Montant déjà payé :
+            </Text>
+            <Text style={{ fontSize: 11, color: '#16a34a', fontWeight: 'bold' }}>
+              {(reservation.amountPaid || 0).toFixed(2)} €
             </Text>
           </View>
-        )}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+            <Text style={{ fontSize: 11, color: '#6b7280' }}>
+              Solde restant :
+            </Text>
+            <Text style={{ fontSize: 11, color: '#6b7280', fontWeight: 'bold' }}>
+              {(reservation.total_amount - (reservation.amountPaid || 0)).toFixed(2)} €
+            </Text>
+          </View>
+          {reservation.caution > 0 && (
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+              <Text style={{ fontSize: 11, color: '#d97706', fontWeight: 'bold' }}>
+                ⚠️ Caution :
+              </Text>
+              <Text style={{ fontSize: 11, color: '#d97706', fontWeight: 'bold' }}>
+                {reservation.caution.toFixed(2)} €
+              </Text>
+            </View>
+          )}
+          <Text style={{ fontSize: 9, color: '#6b7280', fontStyle: 'italic', marginTop: 8 }}>
+            {(reservation.amountPaid || 0) >= reservation.total_amount && "Paiement intégral effectué - Plus rien à payer ! "}
+            {(reservation.amountPaid || 0) < reservation.total_amount && `Le solde de ${(reservation.total_amount - (reservation.amountPaid || 0)).toFixed(2)} € sera à régler lors de la récupération ou livraison. `}
+            {reservation.caution > 0 && "La caution sera demandée à la récupération (non encaissée sauf dommage)."}
+          </Text>
+        </View>
 
         {/* Informations importantes */}
         <View style={[styles.section, { marginTop: 20 }]}>
