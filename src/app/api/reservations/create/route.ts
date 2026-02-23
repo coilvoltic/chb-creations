@@ -335,11 +335,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Envoyer l'email de confirmation avec le PDF
-    // TODO: Remettre la condition ci-dessous après les tests
-    // if (paymentMethod === 'cash') {
-    //   console.log('=== SKIP EMAIL (paiement en boutique) ===')
-    // } else {
-    {
+    if (paymentMethod === 'cash') {
+      console.log('=== SKIP EMAIL (paiement en boutique) ===')
+    } else {
     console.log('=== SENDING EMAIL ===')
     console.log('Customer email:', customerInfo.email)
     try {
@@ -428,7 +426,7 @@ export async function POST(request: NextRequest) {
         console.error('Error stack:', emailError.stack)
       }
     }
-    } // fin bloc email (TODO: remettre } // fin else (pas cash))
+    } // fin else (pas cash)
 
     // 5. Retourner le succès avec les IDs
     return NextResponse.json({
