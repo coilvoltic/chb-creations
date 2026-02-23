@@ -97,7 +97,7 @@ export async function sendReservationConfirmation(reservation: ReservationData) 
     const { data, error } = await resend.emails.send({
       from: 'CHB Créations <noreply@chb-creations.com>',
       to: [reservation.customer_email],
-      bcc: ['chaymaeb.creations@gmail.com', 'volticthedev@gmail.com'],
+      /*bcc: ['chaymaeb.creations@gmail.com', 'volticthedev@gmail.com'],*/
       subject: `Confirmation de votre réservation n° ${reservation.reservation_code}`,
       html: `
         <!DOCTYPE html>
@@ -184,6 +184,21 @@ export async function sendReservationConfirmation(reservation: ReservationData) 
                   <p style="color: #16a34a;"><strong>Code promo appliqué:</strong> ${reservation.promoCode} (-${reservation.promoDiscount}%)</p>
                 ` : ''}
                 <p><strong>Montant total:</strong> ${reservation.total_amount.toFixed(2)} €</p>
+                ${reservation.paymentType === 'full' && reservation.amountPaid ? `
+                  <p style="color: #16a34a;"><strong>✓ Paiement intégral effectué:</strong> ${reservation.amountPaid.toFixed(2)} €</p>
+                ` : ''}
+                ${reservation.paymentType === 'deposit' && reservation.deposit > 0 ? `
+                  <p><strong>Acompte versé:</strong> ${reservation.deposit.toFixed(2)} €</p>
+                  <p><strong>Solde restant à régler:</strong> ${(reservation.total_amount - reservation.deposit).toFixed(2)} €</p>
+                  <p style="font-size: 13px; color: #666;">Le solde sera à régler avant la prestation.</p>
+                ` : ''}
+                ${reservation.paymentType === 'cash' && reservation.deposit > 0 ? `
+                  <p><strong>Acompte à verser en boutique:</strong> ${reservation.deposit.toFixed(2)} €</p>
+                  <p style="font-size: 13px; color: #666;">L'acompte est à payer en boutique pour valider la commande.</p>
+                ` : ''}
+                ${reservation.caution > 0 ? `
+                  <p style="color: #d97706;"><strong>⚠️ Caution:</strong> ${reservation.caution.toFixed(2)} € (non encaissée sauf dommage)</p>
+                ` : ''}
               </div>
 
               <div class="info-section">

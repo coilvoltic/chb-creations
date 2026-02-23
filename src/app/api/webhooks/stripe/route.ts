@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
-import { Resend } from 'resend'
-import { generateReservationPDF } from '@/lib/pdf-generator'
+import { sendReservationConfirmation } from '@/lib/email'
+import { getSelectedOptionsFromDB, getInstallationFeesFromDB } from '@/lib/reservation-utils'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   // @ts-expect-error - Match webhook API version configured in Stripe Dashboard
@@ -14,14 +14,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
-
-interface SelectedOption {
-  option_type_name: string
-  name: string
-  description?: string
-  additional_fee: number
-}
 
 export async function POST(request: NextRequest) {
   const body = await request.text()
@@ -77,9 +69,9 @@ export async function POST(request: NextRequest) {
         .from('customer_orders')
         .select(`
           *,
-          rental_reservations (*, rental_items (*, products (name))),
-          purchase_reservations (*, purchase_items (*, products (name))),
-          prestation_reservations (*, prestation_items (*, products (name)))
+          rental_reservations (*, rental_items (*, products (name, price, new_price))),
+          purchase_reservations (*, purchase_items (*, products (name, price, new_price))),
+          prestation_reservations (*, prestation_items (*, products (name, price, new_price)))
         `)
         .eq('id', parseInt(customerOrderId))
         .single()
@@ -122,121 +114,100 @@ export async function POST(request: NextRequest) {
 
       // Récupérer le type de paiement depuis les métadonnées de la session
       const paymentType = session.metadata?.paymentType || 'deposit'
-      const isFullPayment = paymentType === 'full'
 
-      // Montant payé (soit l'acompte, soit le total)
-      const deposit = customerOrder.rental_reservations?.[0]?.deposit || 0
-      const amountPaid = session.amount_total ? session.amount_total / 100 : deposit
+      // Montant payé via Stripe
+      const amountPaid = session.amount_total ? session.amount_total / 100 : 0
 
-      // Préparer données PDF
+      // Préparer données pour l'email (même format que /api/reservations/create)
       const rentalRes = customerOrder.rental_reservations?.[0]
       const purchaseRes = customerOrder.purchase_reservations?.[0]
       const prestationRes = customerOrder.prestation_reservations?.[0]
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rentalItems = rentalRes?.rental_items?.map((item: any) => ({
-        productName: item.products.name,
-        quantity: item.quantity,
-        rentalStart: item.rental_start,
-        rentalEnd: item.rental_end,
-        pricePerUnit: 0,
-        selectedOptions: item.options?.selectedOptions as SelectedOption[] | undefined,
-        personalizations: item.personalizations,
-        installationFees: item.options?.installationFees,
-        needsInstallation: item.needs_installation,
-      }))
+      /* eslint-disable @typescript-eslint/no-explicit-any */
+      const rentalItems = (rentalRes?.rental_items || []).map((item: any) => {
+        const selectedOptions = getSelectedOptionsFromDB(item.options)
+        const installationFees = getInstallationFeesFromDB(item.options)
+        const unitPrice = item.unit_price || item.products?.price || 0
+        const optionsFees = selectedOptions.reduce((sum: number, opt: any) => sum + opt.additional_fee, 0)
+        const installFee = item.needs_installation ? installationFees : 0
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const purchaseItems = purchaseRes?.purchase_items?.map((item: any) => ({
-        productName: item.products.name,
-        quantity: item.quantity,
-        estimatedDeliveryDate: item.estimated_delivery_date,
-        pricePerUnit: 0,
-        selectedOptions: item.options?.selectedOptions as SelectedOption[] | undefined,
-        personalizations: item.personalizations,
-      }))
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const prestationItems = prestationRes?.prestation_items?.map((item: any) => ({
-        productName: item.products.name,
-        nbOfPeople: item.nb_of_people || 1,
-        prestationStart: item.prestation_start,
-        prestationEnd: item.prestation_end,
-        pricePerUnit: 0,
-        // Handle both old format (raw array) and new format ({selectedOptions: [...]})
-        selectedOptions: (Array.isArray(item.options) ? item.options : item.options?.selectedOptions) as SelectedOption[] | undefined,
-        personalizations: item.personalizations,
-      }))
-
-      // Générer PDF
-      console.log('Generating PDF...')
-      const pdfBuffer = await generateReservationPDF({
-        reservationId: customerOrder.id,
-        reservationCode: customerOrder.order_number,
-        customerInfo: customerOrder.customer_infos,
-        rentalItems,
-        purchaseItems,
-        prestationItems,
-        totalPrice: customerOrder.total_price,
-        deposit: rentalRes?.deposit || 0,
-        caution: rentalRes?.caution || 0,
-        paymentType: paymentType as 'cash' | 'deposit' | 'full',
-        amountPaid,
-        rentalDeliveryOption: rentalRes?.delivery_address ? 'delivery' : 'pickup',
-        rentalDeliveryAddress: rentalRes?.delivery_address,
-        rentalDeliveryFees: rentalRes?.delivery_fees || 0,
-        purchaseDeliveryOption: purchaseRes?.delivery_address ? 'delivery' : 'pickup',
-        purchaseDeliveryAddress: purchaseRes?.delivery_address,
-        purchaseDeliveryFees: purchaseRes?.delivery_fees || 0,
-        prestationDeliveryOption: prestationRes?.delivery_address ? 'delivery' : 'pickup',
-        prestationDeliveryAddress: prestationRes?.delivery_address,
-        prestationDeliveryFees: prestationRes?.delivery_fees || 0,
-      })
-      console.log('PDF generated successfully')
-
-      // Envoyer email
-      const emailTo = process.env.RESEND_TEST_EMAIL || customerOrder.customer_infos.email
-      console.log('Sending confirmation email to:', emailTo)
-      console.log('Customer email:', customerOrder.customer_infos.email)
-      try {
-        const balanceRemaining = isFullPayment ? 0 : (customerOrder.total_price - deposit)
-
-        console.log('Sending confirmation email with PDF attachment...')
-        console.log('Payment type:', paymentType)
-        console.log('Amount paid:', amountPaid)
-        console.log('Balance remaining:', balanceRemaining)
-
-        const emailResult = await resend.emails.send({
-          from: 'CHB Créations <noreply@chb-creations.com>',
-          to: emailTo,
-          bcc: ['chaymaeb.creations@gmail.com', 'volticthedev@gmail.com'],
-          subject: `Confirmation de réservation ${customerOrder.order_number} - Paiement confirmé`,
-          html: `
-            <h1>Réservation confirmée !</h1>
-            <p>Bonjour ${customerOrder.customer_infos.firstName} ${customerOrder.customer_infos.lastName},</p>
-            <p>Votre réservation ${customerOrder.order_number} a été confirmée et votre paiement a été reçu avec succès.</p>
-            <p><strong>Montant payé :</strong> ${amountPaid.toFixed(2)} €</p>
-            ${isFullPayment
-              ? '<p><strong>✓ Paiement intégral effectué</strong> - Plus rien à payer !</p>'
-              : `<p><strong>Solde restant :</strong> ${balanceRemaining.toFixed(2)} €</p><p>Le solde sera à régler lors de la récupération ou livraison.</p>`
-            }
-            <p>Vous trouverez tous les détails de votre réservation en pièce jointe.</p>
-            <p>À très bientôt !</p>
-            <p>L'équipe CHB Créations</p>
-          `,
-          attachments: [{ filename: `reservation-${customerOrder.order_number}.pdf`, content: pdfBuffer }],
-        })
-        console.log('Email sent successfully with PDF:', emailResult.data?.id || 'No ID returned')
-
-        if (emailResult.error) {
-          console.error('Resend returned error:', emailResult.error)
+        return {
+          product_name: item.products?.name || 'Produit inconnu',
+          quantity: item.quantity,
+          rental_start: item.rental_start,
+          rental_end: item.rental_end,
+          unit_price: unitPrice,
+          total_price: (unitPrice + optionsFees + installFee) * item.quantity,
+          selectedOptions: selectedOptions.length > 0 ? selectedOptions : undefined,
+          personalizations: item.personalizations || undefined,
+          installationFees: installationFees > 0 ? installationFees : undefined,
+          needsInstallation: item.needs_installation || undefined,
         }
+      })
+
+      const purchaseItems = (purchaseRes?.purchase_items || []).map((item: any) => {
+        const selectedOptions = getSelectedOptionsFromDB(item.options)
+        const unitPrice = item.unit_price || item.products?.price || 0
+        const optionsFees = selectedOptions.reduce((sum: number, opt: any) => sum + opt.additional_fee, 0)
+
+        return {
+          product_name: item.products?.name || 'Produit inconnu',
+          quantity: item.quantity,
+          estimated_delivery_date: item.estimated_delivery_date || undefined,
+          unit_price: unitPrice,
+          total_price: (unitPrice + optionsFees) * item.quantity,
+          selectedOptions: selectedOptions.length > 0 ? selectedOptions : undefined,
+          personalizations: item.personalizations || undefined,
+        }
+      })
+
+      const prestationItems = (prestationRes?.prestation_items || []).map((item: any) => {
+        const selectedOptions = getSelectedOptionsFromDB(item.options)
+        const unitPrice = item.unit_price || item.products?.price || 0
+        const optionsFees = selectedOptions.reduce((sum: number, opt: any) => sum + opt.additional_fee, 0)
+
+        return {
+          product_name: item.products?.name || 'Produit inconnu',
+          nb_of_people: item.nb_of_people || 1,
+          prestation_start: item.prestation_start || undefined,
+          prestation_end: item.prestation_end || undefined,
+          unit_price: unitPrice,
+          total_price: (unitPrice + optionsFees) * (item.nb_of_people || 1),
+          selectedOptions: selectedOptions.length > 0 ? selectedOptions : undefined,
+          personalizations: item.personalizations || undefined,
+        }
+      })
+      /* eslint-enable @typescript-eslint/no-explicit-any */
+
+      // Envoyer l'email de confirmation (même template que lors de la création)
+      try {
+        await sendReservationConfirmation({
+          id: customerOrder.id,
+          reservation_code: String(customerOrder.order_number),
+          customer_name: `${customerOrder.customer_infos.firstName} ${customerOrder.customer_infos.lastName}`,
+          customer_email: customerOrder.customer_infos.email,
+          customer_phone: customerOrder.customer_infos.phone,
+          total_amount: customerOrder.total_price,
+          created_at: customerOrder.created_at,
+          rentalItems: rentalItems.length > 0 ? rentalItems : undefined,
+          purchaseItems: purchaseItems.length > 0 ? purchaseItems : undefined,
+          prestationItems: prestationItems.length > 0 ? prestationItems : undefined,
+          rentalDeliveryAddress: rentalRes?.delivery_address || null,
+          rentalDeliveryFees: rentalRes?.delivery_fees || 0,
+          purchaseDeliveryAddress: purchaseRes?.delivery_address || null,
+          purchaseDeliveryFees: purchaseRes?.delivery_fees || 0,
+          prestationDeliveryAddress: prestationRes?.delivery_address || null,
+          prestationDeliveryFees: prestationRes?.delivery_fees || 0,
+          deposit: amountPaid,
+          caution: rentalRes?.caution || 0,
+          paymentType: paymentType as 'cash' | 'deposit' | 'full',
+          amountPaid,
+          promoCode: customerOrder.promotional_code_name || null,
+          promoDiscount: customerOrder.promotional_code_discount || null,
+        })
+        console.log('✅ Email de confirmation envoyé via webhook')
       } catch (emailError) {
         console.error('Erreur envoi email:', emailError)
-        console.error('Email error details:', emailError instanceof Error ? emailError.message : 'Unknown error')
-        if (emailError instanceof Error && emailError.stack) {
-          console.error('Stack trace:', emailError.stack)
-        }
       }
 
       console.log(`Réservation ${customerOrder.order_number} confirmée via webhook`)
