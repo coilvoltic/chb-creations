@@ -1,5 +1,12 @@
 import Navbar from '@/components/Navbar'
 import Link from 'next/link'
+import { buildStaticMetadata } from '@/lib/seo'
+
+export const metadata = buildStaticMetadata({
+  title: 'Prestations Henné',
+  description: 'Art traditionnel du henné pour sublimer vos événements à Marseille. En boutique ou à domicile.',
+  path: '/prestations',
+})
 
 export default function HennePage() {
   const categories = [

@@ -1,6 +1,15 @@
 import ProductDetailPage from '@/components/ProductDetailPage'
+import { generateProductMetadata } from '@/lib/seo'
+import type { Metadata } from 'next'
 
-export default function HenneBoutiqueProductPage({ params }: { params: Promise<{ slug: string }> }) {
+type Props = { params: Promise<{ slug: string }> }
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params
+  return generateProductMetadata(slug, 'henne-boutique', '/prestations/henne-boutique')
+}
+
+export default function HenneBoutiqueProductPage({ params }: Props) {
   return (
     <ProductDetailPage
       params={params}

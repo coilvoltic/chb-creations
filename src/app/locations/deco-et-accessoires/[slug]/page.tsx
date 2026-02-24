@@ -1,6 +1,15 @@
 import ProductDetailPage from '@/components/ProductDetailPage'
+import { generateProductMetadata } from '@/lib/seo'
+import type { Metadata } from 'next'
 
-export default function DecoEtAccessoiresProductPage({ params }: { params: Promise<{ slug: string }> }) {
+type Props = { params: Promise<{ slug: string }> }
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params
+  return generateProductMetadata(slug, 'deco-et-accessoires', '/locations/deco-et-accessoires')
+}
+
+export default function DecoEtAccessoiresProductPage({ params }: Props) {
   return (
     <ProductDetailPage
       params={params}

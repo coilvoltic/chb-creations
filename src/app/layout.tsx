@@ -29,8 +29,20 @@ const cinzel = Cinzel({
 });
 
 export const metadata: Metadata = {
-  title: "CHB Créations - Accessoires Personnalisés, Henné & Décoration d'Événements",
-  description: "Découvrez nos accessoires personnalisés, services de henné et location de décoration pour vos événements à Marseille",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://chb-creations.com'),
+  title: {
+    default: "CHB Créations - Accessoires Personnalisés, Henné & Décoration d'Événements à Marseille",
+    template: '%s | CHB Créations',
+  },
+  description: "Découvrez nos accessoires personnalisés, services de henné et location de décoration pour vos événements à Marseille.",
+  openGraph: {
+    siteName: 'CHB Créations',
+    locale: 'fr_FR',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+  },
 };
 
 export default function RootLayout({

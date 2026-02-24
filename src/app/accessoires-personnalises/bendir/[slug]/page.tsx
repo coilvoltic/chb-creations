@@ -1,6 +1,15 @@
 import ProductDetailPage from '@/components/ProductDetailPage'
+import { generateProductMetadata } from '@/lib/seo'
+import type { Metadata } from 'next'
 
-export default function BendirProductPage({ params }: { params: Promise<{ slug: string }> }) {
+type Props = { params: Promise<{ slug: string }> }
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params
+  return generateProductMetadata(slug, 'bendir', '/accessoires-personnalises/bendir')
+}
+
+export default function BendirProductPage({ params }: Props) {
   return (
     <ProductDetailPage
       params={params}

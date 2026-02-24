@@ -1,5 +1,12 @@
 import ProductListingPage from '@/components/ProductListingPage'
 import { getArtDeTableProducts } from '@/actions/products'
+import { buildStaticMetadata } from '@/lib/seo'
+
+export const metadata = buildStaticMetadata({
+  title: 'Art de table - Location',
+  description: 'Location d\'art de table élégant pour vos événements à Marseille. Assiettes, couverts et accessoires.',
+  path: '/locations/art-de-table',
+})
 
 export const revalidate = 3600
 

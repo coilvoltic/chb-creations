@@ -1,5 +1,12 @@
 import Navbar from '@/components/Navbar'
 import Link from 'next/link'
+import { buildStaticMetadata } from '@/lib/seo'
+
+export const metadata = buildStaticMetadata({
+  title: 'Locations',
+  description: 'Location de mobilier et accessoires pour vos événements à Marseille : art de table, trônes, décoration.',
+  path: '/locations',
+})
 
 export default function LocationsPage() {
   const categories = [

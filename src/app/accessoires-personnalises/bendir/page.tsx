@@ -1,5 +1,13 @@
 import ProductListingPage from '@/components/ProductListingPage'
 import { getBendirProducts } from '@/actions/products'
+import { buildStaticMetadata } from '@/lib/seo'
+
+export const metadata = buildStaticMetadata({
+  title: 'Bendir personnalisé',
+  description: 'Bendirs décorés et personnalisés pour vos événements à Marseille. Art traditionnel revisité.',
+  path: '/accessoires-personnalises/bendir',
+})
+
 export const revalidate = 3600
 
 export default async function BendirPage() {

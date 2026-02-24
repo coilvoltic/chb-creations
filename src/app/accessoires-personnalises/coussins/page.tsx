@@ -1,5 +1,13 @@
 import ProductListingPage from '@/components/ProductListingPage'
 import { getCoussinsProducts } from '@/actions/products'
+import { buildStaticMetadata } from '@/lib/seo'
+
+export const metadata = buildStaticMetadata({
+  title: 'Coussins personnalisés',
+  description: 'Coussins brodés et décorés sur mesure pour vos événements à Marseille. Créations artisanales.',
+  path: '/accessoires-personnalises/coussins',
+})
+
 export const revalidate = 3600
 
 export default async function CoussinsPage() {

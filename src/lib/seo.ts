@@ -1,0 +1,74 @@
+import type { Metadata } from 'next'
+import { getProductBySlug } from '@/actions/products'
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://chb-creations.com'
+const DEFAULT_DESCRIPTION = 'Accessoires personnalisés, henné et location de décoration pour vos événements à Marseille'
+
+/**
+ * Génère les metadata pour les pages produit dynamiques [slug].
+ */
+export async function generateProductMetadata(
+  slug: string,
+  subcategory: string,
+  categoryPath: string
+): Promise<Metadata> {
+  const product = await getProductBySlug(slug, subcategory)
+
+  if (!product) {
+    return {
+      title: 'Produit non trouvé',
+      description: DEFAULT_DESCRIPTION,
+    }
+  }
+
+  const description = product.description
+    ? product.description.replace(/[#*_~`[\]()]/g, '').slice(0, 155).replace(/\s+\S*$/, '...')
+    : DEFAULT_DESCRIPTION
+  const url = `${BASE_URL}${categoryPath}/${product.slug}`
+  const ogImage = product.images?.[0]
+
+  return {
+    title: product.name,
+    description,
+    openGraph: {
+      title: product.name,
+      description,
+      url,
+      ...(ogImage && {
+        images: [{ url: ogImage, alt: product.name }],
+      }),
+    },
+    twitter: {
+      card: ogImage ? 'summary_large_image' : 'summary',
+      title: product.name,
+      description,
+      ...(ogImage && { images: [ogImage] }),
+    },
+    alternates: {
+      canonical: url,
+    },
+  }
+}
+
+/**
+ * Construit des metadata statiques pour les pages non-produit.
+ */
+export function buildStaticMetadata(opts: {
+  title: string
+  description: string
+  path: string
+}): Metadata {
+  const url = `${BASE_URL}${opts.path}`
+  return {
+    title: opts.title,
+    description: opts.description,
+    openGraph: {
+      title: opts.title,
+      description: opts.description,
+      url,
+    },
+    alternates: {
+      canonical: url,
+    },
+  }
+}

@@ -1,5 +1,12 @@
 import ProductListingPage from '@/components/ProductListingPage'
 import { getBougiesProducts } from '@/actions/products'
+import { buildStaticMetadata } from '@/lib/seo'
+
+export const metadata = buildStaticMetadata({
+  title: 'Bougies personnalisées',
+  description: 'Bougies décoratives personnalisées pour vos événements à Marseille. Créations uniques et sur mesure.',
+  path: '/accessoires-personnalises/bougies',
+})
 
 export const revalidate = 3600
 

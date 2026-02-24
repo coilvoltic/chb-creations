@@ -1,5 +1,12 @@
 import Navbar from '@/components/Navbar'
 import Link from 'next/link'
+import { buildStaticMetadata } from '@/lib/seo'
+
+export const metadata = buildStaticMetadata({
+  title: 'Accessoires Personnalisés',
+  description: 'Créations uniques et sur mesure pour vos événements à Marseille : bougies, certificats, coussins, tableaux et plus.',
+  path: '/accessoires-personnalises',
+})
 
 export default function AccessoiresPage() {
   const categories = [

@@ -1,5 +1,13 @@
 import ProductListingPage from '@/components/ProductListingPage'
 import { getFairePartsProducts } from '@/actions/products'
+import { buildStaticMetadata } from '@/lib/seo'
+
+export const metadata = buildStaticMetadata({
+  title: 'Faire-parts',
+  description: 'Faire-parts élégants pour mariages et événements à Marseille. Créations personnalisées.',
+  path: '/accessoires-personnalises/faire-parts',
+})
+
 export const revalidate = 3600
 
 export default async function FairePartsPage() {

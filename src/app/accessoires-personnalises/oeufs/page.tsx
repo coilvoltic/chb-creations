@@ -1,5 +1,13 @@
 import ProductListingPage from '@/components/ProductListingPage'
 import { getOeufsProducts } from '@/actions/products'
+import { buildStaticMetadata } from '@/lib/seo'
+
+export const metadata = buildStaticMetadata({
+  title: 'Œufs décorés',
+  description: 'Œufs décorés artisanaux pour vos célébrations à Marseille. Créations uniques et raffinées.',
+  path: '/accessoires-personnalises/oeufs',
+})
+
 export const revalidate = 3600
 
 export default async function OeufsPage() {

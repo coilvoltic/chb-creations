@@ -1,5 +1,13 @@
 import ProductListingPage from '@/components/ProductListingPage'
 import { getCertificatsMariageProducts } from '@/actions/products'
+import { buildStaticMetadata } from '@/lib/seo'
+
+export const metadata = buildStaticMetadata({
+  title: 'Certificats de mariage',
+  description: 'Certificats de mariage élégants et personnalisés à Marseille. Calligraphie et finitions soignées.',
+  path: '/accessoires-personnalises/certificats-mariage',
+})
+
 export const revalidate = 3600
 
 export default async function CertificatsMariagePage() {

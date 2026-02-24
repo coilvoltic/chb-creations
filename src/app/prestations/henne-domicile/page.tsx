@@ -1,5 +1,13 @@
 import ProductListingPage from '@/components/ProductListingPage'
 import { getHenneDomicileProducts } from '@/actions/products'
+import { buildStaticMetadata } from '@/lib/seo'
+
+export const metadata = buildStaticMetadata({
+  title: 'Henné à Domicile',
+  description: 'Prestations de henné à votre domicile pour vos événements à Marseille. Service personnalisé.',
+  path: '/prestations/henne-domicile',
+})
+
 export const revalidate = 3600
 
 export default async function HenneDomicilePage() {
