@@ -35,6 +35,12 @@ export type {
   Tag,
   ReservationTag,
 
+  // App Settings
+  AppSettings,
+  BoutiqueTimeSlot,
+  BoutiqueHoursDefault,
+  BoutiqueHoursException,
+
   // Promotional
   PromotionalCode,
   PromotionalMessage,

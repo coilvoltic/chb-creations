@@ -3,6 +3,9 @@ import type {
   UnavailabilityEntry,
   PrestationUnavailableSlot,
   PromotionalMessage,
+  BoutiqueHoursDefault,
+  BoutiqueHoursException,
+  BoutiqueTimeSlot,
 } from '@/types'
 
 /**
@@ -31,6 +34,12 @@ export type {
   ReservationTag,
   PromotionalCode,
   PromotionalMessage,
+
+  // App Settings
+  AppSettings,
+  BoutiqueTimeSlot,
+  BoutiqueHoursDefault,
+  BoutiqueHoursException,
 
   // Legacy types (deprecated)
   Reservation,
@@ -111,6 +120,46 @@ export async function getAllPrestationUnavailabilities(): Promise<PrestationUnav
 
   return (data || []) as PrestationUnavailableSlot[]
 }
+
+// Helper function to get boutique settings (hours default + exceptions)
+export async function getBoutiqueSettings(): Promise<{
+  defaultHours: BoutiqueHoursDefault
+  exceptions: BoutiqueHoursException[]
+}> {
+  const supabase = getSupabaseClient()
+
+  const { data, error } = await supabase
+    .from('app_settings')
+    .select('key, value')
+    .in('key', ['boutique_hours_default', 'boutique_hours_exceptions'])
+
+  const fallback: BoutiqueHoursDefault = { slots: [{ start: '08:00', end: '20:00' }] }
+
+  if (error || !data) {
+    console.error('Error fetching boutique settings:', error)
+    return { defaultHours: fallback, exceptions: [] }
+  }
+
+  let defaultHours: BoutiqueHoursDefault = fallback
+  let exceptions: BoutiqueHoursException[] = []
+
+  for (const row of data) {
+    if (row.key === 'boutique_hours_default') {
+      const v = row.value as Record<string, unknown>
+      // Migration : ancien format { start, end } → nouveau format { slots: [...] }
+      if (v.slots && Array.isArray(v.slots)) {
+        defaultHours = v as BoutiqueHoursDefault
+      } else if (typeof v.start === 'string' && typeof v.end === 'string') {
+        defaultHours = { slots: [{ start: v.start as string, end: v.end as string }] }
+      }
+    } else if (row.key === 'boutique_hours_exceptions') {
+      exceptions = (row.value as BoutiqueHoursException[]) ?? []
+    }
+  }
+
+  return { defaultHours, exceptions }
+}
+
 
 // Helper function to check if a prestation time slot is available
 export async function isPrestationSlotAvailable(

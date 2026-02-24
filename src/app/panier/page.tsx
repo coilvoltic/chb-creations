@@ -456,6 +456,8 @@ export default function CartPage() {
       const allItems = [
         ...rentalItems.map((item) => {
           const unitPrice = item.pricePerUnit + getItemOptionsFees(item)
+          const toLocalDateStr = (d: Date) =>
+            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
           return {
             productId: item.productId,
             productName: item.productName,
@@ -466,12 +468,8 @@ export default function CartPage() {
             personalizations: item.personalizations,
             needsInstallation: item.needsInstallation,
             installationFees: item.installationFees,
-            rentalStart: new Date(
-              item.rentalPeriod.from.toISOString().split('T')[0] + 'T' + item.startTime
-            ).toISOString(),
-            rentalEnd: new Date(
-              item.rentalPeriod.to.toISOString().split('T')[0] + 'T' + item.endTime
-            ).toISOString(),
+            rentalStart: new Date(`${toLocalDateStr(item.rentalPeriod.from)}T${item.startTime}`).toISOString(),
+            rentalEnd: new Date(`${toLocalDateStr(item.rentalPeriod.to)}T${item.endTime}`).toISOString(),
           }
         }),
         ...purchaseItems.map((item) => {
@@ -570,6 +568,8 @@ export default function CartPage() {
       const allItems = [
         ...rentalItems.map((item) => {
           const unitPrice = item.pricePerUnit + getItemOptionsFees(item)
+          const toLocalDateStr = (d: Date) =>
+            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
           return {
             productId: item.productId,
             productName: item.productName,
@@ -580,12 +580,8 @@ export default function CartPage() {
             personalizations: item.personalizations,
             needsInstallation: item.needsInstallation,
             installationFees: item.installationFees,
-            rentalStart: new Date(
-              item.rentalPeriod.from.toISOString().split('T')[0] + 'T' + item.startTime
-            ).toISOString(),
-            rentalEnd: new Date(
-              item.rentalPeriod.to.toISOString().split('T')[0] + 'T' + item.endTime
-            ).toISOString(),
+            rentalStart: new Date(`${toLocalDateStr(item.rentalPeriod.from)}T${item.startTime}`).toISOString(),
+            rentalEnd: new Date(`${toLocalDateStr(item.rentalPeriod.to)}T${item.endTime}`).toISOString(),
           }
         }),
         ...purchaseItems.map((item) => {

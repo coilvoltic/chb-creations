@@ -205,6 +205,31 @@ export interface PromotionalMessage {
   created_at?: string
 }
 
+// ==================== APP SETTINGS ====================
+
+/** Un créneau horaire : début et fin au format "HH:MM" */
+export interface BoutiqueTimeSlot {
+  start: string // "HH:MM", e.g. "08:00"
+  end: string   // "HH:MM", e.g. "20:00"
+}
+
+/** Horaires par défaut : plusieurs créneaux possibles (ex: 00:00-03:00 + 07:00-23:59) */
+export interface BoutiqueHoursDefault {
+  slots: BoutiqueTimeSlot[]
+}
+
+/** Exception pour une date spécifique : soit fermé, soit créneaux personnalisés */
+export interface BoutiqueHoursException {
+  date: string              // "YYYY-MM-DD"
+  closed?: boolean
+  slots?: BoutiqueTimeSlot[] // only if not closed
+}
+
+export interface AppSettings {
+  boutique_hours_default: BoutiqueHoursDefault
+  boutique_hours_exceptions: BoutiqueHoursException[]
+}
+
 // ==================== LEGACY TYPES ====================
 // For backward compatibility - will be removed later
 
