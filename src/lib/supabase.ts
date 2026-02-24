@@ -148,7 +148,7 @@ export async function getBoutiqueSettings(): Promise<{
       const v = row.value as Record<string, unknown>
       // Migration : ancien format { start, end } → nouveau format { slots: [...] }
       if (v.slots && Array.isArray(v.slots)) {
-        defaultHours = v as BoutiqueHoursDefault
+        defaultHours = v as unknown as BoutiqueHoursDefault
       } else if (typeof v.start === 'string' && typeof v.end === 'string') {
         defaultHours = { slots: [{ start: v.start as string, end: v.end as string }] }
       }
