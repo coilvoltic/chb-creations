@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { getAllPrestationUnavailabilities, PrestationUnavailableSlot } from '@/lib/supabase'
-import { AlertCircle } from 'lucide-react'
 
 // Génère les créneaux de 08:00 à 20:00 toutes les 5 minutes
 function generateTimeOptions(): string[] {
@@ -37,7 +36,6 @@ export default function TimePickerBoutique({
 }: TimePickerBoutiqueProps) {
   const [unavailableSlots, setUnavailableSlots] = useState<PrestationUnavailableSlot[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [conflictWarning, setConflictWarning] = useState<string | null>(null)
 
   const [localTime, setLocalTime] = useState(selectedTime || '14:00')
   const timeOptions = useMemo(() => generateTimeOptions(), [])
@@ -72,39 +70,42 @@ export default function TimePickerBoutique({
   // Combine database unavailabilities with cart unavailabilities
   const allUnavailableSlots = [...unavailableSlots, ...cartUnavailabilities]
 
-  // Vérifier si l'heure sélectionnée crée un conflit
+  // Calcule l'ensemble des heures bloquées pour la date sélectionnée
+  const blockedTimes = useMemo(() => {
+    if (!selectedDate) return new Set<string>()
+
+    const blocked = new Set<string>()
+    for (const time of timeOptions) {
+      const [hours, minutes] = time.split(':').map(Number)
+      const startDateTime = new Date(selectedDate)
+      startDateTime.setHours(hours, minutes, 0, 0)
+      const endDateTime = new Date(startDateTime)
+      endDateTime.setMinutes(endDateTime.getMinutes() + duration)
+
+      const hasConflict = allUnavailableSlots.some((slot) => {
+        const slotStart = new Date(slot.prestation_start)
+        const slotEnd = new Date(slot.prestation_end)
+        return startDateTime < slotEnd && endDateTime > slotStart
+      })
+
+      if (hasConflict) blocked.add(time)
+    }
+    return blocked
+  }, [selectedDate, duration, allUnavailableSlots, timeOptions])
+
+  // Quand la date change, si l'heure sélectionnée est bloquée, passer à la première dispo
   useEffect(() => {
-    if (!selectedDate || !selectedTime || allUnavailableSlots.length === 0) {
-      setConflictWarning(null)
-      onConflictChange?.(false)
-      return
+    if (!selectedDate) return
+    if (blockedTimes.has(localTime)) {
+      const firstAvailable = timeOptions.find((t) => !blockedTimes.has(t))
+      if (firstAvailable) {
+        setLocalTime(firstAvailable)
+        onTimeChange(firstAvailable)
+      }
     }
-
-    const [hours, minutes] = selectedTime.split(':').map(Number)
-    const startDateTime = new Date(selectedDate)
-    startDateTime.setHours(hours, minutes, 0, 0)
-
-    const endDateTime = new Date(startDateTime)
-    endDateTime.setMinutes(endDateTime.getMinutes() + duration)
-
-    // Vérifier les chevauchements
-    const hasConflict = allUnavailableSlots.some((slot) => {
-      const slotStart = new Date(slot.prestation_start)
-      const slotEnd = new Date(slot.prestation_end)
-
-      // Détection de chevauchement
-      return startDateTime < slotEnd && endDateTime > slotStart
-    })
-
-    if (hasConflict) {
-      setConflictWarning('⚠️ Créneau indisponible : chevauchement avec une autre réservation')
-      onConflictChange?.(true)
-    } else {
-      setConflictWarning(null)
-      onConflictChange?.(false)
-    }
+    onConflictChange?.(false)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate, selectedTime, duration, unavailableSlots, cartUnavailabilities])
+  }, [selectedDate, blockedTimes])
 
   const handleTimeChange = (newTime: string) => {
     setLocalTime(newTime)
@@ -149,12 +150,12 @@ export default function TimePickerBoutique({
                 value={localTime}
                 disabled={disabled || isLoading}
                 onChange={(e) => handleTimeChange(e.target.value)}
-                className={`w-full max-w-full px-2 md:px-3 py-2 border ${
-                  conflictWarning ? 'border-red-500 bg-red-50' : 'border-stone-300'
-                } rounded-lg focus:outline-none focus:ring-2 focus:ring-black disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed`}
+                className="w-full max-w-full px-2 md:px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed"
               >
                 {timeOptions.map((time) => (
-                  <option key={time} value={time}>{time}</option>
+                  <option key={time} value={time} disabled={blockedTimes.has(time)}>
+                    {time}{blockedTimes.has(time) ? ' — indisponible' : ''}
+                  </option>
                 ))}
               </select>
             </div>
@@ -169,14 +170,6 @@ export default function TimePickerBoutique({
               <p className="text-stone-600">
                 <strong>Heure de fin :</strong> {calculateEndTime()}
               </p>
-            </div>
-          )}
-
-          {/* Avertissement de conflit */}
-          {conflictWarning && (
-            <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-600">{conflictWarning}</p>
             </div>
           )}
         </>
