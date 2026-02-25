@@ -5,8 +5,8 @@ import type {
   PromotionalMessage,
   BoutiqueHoursDefault,
   BoutiqueHoursException,
-  BoutiqueTimeSlot,
 } from '@/types'
+export type { BoutiqueTimeSlot } from '@/types'
 
 /**
  * Re-export all types from centralized types directory
@@ -37,7 +37,6 @@ export type {
 
   // App Settings
   AppSettings,
-  BoutiqueTimeSlot,
   BoutiqueHoursDefault,
   BoutiqueHoursException,
 

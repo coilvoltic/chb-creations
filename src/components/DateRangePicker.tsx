@@ -49,11 +49,11 @@ export default function DateRangePicker({
   const timeOptions = useMemo(() => generateTimeOptions(), [])
 
   // Calculate which dates are unavailable based on stock and requested quantity
-  const disabledDatesSet = new Set(
+  const disabledDatesSet = useMemo(() => new Set(
     (unavailabilities || [])
       .filter((entry) => entry.reserved_products + requestedQuantity > stock)
       .map((entry) => entry.date)
-  )
+  ), [unavailabilities, requestedQuantity, stock])
 
   const disabledDates = Array.from(disabledDatesSet).map((dateStr) => new Date(dateStr))
 

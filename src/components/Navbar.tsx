@@ -149,9 +149,11 @@ export default function Navbar() {
           {/* Logo - Left */}
           <div className="flex-1" onMouseEnter={() => setActiveDropdown(null)}>
             <Link href="/" className="flex items-center">
-              <img
+              <Image
                 src="/imgs/logo.png"
                 alt="CHB Créations"
+                width={120}
+                height={40}
                 className={`h-6 md:h-10 w-auto object-contain transition-opacity duration-300 ${shouldBeTransparent ? 'opacity-0' : 'opacity-100'}`}
               />
             </Link>
@@ -261,10 +263,12 @@ export default function Navbar() {
                 onClick={() => setActiveDropdown(null)}
               >
                 <div className="relative h-32 overflow-hidden">
-                  <img
+                  <Image
                     src="/imgs/locations/locationsMain.png"
                     alt="Locations"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-500"
+                    sizes="33vw"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
@@ -281,10 +285,12 @@ export default function Navbar() {
                 onClick={() => setActiveDropdown(null)}
               >
                 <div className="relative h-32 overflow-hidden">
-                  <img
+                  <Image
                     src="/imgs/accessoires-personnalises/accessoiresMain.jpeg"
                     alt="Accessoires"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-500"
+                    sizes="33vw"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
@@ -301,10 +307,12 @@ export default function Navbar() {
                 onClick={() => setActiveDropdown(null)}
               >
                 <div className="relative h-32 overflow-hidden">
-                  <img
+                  <Image
                     src="/imgs/prestations/prestationsMain.jpeg"
                     alt="Prestations"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-500"
+                    sizes="33vw"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-3 text-white">

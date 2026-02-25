@@ -128,7 +128,7 @@ export default function TimePickerBoutique({
   }, [effectiveSlots])
 
   // Combine les indisponibilités DB + panier
-  const allUnavailableSlots = [...unavailableSlots, ...cartUnavailabilities]
+  const allUnavailableSlots = useMemo(() => [...unavailableSlots, ...cartUnavailabilities], [unavailableSlots, cartUnavailabilities])
 
   // Calcule les heures bloquées (conflit avec une réservation existante)
   const blockedTimes = useMemo(() => {

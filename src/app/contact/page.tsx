@@ -1,6 +1,7 @@
 'use client'
 
 import Navbar from '@/components/Navbar'
+import Image from 'next/image'
 import { useState } from 'react'
 
 export default function Contact() {
@@ -61,10 +62,13 @@ export default function Contact() {
       {/* Hero Section */}
       <section className="relative w-full h-[50vh] overflow-hidden">
         <div className="absolute inset-0">
-          <img
+          <Image
             src="/imgs/contactMain.png"
             alt="Contact"
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            priority
+            sizes="100vw"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/60 to-black/85" />
         </div>

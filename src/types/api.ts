@@ -3,7 +3,7 @@
  */
 
 import type { CustomerInfo, ItemOption } from './database'
-import type { DeliveryInfo, RelayPointInfo } from './cart'
+import type { DeliveryInfo } from './cart'
 
 // ==================== RESERVATION API ====================
 

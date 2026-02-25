@@ -11,7 +11,6 @@ function PaymentSuccessContent() {
   const { clearCart } = useCart()
   const [isProcessing, setIsProcessing] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [reservationId, setReservationId] = useState<number | null>(null)
   const [reservationCode, setReservationCode] = useState<string | null>(null)
 
   useEffect(() => {
@@ -37,7 +36,6 @@ function PaymentSuccessContent() {
           throw new Error(data.error || 'Erreur lors du traitement du paiement')
         }
 
-        setReservationId(data.orderId)
         setReservationCode(data.reservationCode)
         setIsProcessing(false)
 
@@ -51,7 +49,7 @@ function PaymentSuccessContent() {
     }
 
     processPayment()
-  }, [searchParams])
+  }, [searchParams, clearCart])
 
   if (isProcessing) {
     return (

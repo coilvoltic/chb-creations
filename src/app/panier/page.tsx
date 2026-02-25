@@ -2,6 +2,7 @@
 
 import Navbar from '@/components/Navbar'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useCart } from '@/contexts/CartContext'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -670,11 +671,13 @@ export default function CartPage() {
     >
       <div className="flex gap-4 md:gap-6">
         {/* Product Image */}
-        <div className="w-20 h-20 md:w-24 md:h-24 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0">
-          <img
+        <div className="relative w-20 h-20 md:w-24 md:h-24 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0">
+          <Image
             src={item.productImage}
             alt={item.productName}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            sizes="96px"
           />
         </div>
 

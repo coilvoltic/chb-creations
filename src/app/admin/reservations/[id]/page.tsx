@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { useRouter, useParams } from 'next/navigation'
 import type { CustomerOrder, RentalReservation, PurchaseReservation, PrestationReservation, Tag, ItemOption } from '@/lib/supabase'
 import { getSelectedOptionsFromDB, getInstallationFeesFromDB, type ReservationItemOptions } from '@/lib/reservation-utils'
@@ -916,11 +917,13 @@ export default function ReservationDetailPage() {
                         <div className="flex gap-4">
                           {/* Image produit */}
                           {item.products.images && item.products.images.length > 0 && (
-                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-lg overflow-hidden flex-shrink-0 bg-stone-100">
-                              <img
+                            <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-lg overflow-hidden flex-shrink-0 bg-stone-100">
+                              <Image
                                 src={item.products.images[0]}
                                 alt={item.products.name}
-                                className="w-full h-full object-cover"
+                                fill
+                                className="object-cover"
+                                sizes="96px"
                               />
                             </div>
                           )}
@@ -1013,11 +1016,13 @@ export default function ReservationDetailPage() {
                         <div className="flex gap-4">
                           {/* Image produit */}
                           {item.products.images && item.products.images.length > 0 && (
-                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-lg overflow-hidden flex-shrink-0 bg-stone-100">
-                              <img
+                            <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-lg overflow-hidden flex-shrink-0 bg-stone-100">
+                              <Image
                                 src={item.products.images[0]}
                                 alt={item.products.name}
-                                className="w-full h-full object-cover"
+                                fill
+                                className="object-cover"
+                                sizes="96px"
                               />
                             </div>
                           )}
@@ -1109,11 +1114,13 @@ export default function ReservationDetailPage() {
                         <div className="flex gap-4">
                           {/* Image produit */}
                           {item.products.images && item.products.images.length > 0 && (
-                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-lg overflow-hidden flex-shrink-0 bg-stone-100">
-                              <img
+                            <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-lg overflow-hidden flex-shrink-0 bg-stone-100">
+                              <Image
                                 src={item.products.images[0]}
                                 alt={item.products.name}
-                                className="w-full h-full object-cover"
+                                fill
+                                className="object-cover"
+                                sizes="96px"
                               />
                             </div>
                           )}

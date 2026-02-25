@@ -1,5 +1,6 @@
 import Navbar from '@/components/Navbar'
 import Link from 'next/link'
+import Image from 'next/image'
 import { buildStaticMetadata } from '@/lib/seo'
 
 export const metadata = buildStaticMetadata({
@@ -32,10 +33,13 @@ export default function HennePage() {
       {/* Hero Section */}
       <section className="relative w-full h-[60vh] overflow-hidden">
         <div className="absolute inset-0">
-          <img
+          <Image
             src="/imgs/prestations/prestationsMain.jpeg"
             alt="Henné"
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            priority
+            sizes="100vw"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/50 to-black/70" />
         </div>
@@ -69,10 +73,12 @@ export default function HennePage() {
                   className={`group block overflow-hidden rounded-xl shadow-soft hover:shadow-dark transition-all duration-300 animate-scale-in delay-${(index + 1) * 100} cursor-pointer`}
                 >
                   <div className="relative h-96 md:h-[500px] overflow-hidden">
-                    <img
+                    <Image
                       src={category.image}
                       alt={category.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                      fill
+                      className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                      sizes="(max-width: 768px) 100vw, 50vw"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6 text-white">

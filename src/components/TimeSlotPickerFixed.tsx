@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { getAllPrestationUnavailabilities, PrestationUnavailableSlot } from '@/lib/supabase'
-import { AlertCircle } from 'lucide-react'
 
 interface TimeSlotPickerFixedProps {
   selectedDate: Date | null

@@ -17,6 +17,7 @@ export default function MaintenanceToggle() {
 
   useEffect(() => {
     loadMaintenanceStatus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadMaintenanceStatus = async () => {

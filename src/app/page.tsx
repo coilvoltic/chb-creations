@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar'
 import GoogleReviews from '../components/GoogleReviews'
 import Link from 'next/link'
 import { useEffect, useRef } from 'react'
+import Image from 'next/image'
 import Typed from 'typed.js'
 
 export default function Home() {
@@ -33,10 +34,13 @@ export default function Home() {
       {/* Hero Section with Image */}
       <section className="relative w-full h-screen overflow-hidden -mt-[104px]">
         <div className="absolute inset-0">
-          <img
+          <Image
             src="/imgs/mainImage.jpeg"
             alt="CHB Créations"
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            priority
+            sizes="100vw"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/80 to-black" />
         </div>
@@ -87,10 +91,12 @@ export default function Home() {
               <Link href="/locations" className="group cursor-pointer">
                 <div className="bg-white rounded-2xl overflow-hidden transition-all duration-300 ease-in-out hover:scale-[1.02] hover:-translate-y-2 animate-fade-in-up delay-100">
                   <div className="relative aspect-[4/5] overflow-hidden max-h-[500px] md:max-h-[600px] w-full">
-                    <img
+                    <Image
                       src="/imgs/locations/locationsMain.png"
                       alt="Locations"
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 50vw"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 lg:p-10 text-white">
@@ -113,10 +119,12 @@ export default function Home() {
               <Link href="/accessoires-personnalises" className="group cursor-pointer">
                 <div className="bg-white rounded-2xl overflow-hidden transition-all duration-300 ease-in-out hover:scale-[1.02] hover:-translate-y-2 animate-fade-in-up delay-200">
                   <div className="relative aspect-[4/5] overflow-hidden max-h-[500px] md:max-h-[600px] w-full">
-                    <img
+                    <Image
                       src="/imgs/accessoires-personnalises/accessoiresMain.jpeg"
                       alt="Accessoires"
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 50vw"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 lg:p-10 text-white">
@@ -139,10 +147,12 @@ export default function Home() {
               <Link href="/prestations" className="group cursor-pointer">
                 <div className="bg-white rounded-2xl overflow-hidden transition-all duration-300 ease-in-out hover:scale-[1.02] hover:-translate-y-2 animate-fade-in-up delay-300">
                   <div className="relative aspect-[4/5] overflow-hidden max-h-[500px] md:max-h-[600px] w-full">
-                    <img
+                    <Image
                       src="/imgs/prestations/prestationsMain.jpeg"
                       alt="Henné"
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 50vw"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 lg:p-10 text-white">

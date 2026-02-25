@@ -157,7 +157,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
     }
 
     return product.stock - maxReserved
-  }, [product, isRentalProduct, rentalPeriod, product?.unavailabilities, product?.stock])
+  }, [product, isRentalProduct, rentalPeriod])
 
   // Clamp quantity when maxAvailableQuantity changes (e.g. after selecting dates)
   useEffect(() => {

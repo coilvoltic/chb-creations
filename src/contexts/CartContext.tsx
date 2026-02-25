@@ -125,7 +125,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return cart.items.filter(item => item.category === 'prestations')
   }
 
-  const calculateTotals = (items: CartItem[], _rentalDelivery: DeliveryInfo, _purchaseDelivery: DeliveryInfo, _prestationDelivery: DeliveryInfo) => {
+  const calculateTotals = (items: CartItem[]) => {
     const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
     const totalPrice = items.reduce((sum, item) => {
       const basePrice = item.pricePerUnit
@@ -148,7 +148,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const id = `${newItem.productId}-${Date.now()}`
       const item: CartItem = { ...newItem, id }
       const items = [...prevCart.items, item]
-      const { totalItems, totalPrice } = calculateTotals(items, prevCart.rentalDelivery, prevCart.purchaseDelivery, prevCart.prestationDelivery)
+      const { totalItems, totalPrice } = calculateTotals(items)
       return {
         ...prevCart,
         items,
@@ -161,7 +161,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const removeFromCart = (itemId: string) => {
     setCart((prevCart) => {
       const items = prevCart.items.filter((item) => item.id !== itemId)
-      const { totalItems, totalPrice } = calculateTotals(items, prevCart.rentalDelivery, prevCart.purchaseDelivery, prevCart.prestationDelivery)
+      const { totalItems, totalPrice } = calculateTotals(items)
       return {
         ...prevCart,
         items,
@@ -180,7 +180,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const items = prevCart.items.map((item) =>
         item.id === itemId ? { ...item, quantity } : item
       )
-      const { totalItems, totalPrice } = calculateTotals(items, prevCart.rentalDelivery, prevCart.purchaseDelivery, prevCart.prestationDelivery)
+      const { totalItems, totalPrice } = calculateTotals(items)
       return {
         ...prevCart,
         items,
