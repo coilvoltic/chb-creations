@@ -10,7 +10,8 @@ const DEFAULT_DESCRIPTION = 'Accessoires personnalisés, henné et location de d
 export async function generateProductMetadata(
   slug: string,
   subcategory: string,
-  categoryPath: string
+  categoryPath: string,
+  fallbackImage?: string // Chemin /public utilisé si le produit n'a pas d'image Supabase
 ): Promise<Metadata> {
   const product = await getProductBySlug(slug, subcategory)
 
@@ -25,7 +26,7 @@ export async function generateProductMetadata(
     ? product.description.replace(/[#*_~`[\]()]/g, '').slice(0, 155).replace(/\s+\S*$/, '...')
     : DEFAULT_DESCRIPTION
   const url = `${BASE_URL}${categoryPath}/${product.slug}`
-  const ogImage = product.images?.[0] ?? undefined
+  const ogImage = fallbackImage ? `${BASE_URL}${fallbackImage}` : undefined
 
   return {
     title: product.name,
