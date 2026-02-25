@@ -1,6 +1,7 @@
 import Navbar from '@/components/Navbar'
 import Breadcrumb from '@/components/Breadcrumb'
 import Link from 'next/link'
+import Image from 'next/image'
 import type { Product } from '@/lib/supabase'
 
 interface BreadcrumbItem {
@@ -34,10 +35,13 @@ export default function ProductListingPage({
       {/* Hero Section */}
       <section className="relative w-full h-[50vh] overflow-hidden">
         <div className="absolute inset-0">
-          <img
+          <Image
             src={heroImage}
             alt={heroAlt}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            priority
+            sizes="100vw"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/60 to-black/85" />
         </div>
@@ -77,10 +81,12 @@ export default function ProductListingPage({
                     {isOutOfStock ? (
                       <div className="opacity-60">
                         <div className="relative aspect-square overflow-hidden bg-white mb-4 rounded-xl shadow-soft">
-                          <img
+                          <Image
                             src={product.images[0]}
                             alt={product.name}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 768px) 50vw, 33vw"
                           />
                           <div className="absolute inset-0 bg-black/20" />
                           <div className="absolute inset-0 flex items-center justify-center">
@@ -114,10 +120,12 @@ export default function ProductListingPage({
                     ) : (
                       <Link href={`/${product.category}/${categorySlug}/${product.slug}`}>
                         <div className="relative aspect-square overflow-hidden bg-white mb-4 rounded-xl shadow-soft group-hover:shadow-dark transition-all duration-300">
-                          <img
+                          <Image
                             src={product.images[0]}
                             alt={product.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                            sizes="(max-width: 768px) 50vw, 33vw"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
                         </div>

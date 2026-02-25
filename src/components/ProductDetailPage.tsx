@@ -15,6 +15,7 @@ import { parseSimpleMarkdown } from '@/lib/markdown'
 import type { DateRange } from 'react-day-picker'
 import { useCart } from '@/contexts/CartContext'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface BreadcrumbItem {
   label: string
@@ -315,10 +316,13 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
               {/* Product Images Carousel */}
               <div className="relative">
                 <div className="relative aspect-square bg-stone-50 border border-stone-200 rounded-3xl overflow-hidden">
-                  <img
+                  <Image
                     src={product.images[selectedImageIndex]}
                     alt={product.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    priority
                   />
 
                   {/* Navigation arrows */}
