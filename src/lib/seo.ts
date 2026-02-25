@@ -25,7 +25,10 @@ export async function generateProductMetadata(
     ? product.description.replace(/[#*_~`[\]()]/g, '').slice(0, 155).replace(/\s+\S*$/, '...')
     : DEFAULT_DESCRIPTION
   const url = `${BASE_URL}${categoryPath}/${product.slug}`
-  const ogImage = product.images?.[0]
+  const rawImage = product.images?.[0]
+  const ogImage = rawImage
+    ? `${BASE_URL}/_next/image?url=${encodeURIComponent(rawImage)}&w=1200&q=80`
+    : undefined
 
   return {
     title: product.name,
