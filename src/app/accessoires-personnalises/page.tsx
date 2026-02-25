@@ -6,6 +6,7 @@ export const metadata = buildStaticMetadata({
   title: 'Accessoires Personnalisés',
   description: 'Créations uniques et sur mesure pour vos événements à Marseille : bougies, certificats, coussins, tableaux et plus.',
   path: '/accessoires-personnalises',
+  image: '/imgs/accessoires-personnalises/accessoiresMain.jpeg',
 })
 
 export default function AccessoiresPage() {

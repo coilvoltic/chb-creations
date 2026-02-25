@@ -6,6 +6,7 @@ export const metadata = buildStaticMetadata({
   title: 'Œufs décorés',
   description: 'Œufs décorés artisanaux pour vos célébrations à Marseille. Créations uniques et raffinées.',
   path: '/accessoires-personnalises/oeufs',
+  image: '/imgs/accessoires-personnalises/oeufsMain.jpeg',
 })
 
 export const revalidate = 3600

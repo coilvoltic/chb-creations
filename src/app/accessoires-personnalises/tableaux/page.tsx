@@ -6,6 +6,7 @@ export const metadata = buildStaticMetadata({
   title: 'Tableaux personnalisés',
   description: 'Tableaux décoratifs personnalisés pour vos événements à Marseille. Créations artistiques uniques.',
   path: '/accessoires-personnalises/tableaux',
+  image: '/imgs/accessoires-personnalises/tableauxMain.jpeg',
 })
 
 export const revalidate = 3600

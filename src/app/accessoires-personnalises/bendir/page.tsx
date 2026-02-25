@@ -6,6 +6,7 @@ export const metadata = buildStaticMetadata({
   title: 'Bendir personnalisé',
   description: 'Bendirs décorés et personnalisés pour vos événements à Marseille. Art traditionnel revisité.',
   path: '/accessoires-personnalises/bendir',
+  image: '/imgs/accessoires-personnalises/bendirMain.jpeg',
 })
 
 export const revalidate = 3600

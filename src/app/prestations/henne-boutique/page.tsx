@@ -6,6 +6,7 @@ export const metadata = buildStaticMetadata({
   title: 'Henné en Boutique',
   description: 'Prestations de henné en boutique avec créneaux fixes à Marseille. Art du henné traditionnel.',
   path: '/prestations/henne-boutique',
+  image: '/imgs/prestations/henneBoutiqueMain.jpeg',
 })
 
 export const revalidate = 3600

@@ -6,6 +6,7 @@ export const metadata = buildStaticMetadata({
   title: 'Faire-parts',
   description: 'Faire-parts élégants pour mariages et événements à Marseille. Créations personnalisées.',
   path: '/accessoires-personnalises/faire-parts',
+  image: '/imgs/accessoires-personnalises/fairePartsMain.png',
 })
 
 export const revalidate = 3600

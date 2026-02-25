@@ -6,6 +6,7 @@ export const metadata = buildStaticMetadata({
   title: 'Prestations Henné',
   description: 'Art traditionnel du henné pour sublimer vos événements à Marseille. En boutique ou à domicile.',
   path: '/prestations',
+  image: '/imgs/prestations/prestationsMain.jpeg',
 })
 
 export default function HennePage() {

@@ -6,6 +6,7 @@ export const metadata = buildStaticMetadata({
   title: 'Textile personnalisé',
   description: 'Textiles brodés et personnalisés pour vos événements à Marseille. Créations sur mesure.',
   path: '/accessoires-personnalises/textile',
+  image: '/imgs/accessoires-personnalises/textileMain.jpeg',
 })
 
 export const revalidate = 3600

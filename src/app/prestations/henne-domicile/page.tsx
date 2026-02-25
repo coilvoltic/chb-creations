@@ -6,6 +6,7 @@ export const metadata = buildStaticMetadata({
   title: 'Henné à Domicile',
   description: 'Prestations de henné à votre domicile pour vos événements à Marseille. Service personnalisé.',
   path: '/prestations/henne-domicile',
+  image: '/imgs/prestations/henneDomicileMain.png',
 })
 
 export const revalidate = 3600

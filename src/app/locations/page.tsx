@@ -6,6 +6,7 @@ export const metadata = buildStaticMetadata({
   title: 'Locations',
   description: 'Location de mobilier et accessoires pour vos événements à Marseille : art de table, trônes, décoration.',
   path: '/locations',
+  image: '/imgs/locations/locationsMain.png',
 })
 
 export default function LocationsPage() {

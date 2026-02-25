@@ -60,8 +60,10 @@ export function buildStaticMetadata(opts: {
   title: string
   description: string
   path: string
+  image?: string // Chemin relatif depuis /public (ex: '/imgs/prestations/prestationsMain.jpeg')
 }): Metadata {
   const url = `${BASE_URL}${opts.path}`
+  const ogImage = opts.image ? `${BASE_URL}${opts.image}` : undefined
   return {
     title: opts.title,
     description: opts.description,
@@ -69,6 +71,13 @@ export function buildStaticMetadata(opts: {
       title: opts.title,
       description: opts.description,
       url,
+      ...(ogImage && { images: [{ url: ogImage, alt: opts.title }] }),
+    },
+    twitter: {
+      card: ogImage ? 'summary_large_image' : 'summary',
+      title: opts.title,
+      description: opts.description,
+      ...(ogImage && { images: [ogImage] }),
     },
     alternates: {
       canonical: url,

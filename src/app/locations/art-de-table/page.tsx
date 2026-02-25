@@ -6,6 +6,7 @@ export const metadata = buildStaticMetadata({
   title: 'Art de table - Location',
   description: 'Location d\'art de table élégant pour vos événements à Marseille. Assiettes, couverts et accessoires.',
   path: '/locations/art-de-table',
+  image: '/imgs/locations/artDeTableMain.png',
 })
 
 export const revalidate = 3600

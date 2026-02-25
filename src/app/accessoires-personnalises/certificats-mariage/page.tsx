@@ -6,6 +6,7 @@ export const metadata = buildStaticMetadata({
   title: 'Certificats de mariage',
   description: 'Certificats de mariage élégants et personnalisés à Marseille. Calligraphie et finitions soignées.',
   path: '/accessoires-personnalises/certificats-mariage',
+  image: '/imgs/accessoires-personnalises/certificatsMariageMain.png',
 })
 
 export const revalidate = 3600

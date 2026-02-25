@@ -6,6 +6,7 @@ export const metadata = buildStaticMetadata({
   title: 'Trônes - Location',
   description: 'Location de trônes majestueux pour vos événements à Marseille. Mariages, fiançailles et cérémonies.',
   path: '/locations/trones',
+  image: '/imgs/locations/tronesMain.jpeg',
 })
 
 export const revalidate = 3600

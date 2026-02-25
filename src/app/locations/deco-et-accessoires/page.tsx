@@ -6,6 +6,7 @@ export const metadata = buildStaticMetadata({
   title: 'Déco & Accessoires - Location',
   description: 'Location de décoration et accessoires pour vos événements à Marseille. Sublimez vos cérémonies.',
   path: '/locations/deco-et-accessoires',
+  image: '/imgs/locations/decoAccessoiresMain.png',
 })
 
 export const revalidate = 3600

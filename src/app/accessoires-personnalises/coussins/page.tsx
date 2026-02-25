@@ -6,6 +6,7 @@ export const metadata = buildStaticMetadata({
   title: 'Coussins personnalisés',
   description: 'Coussins brodés et décorés sur mesure pour vos événements à Marseille. Créations artisanales.',
   path: '/accessoires-personnalises/coussins',
+  image: '/imgs/accessoires-personnalises/coussinMain.jpeg',
 })
 
 export const revalidate = 3600
