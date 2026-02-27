@@ -764,29 +764,33 @@ export default function ReservationDetailPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-stone-600">Frais de déplacement</span>
-                      <span className="text-sm font-semibold text-purple-700">{(firstPrestation?.delivery_fees ?? 0).toFixed(2)} €</span>
+                      <span className="text-sm font-semibold text-purple-700">
+                        {prestation_reservations.reduce((sum, pr) => sum + (pr.delivery_fees ?? 0), 0).toFixed(2)} €
+                      </span>
                     </div>
-                    {firstPrestation && (
-                      <div className="pt-2">
-                        <p className="text-xs text-stone-500 mb-2">Tags :</p>
+                    {prestation_reservations.map((prestaRes) => (
+                      <div key={prestaRes.id} className="pt-2">
+                        <p className="text-xs text-stone-500 mb-2">
+                          Tags{prestation_reservations.length > 1 ? ` (${prestaRes.delivery_address ? 'À domicile' : 'En boutique'})` : ''} :
+                        </p>
                         <ReservationTagSelector
-                          reservationId={firstPrestation.id}
+                          reservationId={prestaRes.id}
                           reservationType="prestation"
-                          currentTags={firstPrestation.tags || []}
+                          currentTags={prestaRes.tags || []}
                           onTagsChange={(tags) => {
                             setData(prev => {
                               if (!prev) return null
                               return {
                                 ...prev,
                                 prestation_reservations: prev.prestation_reservations.map(p =>
-                                  p.id === firstPrestation.id ? { ...p, tags } : p
+                                  p.id === prestaRes.id ? { ...p, tags } : p
                                 )
                               }
                             })
                           }}
                         />
                       </div>
-                    )}
+                    ))}
                   </div>
                 )}
 
@@ -874,25 +878,35 @@ export default function ReservationDetailPage() {
                     )}
 
                     {/* Livraison Prestations */}
-                    {hasPrestations && firstPrestation && (
-                      <div className="border-l-4 border-purple-500 pl-3">
-                        <p className="text-xs font-semibold text-purple-900 uppercase tracking-wide mb-2">Prestations</p>
+                    {hasPrestations && prestation_reservations.map((prestaRes) => (
+                      <div key={prestaRes.id} className="border-l-4 border-purple-500 pl-3">
+                        <p className="text-xs font-semibold text-purple-900 uppercase tracking-wide mb-2">
+                          {prestation_reservations.length > 1
+                            ? `Prestations (${prestaRes.delivery_address ? 'À domicile' : 'En boutique'})`
+                            : 'Prestations'}
+                        </p>
                         <div className="space-y-2">
                           <div>
                             <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Lieu</p>
                             <p className="text-sm text-black">
-                              {firstPrestation.delivery_address ? '🏠 À domicile' : '🏪 En boutique'}
+                              {prestaRes.delivery_address ? '🏠 À domicile' : '🏪 En boutique'}
                             </p>
                           </div>
-                          {firstPrestation.delivery_address && (
+                          {prestaRes.delivery_address && (
                             <div>
                               <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Adresse</p>
-                              <p className="text-sm text-black">{firstPrestation.delivery_address}</p>
+                              <p className="text-sm text-black">{prestaRes.delivery_address}</p>
+                            </div>
+                          )}
+                          {(prestaRes.delivery_fees ?? 0) > 0 && (
+                            <div>
+                              <p className="text-xs text-stone-500 uppercase tracking-wider mb-1">Frais de déplacement</p>
+                              <p className="text-sm text-black">{(prestaRes.delivery_fees ?? 0).toFixed(2)} €</p>
                             </div>
                           )}
                         </div>
                       </div>
-                    )}
+                    ))}
                   </div>
                 </>
               )}

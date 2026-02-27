@@ -11,6 +11,7 @@ export interface CartItemPayload {
   productId: number
   productName: string
   category: string // 'locations', 'accessoires-personnalises', or 'prestations'
+  subcategory?: string // Used to distinguish henne-boutique vs henne-domicile
   quantity: number
   numberOfPeople?: number // For prestation items (henné) - number of people
   pricePerUnit: number
@@ -36,7 +37,9 @@ export interface CreateReservationPayload {
   caution: number
   rentalDelivery?: DeliveryInfo // Delivery info for rental items
   purchaseDelivery?: DeliveryInfo // Delivery info for purchase items
-  prestationDelivery?: DeliveryInfo // Delivery info for prestation items
+  prestationDelivery?: DeliveryInfo // Delivery info for prestation items (homogeneous case)
+  prestationBoutiqueDelivery?: DeliveryInfo // Delivery info for boutique prestation (mix case)
+  prestationDomicileDelivery?: DeliveryInfo // Delivery info for domicile prestation (mix case)
   totalPrice: number
   promoCode?: PromoCodePayload // Promotional code if applied
   paymentMethod?: 'online' | 'cash' | null
@@ -100,6 +103,8 @@ export interface CreateCheckoutSessionRequest {
   rentalDelivery?: DeliveryInfo
   purchaseDelivery?: DeliveryInfo
   prestationDelivery?: DeliveryInfo
+  prestationBoutiqueDelivery?: DeliveryInfo
+  prestationDomicileDelivery?: DeliveryInfo
   totalPrice: number
   promoCode?: PromoCodePayload
   userId?: string

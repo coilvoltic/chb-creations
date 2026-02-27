@@ -154,7 +154,11 @@ export async function PATCH(request: Request) {
 
           const firstRental = rentalReservations?.[0]
           const firstPurchase = purchaseReservations?.[0]
-          const firstPrestation = prestationReservations?.[0]
+
+          // Détection cas mix boutique+domicile : 2 prestation_reservations
+          const prestaBoutique = (prestationReservations || []).find(pr => !pr.delivery_address)
+          const prestaDomicile = (prestationReservations || []).find(pr => pr.delivery_address)
+          const isMixPrestation = !!(prestaBoutique && prestaDomicile)
 
           await sendDatesUpdateNotification({
             id: order.id,
@@ -173,8 +177,10 @@ export async function PATCH(request: Request) {
             rentalDeliveryFees: firstRental?.delivery_fees || 0,
             purchaseDeliveryAddress: firstPurchase?.delivery_address || null,
             purchaseDeliveryFees: firstPurchase?.delivery_fees || 0,
-            prestationDeliveryAddress: firstPrestation?.delivery_address || null,
-            prestationDeliveryFees: firstPrestation?.delivery_fees || 0,
+            prestationDeliveryAddress: isMixPrestation ? null : (prestationReservations?.[0]?.delivery_address || null),
+            prestationDeliveryFees: isMixPrestation ? 0 : (prestationReservations?.[0]?.delivery_fees || 0),
+            prestationDomicileDeliveryAddress: isMixPrestation ? (prestaDomicile?.delivery_address || null) : null,
+            prestationDomicileDeliveryFees: isMixPrestation ? (prestaDomicile?.delivery_fees || 0) : 0,
             rentalItems: rentalItems?.map((item: Record<string, unknown>) => {
               const product = item.products as { name: string; price: number; new_price?: number }
               const basePrice = product.new_price ?? product.price

@@ -3,29 +3,9 @@
 import Navbar from '../components/Navbar'
 import GoogleReviews from '../components/GoogleReviews'
 import Link from 'next/link'
-import { useEffect, useRef } from 'react'
 import Image from 'next/image'
-import Typed from 'typed.js'
 
 export default function Home() {
-  const typedElement = useRef<HTMLSpanElement>(null)
-
-  useEffect(() => {
-    if (typedElement.current) {
-      const typed = new Typed(typedElement.current, {
-        strings: ['vaisselle.', 'mobilier.', 'trône.', 'arche.'],
-        typeSpeed: 80,
-        backSpeed: 60,
-        backDelay: 2000,
-        loop: true,
-        cursorChar: '|',
-      })
-
-      return () => {
-        typed.destroy()
-      }
-    }
-  }, [])
 
   return (
     <div className="min-h-screen bg-white">

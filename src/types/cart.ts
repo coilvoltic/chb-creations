@@ -59,6 +59,9 @@ export interface Cart {
   // Séparation des options de livraison par catégorie
   rentalDelivery: DeliveryInfo // Pour les locations
   purchaseDelivery: DeliveryInfo // Pour les achats d'accessoires personnalisés
-  prestationDelivery: DeliveryInfo // Pour les prestations (henné, etc.)
+  prestationDelivery: DeliveryInfo // Pour les prestations homogènes (boutique seul OU domicile seul)
+  // Uniquement utilisés quand le panier contient à la fois des prestations boutique et domicile
+  prestationBoutiqueDelivery?: DeliveryInfo
+  prestationDomicileDelivery?: DeliveryInfo
   promoCode?: PromoCode // Code promo appliqué
 }

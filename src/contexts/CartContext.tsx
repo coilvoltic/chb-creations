@@ -17,6 +17,9 @@ interface CartContextType {
   updateRentalDeliveryFees: (fees: number, distance: number) => void
   updatePurchaseDeliveryFees: (fees: number, distance: number) => void
   updatePrestationDeliveryFees: (fees: number, distance: number) => void
+  // Cas mix boutique + domicile : deux DeliveryInfo distinctes
+  setPrestationDomicileDeliveryAddress: (address: string) => void
+  updatePrestationDomicileDeliveryFees: (fees: number, distance: number) => void
   setPurchaseRelayPoint: (provider: RelayProvider, relayPoint: RelayPointInfo, fees: number) => void
   setPromoCode: (promoCode: PromoCode | undefined) => void
   clearCart: () => void
@@ -47,6 +50,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       option: 'pickup',
       fees: 0,
     },
+    prestationBoutiqueDelivery: {
+      option: 'pickup',
+      fees: 0,
+    },
+    prestationDomicileDelivery: {
+      option: 'delivery',
+      fees: 0,
+    },
   })
 
   // Load cart from localStorage on mount
@@ -65,6 +76,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
           rentalDelivery?: DeliveryInfo
           purchaseDelivery?: DeliveryInfo
           prestationDelivery?: DeliveryInfo
+          prestationBoutiqueDelivery?: DeliveryInfo
+          prestationDomicileDelivery?: DeliveryInfo
           promoCode?: PromoCode
         }
 
@@ -93,6 +106,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
           },
           prestationDelivery: parsedCart.prestationDelivery || {
             option: 'pickup' as DeliveryOption,
+            fees: 0,
+          },
+          prestationBoutiqueDelivery: parsedCart.prestationBoutiqueDelivery || {
+            option: 'pickup' as DeliveryOption,
+            fees: 0,
+          },
+          prestationDomicileDelivery: parsedCart.prestationDomicileDelivery || {
+            option: 'delivery' as DeliveryOption,
             fees: 0,
           },
           promoCode: parsedCart.promoCode,
@@ -298,6 +319,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }))
   }
 
+  // Cas mix boutique + domicile : setters pour la prestation domicile uniquement
+  // (la boutique est toujours pickup, pas besoin de setter d'adresse)
+  const setPrestationDomicileDeliveryAddress = (address: string) => {
+    setCart((prevCart) => ({
+      ...prevCart,
+      prestationDomicileDelivery: {
+        ...(prevCart.prestationDomicileDelivery || { option: 'delivery' as DeliveryOption, fees: 0 }),
+        address,
+      }
+    }))
+  }
+
+  const updatePrestationDomicileDeliveryFees = (fees: number, distance: number) => {
+    setCart((prevCart) => ({
+      ...prevCart,
+      prestationDomicileDelivery: {
+        ...(prevCart.prestationDomicileDelivery || { option: 'delivery' as DeliveryOption, fees: 0 }),
+        fees,
+        distance,
+      }
+    }))
+  }
+
   const setPurchaseRelayPoint = (provider: RelayProvider, relayPoint: RelayPointInfo, fees: number) => {
     setCart((prevCart) => ({
       ...prevCart,
@@ -320,10 +364,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Calculate subtotal (before promo code discount)
   const getSubtotal = (): number => {
+    // En cas de mix boutique+domicile, on utilise les frais du domicile uniquement (la boutique n'a pas de frais)
+    const prestationFees = (cart.prestationDomicileDelivery?.fees || 0) > 0
+      ? (cart.prestationDomicileDelivery?.fees || 0)
+      : (cart.prestationDelivery.fees || 0)
     return cart.totalPrice +
            (cart.rentalDelivery.fees || 0) +
            (cart.purchaseDelivery.fees || 0) +
-           (cart.prestationDelivery.fees || 0)
+           prestationFees
   }
 
   // Calculate discount amount
@@ -355,6 +403,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
         option: 'pickup',
         fees: 0,
       },
+      prestationBoutiqueDelivery: {
+        option: 'pickup',
+        fees: 0,
+      },
+      prestationDomicileDelivery: {
+        option: 'delivery',
+        fees: 0,
+      },
       promoCode: undefined,
     })
   }
@@ -375,6 +431,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         updateRentalDeliveryFees,
         updatePurchaseDeliveryFees,
         updatePrestationDeliveryFees,
+        setPrestationDomicileDeliveryAddress,
+        updatePrestationDomicileDeliveryFees,
         setPurchaseRelayPoint,
         setPromoCode,
         clearCart,

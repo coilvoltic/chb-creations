@@ -16,6 +16,7 @@ interface CartItemPayload {
   productId: number
   productName: string
   category: string // 'locations', 'accessoires-personnalises', or 'prestations'
+  subcategory?: string // Used to distinguish henne-boutique vs henne-domicile
   quantity: number
   numberOfPeople?: number // For prestation items (henné) - number of people
   pricePerUnit: number
@@ -59,7 +60,9 @@ interface CreateReservationPayload {
   caution: number
   rentalDelivery?: DeliveryInfo // Delivery info for rental items
   purchaseDelivery?: DeliveryInfo // Delivery info for purchase items
-  prestationDelivery?: DeliveryInfo // Delivery info for prestation items
+  prestationDelivery?: DeliveryInfo // Delivery info for prestation items (homogeneous case)
+  prestationBoutiqueDelivery?: DeliveryInfo // Delivery info for boutique prestation (mix case)
+  prestationDomicileDelivery?: DeliveryInfo // Delivery info for domicile prestation (mix case)
   totalPrice: number
   promoCode?: PromoCodePayload // Promotional code if applied
   paymentMethod?: 'cash' | 'deposit' | 'full' | null
@@ -81,7 +84,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { customerInfo, items, deposit, caution, rentalDelivery, purchaseDelivery, prestationDelivery, totalPrice, promoCode, paymentMethod, userId } = payload
+    const { customerInfo, items, deposit, caution, rentalDelivery, purchaseDelivery, prestationDelivery, prestationDomicileDelivery, totalPrice, promoCode, paymentMethod, userId } = payload
 
     // Create Supabase client with service_role key (bypasses RLS)
     // This is safe because:
@@ -159,7 +162,6 @@ export async function POST(request: NextRequest) {
 
     let rentalReservationId: number | null = null
     let purchaseReservationId: number | null = null
-    let prestationReservationId: number | null = null
 
     // 3a. Créer rental_reservation si nécessaire
     if (rentalItems.length > 0) {
@@ -279,62 +281,154 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3c. Créer prestation_reservation si nécessaire
+    // 3c. Créer prestation_reservation(s) si nécessaire
     if (prestationItems.length > 0) {
-      const { data: prestationReservation, error: prestationError } = await supabase
-        .from('prestation_reservations')
-        .insert({
-          customer_order_id: customerOrder.id,
-          delivery_address: prestationDelivery?.option === 'delivery' ? (prestationDelivery.address || null) : null,
-          delivery_fees: prestationDelivery?.fees || 0,
-          reservation_status: reservationStatus,
-          total_price: prestationItems.reduce((sum, item) => {
-            // Note: prestations n'ont généralement pas d'installation, mais on le gère au cas où
-            const installationFee = (item.installationFees && item.needsInstallation) ? item.installationFees : 0
-            return sum + ((item.pricePerUnit + installationFee) * (item.numberOfPeople || 1))
-          }, 0),
-        })
-        .select()
-        .single()
+      const boutiqueItems = prestationItems.filter(item =>
+        item.subcategory === 'henne-boutique' || item.subcategory === 'pack-henne-boutique'
+      )
+      const domicileItems = prestationItems.filter(item =>
+        item.subcategory === 'henne-domicile' || item.subcategory === 'pack-henne-domicile'
+      )
+      const isMix = boutiqueItems.length > 0 && domicileItems.length > 0
 
-      if (prestationError || !prestationReservation) {
-        console.error('Erreur création prestation_reservation:', prestationError)
-        // Rollback : supprimer la commande client
-        await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
-        return NextResponse.json(
-          { error: 'Erreur lors de la création de la réservation de prestation' },
-          { status: 500 }
-        )
-      }
+      if (isMix) {
+        // Cas mix : créer 2 prestation_reservations distinctes
 
-      prestationReservationId = prestationReservation.id
+        // 3c-1. Réservation boutique (pickup, no fees)
+        const { data: prestaBoutiqueRes, error: prestaBoutiqueErr } = await supabase
+          .from('prestation_reservations')
+          .insert({
+            customer_order_id: customerOrder.id,
+            delivery_address: null,
+            delivery_fees: 0,
+            reservation_status: reservationStatus,
+            total_price: boutiqueItems.reduce((sum, item) => sum + (item.pricePerUnit * (item.numberOfPeople || 1)), 0),
+          })
+          .select()
+          .single()
 
-      // Créer les prestation_items
-      const prestationItemsData = prestationItems.map((item) => ({
-        prestation_reservation_id: prestationReservationId,
-        product_id: item.productId,
-        nb_of_people: item.numberOfPeople || 1, // Default to 1 if not specified
-        prestation_start: item.prestationStart || null,
-        prestation_end: item.prestationEnd || null,
-        options: buildItemOptionsData(item.selectedOptions, item.installationFees),
-        personalizations: item.personalizations || null,
-      }))
+        if (prestaBoutiqueErr || !prestaBoutiqueRes) {
+          console.error('Erreur création prestation_reservation boutique:', prestaBoutiqueErr)
+          await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
+          return NextResponse.json(
+            { error: 'Erreur lors de la création de la réservation prestation boutique' },
+            { status: 500 }
+          )
+        }
 
-      const { error: prestationItemsError } = await supabase
-        .from('prestation_items')
-        .insert(prestationItemsData)
+        const { error: boutiqeItemsErr } = await supabase
+          .from('prestation_items')
+          .insert(boutiqueItems.map((item) => ({
+            prestation_reservation_id: prestaBoutiqueRes.id,
+            product_id: item.productId,
+            nb_of_people: item.numberOfPeople || 1,
+            prestation_start: item.prestationStart || null,
+            prestation_end: item.prestationEnd || null,
+            options: buildItemOptionsData(item.selectedOptions, item.installationFees),
+            personalizations: item.personalizations || null,
+          })))
 
-      if (prestationItemsError) {
-        console.error('Erreur création prestation_items:', prestationItemsError)
-        await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
-        return NextResponse.json(
-          { error: 'Erreur lors de la création des articles de prestation' },
-          { status: 500 }
-        )
+        if (boutiqeItemsErr) {
+          console.error('Erreur création prestation_items boutique:', boutiqeItemsErr)
+          await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
+          return NextResponse.json(
+            { error: 'Erreur lors de la création des articles prestation boutique' },
+            { status: 500 }
+          )
+        }
+
+        // 3c-2. Réservation domicile (delivery, avec adresse et frais)
+        const { data: prestaDomicileRes, error: prestaDomicileErr } = await supabase
+          .from('prestation_reservations')
+          .insert({
+            customer_order_id: customerOrder.id,
+            delivery_address: prestationDomicileDelivery?.address || null,
+            delivery_fees: prestationDomicileDelivery?.fees || 0,
+            reservation_status: reservationStatus,
+            total_price: domicileItems.reduce((sum, item) => sum + (item.pricePerUnit * (item.numberOfPeople || 1)), 0),
+          })
+          .select()
+          .single()
+
+        if (prestaDomicileErr || !prestaDomicileRes) {
+          console.error('Erreur création prestation_reservation domicile:', prestaDomicileErr)
+          await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
+          return NextResponse.json(
+            { error: 'Erreur lors de la création de la réservation prestation domicile' },
+            { status: 500 }
+          )
+        }
+
+        const { error: domicileItemsErr } = await supabase
+          .from('prestation_items')
+          .insert(domicileItems.map((item) => ({
+            prestation_reservation_id: prestaDomicileRes.id,
+            product_id: item.productId,
+            nb_of_people: item.numberOfPeople || 1,
+            prestation_start: item.prestationStart || null,
+            prestation_end: item.prestationEnd || null,
+            options: buildItemOptionsData(item.selectedOptions, item.installationFees),
+            personalizations: item.personalizations || null,
+          })))
+
+        if (domicileItemsErr) {
+          console.error('Erreur création prestation_items domicile:', domicileItemsErr)
+          await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
+          return NextResponse.json(
+            { error: 'Erreur lors de la création des articles prestation domicile' },
+            { status: 500 }
+          )
+        }
+      } else {
+        // Cas homogène : 1 seule prestation_reservation (comportement actuel)
+        const { data: prestationReservation, error: prestationError } = await supabase
+          .from('prestation_reservations')
+          .insert({
+            customer_order_id: customerOrder.id,
+            delivery_address: prestationDelivery?.option === 'delivery' ? (prestationDelivery.address || null) : null,
+            delivery_fees: prestationDelivery?.fees || 0,
+            reservation_status: reservationStatus,
+            total_price: prestationItems.reduce((sum, item) => {
+              const installationFee = (item.installationFees && item.needsInstallation) ? item.installationFees : 0
+              return sum + ((item.pricePerUnit + installationFee) * (item.numberOfPeople || 1))
+            }, 0),
+          })
+          .select()
+          .single()
+
+        if (prestationError || !prestationReservation) {
+          console.error('Erreur création prestation_reservation:', prestationError)
+          await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
+          return NextResponse.json(
+            { error: 'Erreur lors de la création de la réservation de prestation' },
+            { status: 500 }
+          )
+        }
+
+        const { error: prestationItemsError } = await supabase
+          .from('prestation_items')
+          .insert(prestationItems.map((item) => ({
+            prestation_reservation_id: prestationReservation.id,
+            product_id: item.productId,
+            nb_of_people: item.numberOfPeople || 1,
+            prestation_start: item.prestationStart || null,
+            prestation_end: item.prestationEnd || null,
+            options: buildItemOptionsData(item.selectedOptions, item.installationFees),
+            personalizations: item.personalizations || null,
+          })))
+
+        if (prestationItemsError) {
+          console.error('Erreur création prestation_items:', prestationItemsError)
+          await supabase.from('customer_orders').delete().eq('id', customerOrder.id)
+          return NextResponse.json(
+            { error: 'Erreur lors de la création des articles de prestation' },
+            { status: 500 }
+          )
+        }
       }
     }
 
-    // 4. Envoyer l'email de confirmation avec le PDF
+    // 4. Envoyer l'email de confirmation avec le PDF (uniquement pour paiement en ligne)
     if (paymentMethod === 'cash') {
       console.log('=== SKIP EMAIL (paiement en boutique) ===')
     } else {
@@ -345,18 +439,21 @@ export async function POST(request: NextRequest) {
       // Séparer les items en locations et achats pour l'email
       const rentalItems = items
         .filter((item) => item.category === 'locations')
-        .map((item) => ({
-          product_name: item.productName,
-          quantity: item.quantity,
-          rental_start: item.rentalStart,
-          rental_end: item.rentalEnd,
-          unit_price: item.pricePerUnit,
-          total_price: item.quantity * item.pricePerUnit,
-          selectedOptions: item.selectedOptions,
-          personalizations: item.personalizations,
-          installationFees: item.installationFees,
-          needsInstallation: item.needsInstallation,
-        }))
+        .map((item) => {
+          const installFee = (item.needsInstallation && item.installationFees) ? item.installationFees : 0
+          return {
+            product_name: item.productName,
+            quantity: item.quantity,
+            rental_start: item.rentalStart,
+            rental_end: item.rentalEnd,
+            unit_price: item.pricePerUnit,
+            total_price: item.quantity * (item.pricePerUnit + installFee),
+            selectedOptions: item.selectedOptions,
+            personalizations: item.personalizations,
+            installationFees: item.installationFees,
+            needsInstallation: item.needsInstallation,
+          }
+        })
 
       const purchaseItems = items
         .filter((item) => item.category === 'accessoires-personnalises')
@@ -407,8 +504,14 @@ export async function POST(request: NextRequest) {
         rentalDeliveryFees: rentalDelivery?.fees || 0,
         purchaseDeliveryAddress: purchaseAddressForPDF,
         purchaseDeliveryFees: purchaseDelivery?.fees || 0,
-        prestationDeliveryAddress: prestationDelivery?.option === 'delivery' ? prestationDelivery.address : null,
-        prestationDeliveryFees: prestationDelivery?.fees || 0,
+        // Cas mix boutique + domicile : prestationDomicileDelivery est défini
+        // Cas homogène : prestationDelivery seul
+        prestationDeliveryAddress: prestationDomicileDelivery
+          ? null // mix : pas d'adresse homogène
+          : (prestationDelivery?.option === 'delivery' ? prestationDelivery.address : null),
+        prestationDeliveryFees: prestationDomicileDelivery ? 0 : (prestationDelivery?.fees || 0),
+        prestationDomicileDeliveryAddress: prestationDomicileDelivery?.address || null,
+        prestationDomicileDeliveryFees: prestationDomicileDelivery?.fees || 0,
         deposit: deposit,
         caution: caution,
         promoCode: promoCode?.code || null,
@@ -426,7 +529,7 @@ export async function POST(request: NextRequest) {
         console.error('Error stack:', emailError.stack)
       }
     }
-    } // fin else (pas cash)
+    } // fin else (paiement en ligne uniquement)
 
     // 5. Retourner le succès avec les IDs
     return NextResponse.json({

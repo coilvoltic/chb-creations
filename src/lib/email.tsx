@@ -62,6 +62,9 @@ interface ReservationData {
   rentalDeliveryAddress?: string | null
   purchaseDeliveryAddress?: string | null
   prestationDeliveryAddress?: string | null
+  // Cas mix boutique + domicile : adresse domicile distincte
+  prestationDomicileDeliveryAddress?: string | null
+  prestationDomicileDeliveryFees?: number
   rentalDeliveryFees?: number
   purchaseDeliveryFees?: number
   prestationDeliveryFees?: number

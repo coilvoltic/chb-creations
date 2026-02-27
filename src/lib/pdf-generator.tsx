@@ -57,6 +57,9 @@ interface ReservationData {
   rentalDeliveryAddress?: string | null
   purchaseDeliveryAddress?: string | null
   prestationDeliveryAddress?: string | null
+  // Cas mix boutique + domicile : adresse domicile distincte
+  prestationDomicileDeliveryAddress?: string | null
+  prestationDomicileDeliveryFees?: number
   rentalDeliveryFees?: number
   purchaseDeliveryFees?: number
   prestationDeliveryFees?: number
@@ -433,22 +436,46 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
             </Text>
 
             {/* Lieu de prestation */}
-            <View style={{ marginBottom: 15, paddingLeft: 10, borderLeft: '3 solid #a78bfa' }}>
-              <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#7c3aed', marginBottom: 5 }}>
-                LIEU DE PRESTATION
-              </Text>
-              {reservation.prestationDeliveryAddress ? (
-                <>
+            {reservation.prestationDomicileDeliveryAddress ? (
+              // Cas mix boutique + domicile : afficher les deux lieux
+              <>
+                <View style={{ marginBottom: 10, paddingLeft: 10, borderLeft: '3 solid #a78bfa' }}>
+                  <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#7c3aed', marginBottom: 5 }}>
+                    LIEU — HENNÉ EN BOUTIQUE
+                  </Text>
+                  <Text style={styles.text}>Mode: En boutique</Text>
+                  <Text style={styles.text}>100 Boulevard de Saint-Loup, 13010 Marseille</Text>
+                </View>
+                <View style={{ marginBottom: 15, paddingLeft: 10, borderLeft: '3 solid #a78bfa' }}>
+                  <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#7c3aed', marginBottom: 5 }}>
+                    LIEU — HENNÉ À DOMICILE
+                  </Text>
                   <Text style={styles.text}>Mode: À domicile</Text>
-                  <Text style={styles.text}>Adresse: {reservation.prestationDeliveryAddress}</Text>
-                  {reservation.prestationDeliveryFees && reservation.prestationDeliveryFees > 0 && (
-                    <Text style={styles.text}>Frais de déplacement: {reservation.prestationDeliveryFees.toFixed(2)} €</Text>
+                  <Text style={styles.text}>Adresse: {reservation.prestationDomicileDeliveryAddress}</Text>
+                  {reservation.prestationDomicileDeliveryFees && reservation.prestationDomicileDeliveryFees > 0 && (
+                    <Text style={styles.text}>Frais de déplacement: {reservation.prestationDomicileDeliveryFees.toFixed(2)} €</Text>
                   )}
-                </>
-              ) : (
-                <Text style={styles.text}>Mode: En boutique</Text>
-              )}
-            </View>
+                </View>
+              </>
+            ) : (
+              // Cas homogène : un seul lieu
+              <View style={{ marginBottom: 15, paddingLeft: 10, borderLeft: '3 solid #a78bfa' }}>
+                <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#7c3aed', marginBottom: 5 }}>
+                  LIEU DE PRESTATION
+                </Text>
+                {reservation.prestationDeliveryAddress ? (
+                  <>
+                    <Text style={styles.text}>Mode: À domicile</Text>
+                    <Text style={styles.text}>Adresse: {reservation.prestationDeliveryAddress}</Text>
+                    {reservation.prestationDeliveryFees && reservation.prestationDeliveryFees > 0 && (
+                      <Text style={styles.text}>Frais de déplacement: {reservation.prestationDeliveryFees.toFixed(2)} €</Text>
+                    )}
+                  </>
+                ) : (
+                  <Text style={styles.text}>Mode: En boutique</Text>
+                )}
+              </View>
+            )}
 
             {/* Table Prestations */}
             <View style={styles.table}>

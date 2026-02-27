@@ -87,7 +87,10 @@ export async function POST(
     // Récupérer les items avec les produits
     const firstRental = rentalReservations?.[0]
     const firstPurchase = purchaseReservations?.[0]
-    const firstPrestation = prestationReservations?.[0]
+
+    // Pour les prestations : récupérer TOUS les items de TOUTES les prestation_reservations
+    // (cas mix boutique+domicile = 2 lignes dans prestation_reservations)
+    const prestationReservationIds = (prestationReservations || []).map(pr => pr.id)
 
     const [
       { data: rentalItemsDB },
@@ -100,8 +103,8 @@ export async function POST(
       firstPurchase
         ? supabase.from('purchase_items').select('*, products(name, price, new_price)').eq('purchase_reservation_id', firstPurchase.id)
         : Promise.resolve({ data: [] }),
-      firstPrestation
-        ? supabase.from('prestation_items').select('*, products(name, price, new_price)').eq('prestation_reservation_id', firstPrestation.id)
+      prestationReservationIds.length > 0
+        ? supabase.from('prestation_items').select('*, products(name, price, new_price)').in('prestation_reservation_id', prestationReservationIds)
         : Promise.resolve({ data: [] }),
     ])
 
@@ -162,6 +165,12 @@ export async function POST(
     })
     /* eslint-enable @typescript-eslint/no-explicit-any */
 
+    // Détection cas mix boutique+domicile : 2 prestation_reservations
+    // boutique = delivery_address null, domicile = delivery_address non null
+    const prestaBoutique = (prestationReservations || []).find(pr => !pr.delivery_address)
+    const prestaDomicile = (prestationReservations || []).find(pr => pr.delivery_address)
+    const isMixPrestation = !!(prestaBoutique && prestaDomicile)
+
     // Construire les données email (même structure que dans /api/reservations/create)
     const emailData = {
       id: order.id,
@@ -178,8 +187,12 @@ export async function POST(
       rentalDeliveryFees: firstRental?.delivery_fees || 0,
       purchaseDeliveryAddress: firstPurchase?.delivery_address || null,
       purchaseDeliveryFees: firstPurchase?.delivery_fees || 0,
-      prestationDeliveryAddress: firstPrestation?.delivery_address || null,
-      prestationDeliveryFees: firstPrestation?.delivery_fees || 0,
+      // Cas mix : prestationDeliveryAddress vide, on passe les deux adresses séparément
+      // Cas homogène : on utilise prestationDeliveryAddress comme avant
+      prestationDeliveryAddress: isMixPrestation ? null : ((prestationReservations?.[0]?.delivery_address) || null),
+      prestationDeliveryFees: isMixPrestation ? 0 : (prestationReservations?.[0]?.delivery_fees || 0),
+      prestationDomicileDeliveryAddress: isMixPrestation ? (prestaDomicile?.delivery_address || null) : null,
+      prestationDomicileDeliveryFees: isMixPrestation ? (prestaDomicile?.delivery_fees || 0) : 0,
       deposit: firstRental?.deposit || 0,
       caution: firstRental?.caution || 0,
       amountPaid: order.already_paid || 0,
