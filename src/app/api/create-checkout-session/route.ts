@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
         quantity: item.quantity,
         rental_start: item.rentalStart,
         rental_end: item.rentalEnd,
-        options: buildItemOptionsData(item.selectedOptions, item.installationFees),
+        options: buildItemOptionsData(item.selectedOptions, item.installationFees, item.pricePerUnit),
         personalizations: item.personalizations || null,
         needs_installation: item.needsInstallation || false,
       }))
@@ -133,11 +133,19 @@ export async function POST(request: NextRequest) {
 
     // 2b. Créer purchase_reservation si nécessaire
     if (purchaseItems.length > 0) {
+      // Déterminer l'adresse de livraison selon le mode (identique à /api/reservations/create)
+      let purchaseDeliveryAddress: string | null = null
+      if (reservationData.purchaseDelivery?.option === 'delivery') {
+        purchaseDeliveryAddress = reservationData.purchaseDelivery.address || null
+      } else if (reservationData.purchaseDelivery?.option === 'relay_point' && reservationData.purchaseDelivery.relayPoint) {
+        purchaseDeliveryAddress = `[Point Relais ${reservationData.purchaseDelivery.relayProvider === 'chronopost' ? 'Chronopost' : 'Mondial Relay'}] ${reservationData.purchaseDelivery.relayPoint.name} - ${reservationData.purchaseDelivery.relayPoint.address}`
+      }
+
       const { data: purchaseReservation, error: purchaseError } = await supabase
         .from('purchase_reservations')
         .insert({
           customer_order_id: customerOrder.id,
-          delivery_address: reservationData.purchaseDelivery?.option !== 'pickup' ? reservationData.purchaseDelivery?.address : null,
+          delivery_address: purchaseDeliveryAddress,
           delivery_fees: reservationData.purchaseDelivery?.fees || 0,
           total_price: purchaseItems.reduce((sum: number, item: CartItemPayload) => {
             const installationFee = (item.installationFees && item.needsInstallation) ? item.installationFees : 0
@@ -162,7 +170,7 @@ export async function POST(request: NextRequest) {
         product_id: item.productId,
         quantity: item.quantity,
         estimated_delivery_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        options: buildItemOptionsData(item.selectedOptions, item.installationFees),
+        options: buildItemOptionsData(item.selectedOptions, item.installationFees, item.pricePerUnit),
         personalizations: item.personalizations || null,
       }))
 
@@ -212,7 +220,7 @@ export async function POST(request: NextRequest) {
         nb_of_people: item.numberOfPeople || 1,
         prestation_start: item.prestationStart || null,
         prestation_end: item.prestationEnd || null,
-        options: buildItemOptionsData(item.selectedOptions, item.installationFees),
+        options: buildItemOptionsData(item.selectedOptions, item.installationFees, item.pricePerUnit),
         personalizations: item.personalizations || null,
       }))
 

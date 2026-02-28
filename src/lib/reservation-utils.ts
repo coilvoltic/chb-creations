@@ -7,6 +7,7 @@ import type { ItemOption } from '@/types/database'
 export interface ReservationItemOptions {
   selectedOptions?: ItemOption[]
   installationFees?: number
+  unitPrice?: number // Prix unitaire réel payé (inclut new_price si promo)
 }
 
 /**
@@ -15,15 +16,14 @@ export interface ReservationItemOptions {
  */
 export function buildItemOptionsData(
   selectedOptions?: ItemOption[],
-  installationFees?: number
+  installationFees?: number,
+  unitPrice?: number
 ): ReservationItemOptions | null {
-  if (selectedOptions && selectedOptions.length > 0) {
-    return { selectedOptions, installationFees }
-  }
-  if (installationFees) {
-    return { installationFees }
-  }
-  return null
+  const result: ReservationItemOptions = {}
+  if (selectedOptions && selectedOptions.length > 0) result.selectedOptions = selectedOptions
+  if (installationFees) result.installationFees = installationFees
+  if (unitPrice !== undefined) result.unitPrice = unitPrice
+  return Object.keys(result).length > 0 ? result : null
 }
 
 /**
