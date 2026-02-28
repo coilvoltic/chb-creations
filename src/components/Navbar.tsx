@@ -2,12 +2,23 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useState, useEffect, useRef } from 'react'
-import { usePathname } from 'next/navigation'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 import { useCart } from '@/contexts/CartContext'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { PromotionalMessage } from '@/lib/supabase'
+
+interface SearchResult {
+  id: number
+  name: string
+  slug: string
+  category: string
+  subcategory: string
+  images: string[]
+  price: number
+  new_price?: number
+}
 
 export default function Navbar() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
@@ -16,11 +27,18 @@ export default function Navbar() {
   const [promotionalMessages, setPromotionalMessages] = useState<PromotionalMessage[]>([])
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0)
   const [user, setUser] = useState<User | null>(null)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [searchLoading, setSearchLoading] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
   const isHomePage = pathname === '/'
   const { cart } = useCart()
   const supabase = createClientComponentClient()
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const searchContainerRef = useRef<HTMLDivElement>(null)
 
   // Message statique local (toujours présent)
   const localMessage = "Délais de confection : 30 jours"
@@ -101,6 +119,75 @@ export default function Navbar() {
     }
   }, [activeDropdown])
 
+  // Close search when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        closeSearch()
+      }
+    }
+    if (searchOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [searchOpen])
+
+  // Close search on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeSearch()
+    }
+    if (searchOpen) {
+      document.addEventListener('keydown', handleKeyDown)
+      return () => document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [searchOpen])
+
+  // Focus input when search opens
+  useEffect(() => {
+    if (searchOpen) {
+      setTimeout(() => searchInputRef.current?.focus(), 50)
+    }
+  }, [searchOpen])
+
+  // Debounced search
+  const fetchResults = useCallback(async (q: string) => {
+    if (q.length < 2) { setSearchResults([]); return }
+    setSearchLoading(true)
+    try {
+      const res = await fetch(`/api/search-products?q=${encodeURIComponent(q)}`)
+      const data = await res.json()
+      setSearchResults(data)
+    } catch {
+      setSearchResults([])
+    } finally {
+      setSearchLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    const timer = setTimeout(() => fetchResults(searchQuery), 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery, fetchResults])
+
+  const closeSearch = () => {
+    setSearchOpen(false)
+    setSearchQuery('')
+    setSearchResults([])
+  }
+
+  const handleSelectResult = (result: SearchResult) => {
+    router.push(`/${result.category}/${result.subcategory}/${result.slug}`)
+    closeSearch()
+  }
+
+  const categoryLabel = (cat: string) => {
+    if (cat === 'locations') return 'Location'
+    if (cat === 'accessoires-personnalises') return 'Accessoire'
+    if (cat === 'prestations') return 'Prestation'
+    return cat
+  }
+
   const shouldBeTransparent = isHomePage && !isScrolled && !isHovered
   const navbarBg = shouldBeTransparent ? 'bg-transparent' : 'bg-white shadow-sm'
   const textColor = shouldBeTransparent ? 'text-white' : 'text-gray-900'
@@ -145,7 +232,7 @@ export default function Navbar() {
         </div>
 
         {/* Main navbar */}
-        <div className="flex h-16 items-center px-4 md:px-8">
+        <div className="flex h-16 items-center px-2 md:px-8">
           {/* Logo - Left */}
           <div className="flex-1" onMouseEnter={() => setActiveDropdown(null)}>
             <Link href="/" className="flex items-center">
@@ -154,7 +241,7 @@ export default function Navbar() {
                 alt="CHB Créations"
                 width={120}
                 height={40}
-                className={`h-6 md:h-10 w-auto object-contain transition-opacity duration-300 ${shouldBeTransparent ? 'opacity-0' : 'opacity-100'}`}
+                className={`h-5 md:h-10 w-auto object-contain transition-opacity duration-300 ${shouldBeTransparent ? 'opacity-0' : 'opacity-100'}`}
               />
             </Link>
           </div>
@@ -195,6 +282,16 @@ export default function Navbar() {
 
           {/* Right side - Icons and Login button */}
           <div className="flex items-center gap-1 md:gap-4 flex-1 justify-end" onMouseEnter={() => setActiveDropdown(null)}>
+            {/* Search icon */}
+            <button
+              onClick={() => { setSearchOpen(true); setActiveDropdown(null) }}
+              className={`p-1 md:p-2 rounded-full ${shouldBeTransparent ? 'hover:bg-white/20' : 'hover:bg-gray-100'} transition-colors duration-200`}
+              aria-label="Rechercher un produit"
+            >
+              <svg className={`w-5 h-5 md:w-6 md:h-6 ${textColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+              </svg>
+            </button>
             {/* Cart Icon */}
             <Link href="/panier" className={`relative p-1 md:p-2 rounded-full ${shouldBeTransparent ? 'hover:bg-white/20' : 'hover:bg-gray-100'} transition-colors duration-200 cursor-pointer`}>
               <svg className={`w-5 h-5 md:w-6 md:h-6 ${textColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -216,7 +313,7 @@ export default function Navbar() {
             <Link href="/compte" className="cursor-pointer">
               {user?.user_metadata?.avatar_url ? (
                 /* Logged in: Show avatar */
-                <div className="w-10 h-10 rounded-full overflow-hidden relative border-2 border-white shadow-md hover:shadow-lg transition-all duration-200">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden relative border-2 border-white shadow-md hover:shadow-lg transition-all duration-200">
                   <Image
                     src={user.user_metadata.avatar_url}
                     alt="Avatar"
@@ -325,6 +422,98 @@ export default function Navbar() {
           </div>
       </div>
     </header>
+
+      {/* Search overlay */}
+      {searchOpen && (
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-start justify-center pt-20 px-4">
+          <div
+            ref={searchContainerRef}
+            className="w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden"
+          >
+            {/* Input */}
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+              <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+              </svg>
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Rechercher un produit..."
+                className="flex-1 text-base outline-none placeholder-gray-400 text-gray-900"
+              />
+              {searchLoading && (
+                <svg className="w-4 h-4 text-gray-400 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+              )}
+              <button onClick={closeSearch} className="p-1 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0">
+                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Results */}
+            {searchQuery.length >= 2 && (
+              <div className="max-h-96 overflow-y-auto">
+                {searchResults.length === 0 && !searchLoading ? (
+                  <p className="text-sm text-gray-500 text-center py-8">Aucun résultat pour &quot;{searchQuery}&quot;</p>
+                ) : (
+                  <ul>
+                    {searchResults.map((result) => (
+                      <li key={result.id}>
+                        <button
+                          onClick={() => handleSelectResult(result)}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+                        >
+                          {/* Thumbnail */}
+                          <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                            {result.images?.[0] ? (
+                              <Image
+                                src={result.images[0]}
+                                alt={result.name}
+                                fill
+                                className="object-cover"
+                                sizes="48px"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gray-200" />
+                            )}
+                          </div>
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">{result.name}</p>
+                            <p className="text-xs text-gray-500">{categoryLabel(result.category)}</p>
+                          </div>
+                          {/* Price */}
+                          <div className="flex-shrink-0 text-right">
+                            {result.new_price ? (
+                              <>
+                                <p className="text-sm font-semibold text-gray-900">{result.new_price.toFixed(2)} €</p>
+                                <p className="text-xs text-gray-400 line-through">{result.price.toFixed(2)} €</p>
+                              </>
+                            ) : (
+                              <p className="text-sm font-semibold text-gray-900">{result.price.toFixed(2)} €</p>
+                            )}
+                          </div>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {/* Hint when empty */}
+            {searchQuery.length < 2 && (
+              <p className="text-sm text-gray-400 text-center py-6">Tapez au moins 2 caractères pour rechercher</p>
+            )}
+          </div>
+        </div>
+      )}
     </>
   )
 }
