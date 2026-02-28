@@ -49,7 +49,8 @@ function PaymentSuccessContent() {
     }
 
     processPayment()
-  }, [searchParams, clearCart])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   if (isProcessing) {
     return (
