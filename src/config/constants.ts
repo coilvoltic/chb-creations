@@ -24,8 +24,13 @@ export const DELIVERY_CONFIG = {
   // Fixed base delivery fees by category (in euros)
   baseFees: {
     locations: 70, // Rentals
-    'accessoires-personnalises': 15, // Purchases
+    'accessoires-personnalises': 15, // Purchases (unused - replaced by fixedFees)
     prestations: 0, // Prestations (henné services)
+  },
+
+  // Fixed flat delivery fees (no distance calculation)
+  fixedFees: {
+    'accessoires-personnalises': 19.99, // Flat rate for purchases
   },
 
   // Distance-based pricing

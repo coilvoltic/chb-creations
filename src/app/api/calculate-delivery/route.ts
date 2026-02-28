@@ -23,6 +23,19 @@ export async function POST(request: NextRequest) {
 
     console.log('Calcul livraison - Adresse:', deliveryAddress, 'Catégorie:', category)
 
+    // Pour les achats d'accessoires personnalisés, frais fixes sans calcul de distance
+    if (category === 'accessoires-personnalises') {
+      return NextResponse.json({
+        distance: null,
+        distanceText: null,
+        duration: null,
+        baseDeliveryFees: DELIVERY_CONFIG.fixedFees['accessoires-personnalises'],
+        distanceFees: 0,
+        totalDeliveryFees: DELIVERY_CONFIG.fixedFees['accessoires-personnalises'],
+        isFixed: true,
+      })
+    }
+
     const baseDeliveryFees = DELIVERY_CONFIG.baseFees[category as Category]
 
     const apiKey = process.env.GOOGLE_PLACES_API_KEY

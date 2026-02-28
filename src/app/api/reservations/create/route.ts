@@ -428,10 +428,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4. Envoyer l'email de confirmation avec le PDF (uniquement pour paiement en ligne)
-    if (paymentMethod === 'cash') {
-      console.log('=== SKIP EMAIL (paiement en boutique) ===')
-    } else {
+    // 4. Envoyer l'email de confirmation avec le PDF (TEST: envoi pour tous les modes de paiement)
+    // TODO: remettre la condition `if (paymentMethod === 'cash') { skip }` pour la prod
+    {
     console.log('=== SENDING EMAIL ===');
     console.log('Customer email:', customerInfo.email)
     try {
@@ -529,7 +528,7 @@ export async function POST(request: NextRequest) {
         console.error('Error stack:', emailError.stack)
       }
     }
-    } // fin else (paiement en ligne uniquement)
+    } // fin bloc email (TEST: tous modes)
 
     // 5. Retourner le succès avec les IDs
     return NextResponse.json({

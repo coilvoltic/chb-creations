@@ -77,12 +77,13 @@ export default function CartPage() {
 
   // Interface for delivery calculation response
   interface DeliveryCalculationInfo {
-    distance: number
-    distanceText: string
-    duration: string
+    distance: number | null
+    distanceText: string | null
+    duration: string | null
     baseDeliveryFees: number
     distanceFees: number
     totalDeliveryFees: number
+    isFixed?: boolean
   }
 
   // États pour la livraison des locations
@@ -361,7 +362,7 @@ export default function CartPage() {
     setPurchaseDeliveryOption('relay_point')
 
     // Mettre à jour les frais immédiatement selon le transporteur sélectionné
-    const fees = provider === 'chronopost' ? 18.99 : 9.99
+    const fees = provider === 'chronopost' ? 18.99 : 0.5
     // Créer un point relais fictif pour stocker le transporteur et les frais
     const relayPoint: RelayPointInfo = {
       id: 'to-be-determined',
@@ -1021,7 +1022,7 @@ export default function CartPage() {
                       />
                       <div className="flex-1">
                         <span className="font-medium">Livraison à domicile</span>
-                        <p className="text-xs text-stone-600 mb-2">Frais calculés selon la distance</p>
+                        <p className="text-xs text-stone-600 mb-2">Frais fixes de 19,99€</p>
 
                         {cart.purchaseDelivery.option === 'delivery' && (
                           <div className="mt-2 space-y-2">
@@ -1058,8 +1059,7 @@ export default function CartPage() {
 
                             {purchaseDeliveryInfo && (
                               <div className="bg-white border-slate-300 border p-3 rounded-lg text-xs space-y-1">
-                                <p className="font-medium text-slate-800">Frais de livraison calculés</p>
-                                <p className="text-stone-700">Distance : {purchaseDeliveryInfo.distanceText}</p>
+                                <p className="font-medium text-slate-800">Frais de livraison</p>
                                 <p className="font-semibold text-slate-800">Total livraison : {purchaseDeliveryInfo.totalDeliveryFees.toFixed(2)} €</p>
                               </div>
                             )}
