@@ -428,9 +428,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4. Envoyer l'email de confirmation avec le PDF (TEST: envoi pour tous les modes de paiement)
-    // TODO: remettre la condition `if (paymentMethod === 'cash') { skip }` pour la prod
-    {
+    // 4. Envoyer l'email de confirmation avec le PDF (paiement en ligne uniquement)
+    // Paiement en boutique : pas d'email automatique (le client paiera en magasin)
+    if (paymentMethod !== 'cash') {
     console.log('=== SENDING EMAIL ===');
     console.log('Customer email:', customerInfo.email)
     try {

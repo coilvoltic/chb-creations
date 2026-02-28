@@ -362,7 +362,7 @@ export default function CartPage() {
     setPurchaseDeliveryOption('relay_point')
 
     // Mettre à jour les frais immédiatement selon le transporteur sélectionné
-    const fees = provider === 'chronopost' ? 18.99 : 0.5
+    const fees = provider === 'chronopost' ? 18.99 : 9.99
     // Créer un point relais fictif pour stocker le transporteur et les frais
     const relayPoint: RelayPointInfo = {
       id: 'to-be-determined',
