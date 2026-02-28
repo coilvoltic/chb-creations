@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
         quantity: item.quantity,
         rental_start: item.rentalStart,
         rental_end: item.rentalEnd,
-        options: buildItemOptionsData(item.selectedOptions, item.installationFees),
+        options: buildItemOptionsData(item.selectedOptions, item.installationFees, item.pricePerUnit),
         personalizations: item.personalizations || null,
         needs_installation: item.needsInstallation || false,
       }))
@@ -263,7 +263,7 @@ export async function POST(request: NextRequest) {
         product_id: item.productId,
         quantity: item.quantity,
         estimated_delivery_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        options: buildItemOptionsData(item.selectedOptions, item.installationFees),
+        options: buildItemOptionsData(item.selectedOptions, item.installationFees, item.pricePerUnit),
         personalizations: item.personalizations || null,
       }))
 
@@ -324,7 +324,7 @@ export async function POST(request: NextRequest) {
             nb_of_people: item.numberOfPeople || 1,
             prestation_start: item.prestationStart || null,
             prestation_end: item.prestationEnd || null,
-            options: buildItemOptionsData(item.selectedOptions, item.installationFees),
+            options: buildItemOptionsData(item.selectedOptions, item.installationFees, item.pricePerUnit),
             personalizations: item.personalizations || null,
           })))
 
@@ -367,7 +367,7 @@ export async function POST(request: NextRequest) {
             nb_of_people: item.numberOfPeople || 1,
             prestation_start: item.prestationStart || null,
             prestation_end: item.prestationEnd || null,
-            options: buildItemOptionsData(item.selectedOptions, item.installationFees),
+            options: buildItemOptionsData(item.selectedOptions, item.installationFees, item.pricePerUnit),
             personalizations: item.personalizations || null,
           })))
 
@@ -413,7 +413,7 @@ export async function POST(request: NextRequest) {
             nb_of_people: item.numberOfPeople || 1,
             prestation_start: item.prestationStart || null,
             prestation_end: item.prestationEnd || null,
-            options: buildItemOptionsData(item.selectedOptions, item.installationFees),
+            options: buildItemOptionsData(item.selectedOptions, item.installationFees, item.pricePerUnit),
             personalizations: item.personalizations || null,
           })))
 
