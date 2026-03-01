@@ -120,7 +120,7 @@ export default function RelayPointSelector({
             <div className="flex-1">
               <div className="flex justify-between items-start mb-1">
                 <span className="font-semibold text-base">Mondial Relay</span>
-                <span className="text-green-700 font-bold">0,50 €</span>
+                <span className="text-green-700 font-bold">9,99 €</span>
               </div>
               <p className="text-xs text-stone-600">
                 Livraison en {getProviderDelay('mondialrelay')} (hors délais de confection)
