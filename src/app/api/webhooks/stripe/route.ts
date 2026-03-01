@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
       const rentalItems = (rentalRes?.rental_items || []).map((item: any) => {
         const selectedOptions = getSelectedOptionsFromDB(item.options)
         const installationFees = getInstallationFeesFromDB(item.options)
-        const unitPrice = item.unit_price || item.products?.price || 0
+        const unitPrice = item.options?.unitPrice ?? item.products?.new_price ?? item.products?.price ?? 0
         const optionsFees = selectedOptions.reduce((sum: number, opt: any) => sum + opt.additional_fee, 0)
         const installFee = item.needs_installation ? installationFees : 0
 
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
 
       const purchaseItems = (purchaseRes?.purchase_items || []).map((item: any) => {
         const selectedOptions = getSelectedOptionsFromDB(item.options)
-        const unitPrice = item.unit_price || item.products?.price || 0
+        const unitPrice = item.options?.unitPrice ?? item.products?.new_price ?? item.products?.price ?? 0
         const optionsFees = selectedOptions.reduce((sum: number, opt: any) => sum + opt.additional_fee, 0)
 
         return {
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
 
       const prestationItems = (prestationRes?.prestation_items || []).map((item: any) => {
         const selectedOptions = getSelectedOptionsFromDB(item.options)
-        const unitPrice = item.unit_price || item.products?.price || 0
+        const unitPrice = item.options?.unitPrice ?? item.products?.new_price ?? item.products?.price ?? 0
         const optionsFees = selectedOptions.reduce((sum: number, opt: any) => sum + opt.additional_fee, 0)
 
         return {
