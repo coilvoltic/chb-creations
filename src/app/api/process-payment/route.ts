@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
-import { sendReservationConfirmation } from '@/lib/email'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   // @ts-expect-error - Match webhook API version
@@ -141,131 +140,8 @@ export async function POST(request: NextRequest) {
       console.log(`${updates.length} réservations confirmées via process-payment`)
     }
 
-    // Envoyer l'email de confirmation avec les données de la commande
-    try {
-      const customerInfo = customerOrder.customer_infos as { firstName: string; lastName: string; email: string; phone: string }
-
-      // Construire les items pour l'email à partir des données en base
-      const rentalReservation = customerOrder.rental_reservations?.[0]
-      const purchaseReservation = customerOrder.purchase_reservations?.[0]
-      // Pour les prestations, il peut y en avoir plusieurs (cas mix boutique+domicile)
-      const prestationReservations = customerOrder.prestation_reservations || []
-
-      type StoredItemOptions = {
-        selectedOptions?: { option_type_name: string; name: string; additional_fee: number }[]
-        installationFees?: number
-        unitPrice?: number
-      }
-
-      const rentalItemsForEmail = rentalReservation?.rental_items?.map((item: {
-        quantity: number; rental_start: string; rental_end: string;
-        options: StoredItemOptions | null;
-        personalizations: Record<string, string> | null;
-        needs_installation: boolean;
-        products: { name: string; price: number }
-      }) => {
-        const selectedOptions = item.options?.selectedOptions || []
-        const installFee = (item.needs_installation && item.options?.installationFees) ? item.options.installationFees : 0
-        // Utiliser unitPrice stocké (prix promo inclus), sinon fallback sur products.price + options
-        const unitPrice = item.options?.unitPrice
-          ?? (item.products.price + selectedOptions.reduce((s, o) => s + o.additional_fee, 0))
-        return {
-          product_name: item.products.name,
-          quantity: item.quantity,
-          rental_start: item.rental_start,
-          rental_end: item.rental_end,
-          unit_price: unitPrice,
-          total_price: item.quantity * (unitPrice + installFee),
-          selectedOptions,
-          personalizations: item.personalizations || undefined,
-          installationFees: item.options?.installationFees,
-          needsInstallation: item.needs_installation,
-        }
-      }) || undefined
-
-      const purchaseItemsForEmail = purchaseReservation?.purchase_items?.map((item: {
-        quantity: number; estimated_delivery_date: string | null;
-        options: StoredItemOptions | null;
-        personalizations: Record<string, string> | null;
-        products: { name: string; price: number }
-      }) => {
-        const selectedOptions = item.options?.selectedOptions || []
-        const unitPrice = item.options?.unitPrice
-          ?? (item.products.price + selectedOptions.reduce((s, o) => s + o.additional_fee, 0))
-        return {
-          product_name: item.products.name,
-          quantity: item.quantity,
-          estimated_delivery_date: item.estimated_delivery_date || undefined,
-          unit_price: unitPrice,
-          total_price: item.quantity * unitPrice,
-          selectedOptions,
-          personalizations: item.personalizations || undefined,
-        }
-      }) || undefined
-
-      const prestationItemsForEmail = prestationReservations.flatMap((res: {
-        prestation_items: Array<{
-          nb_of_people: number; prestation_start: string | null; prestation_end: string | null;
-          options: StoredItemOptions | null;
-          personalizations: Record<string, string> | null;
-          products: { name: string; price: number }
-        }>
-      }) => res.prestation_items?.map((item) => {
-        const selectedOptions = item.options?.selectedOptions || []
-        const unitPrice = item.options?.unitPrice
-          ?? (item.products.price + selectedOptions.reduce((s, o) => s + o.additional_fee, 0))
-        return {
-          product_name: item.products.name,
-          nb_of_people: item.nb_of_people,
-          prestation_start: item.prestation_start || undefined,
-          prestation_end: item.prestation_end || undefined,
-          unit_price: unitPrice,
-          total_price: item.nb_of_people * unitPrice,
-          selectedOptions,
-          personalizations: item.personalizations || undefined,
-        }
-      }) || [])
-
-      // Adresse de livraison achat (peut contenir l'adresse point relais formatée)
-      const purchaseDeliveryAddress = purchaseReservation?.delivery_address || null
-
-      // Pour les prestations mix : première réservation = boutique (pas d'adresse), deuxième = domicile
-      const hasMixedPrestations = prestationReservations.length > 1
-      const prestationDomicileReservation = hasMixedPrestations
-        ? prestationReservations.find((r: { delivery_address: string | null }) => r.delivery_address !== null)
-        : null
-      const prestationHomogeneReservation = !hasMixedPrestations ? prestationReservations[0] : null
-
-      const emailData = {
-        id: customerOrder.id,
-        reservation_code: customerOrder.order_number,
-        customer_name: `${customerInfo.firstName} ${customerInfo.lastName}`,
-        customer_email: customerInfo.email,
-        customer_phone: customerInfo.phone,
-        total_amount: customerOrder.total_price,
-        created_at: customerOrder.created_at,
-        rentalItems: rentalItemsForEmail,
-        purchaseItems: purchaseItemsForEmail,
-        prestationItems: prestationItemsForEmail.length > 0 ? prestationItemsForEmail : undefined,
-        rentalDeliveryAddress: rentalReservation?.delivery_address || null,
-        rentalDeliveryFees: rentalReservation?.delivery_fees || 0,
-        purchaseDeliveryAddress,
-        purchaseDeliveryFees: purchaseReservation?.delivery_fees || 0,
-        prestationDeliveryAddress: hasMixedPrestations ? null : (prestationHomogeneReservation?.delivery_address || null),
-        prestationDeliveryFees: hasMixedPrestations ? 0 : (prestationHomogeneReservation?.delivery_fees || 0),
-        prestationDomicileDeliveryAddress: prestationDomicileReservation?.delivery_address || null,
-        prestationDomicileDeliveryFees: prestationDomicileReservation?.delivery_fees || 0,
-        deposit: rentalReservation?.deposit || 0,
-        caution: rentalReservation?.caution || 0,
-        amountPaid: amountPaidOnline,
-      }
-
-      await sendReservationConfirmation(emailData)
-      console.log('✅ Email de confirmation envoyé après paiement Stripe')
-    } catch (emailError) {
-      // Ne pas faire échouer le process-payment si l'email échoue
-      console.error('❌ Erreur envoi email (paiement confirmé):', emailError)
-    }
+    // L'email de confirmation est envoyé par le webhook Stripe (/api/webhooks/stripe)
+    // pour éviter les doublons. Ne pas envoyer d'email ici.
 
     return NextResponse.json({
       success: true,
