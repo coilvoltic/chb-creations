@@ -428,9 +428,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4. Envoyer l'email de confirmation avec le PDF (paiement en ligne uniquement)
-    // Paiement en boutique : pas d'email automatique (le client paiera en magasin)
-    if (paymentMethod !== 'cash') {
+    // 4. Envoyer l'email de confirmation avec le PDF
     console.log('=== SENDING EMAIL ===');
     console.log('Customer email:', customerInfo.email)
     try {
@@ -474,7 +472,7 @@ export async function POST(request: NextRequest) {
           prestation_start: item.prestationStart,
           prestation_end: item.prestationEnd,
           unit_price: item.pricePerUnit,
-          total_price: (item.numberOfPeople || 1) * item.pricePerUnit,
+          total_price: item.pricePerUnit,
           selectedOptions: item.selectedOptions,
           personalizations: item.personalizations,
         }))
@@ -528,7 +526,6 @@ export async function POST(request: NextRequest) {
         console.error('Error stack:', emailError.stack)
       }
     }
-    } // fin bloc email (TEST: tous modes)
 
     // 5. Retourner le succès avec les IDs
     return NextResponse.json({

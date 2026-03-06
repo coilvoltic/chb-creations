@@ -164,7 +164,6 @@ export async function POST(request: NextRequest) {
       const prestationItems = (prestationRes?.prestation_items || []).map((item: any) => {
         const selectedOptions = getSelectedOptionsFromDB(item.options)
         const unitPrice = item.options?.unitPrice ?? item.products?.new_price ?? item.products?.price ?? 0
-        const optionsFees = selectedOptions.reduce((sum: number, opt: any) => sum + opt.additional_fee, 0)
 
         return {
           product_name: item.products?.name || 'Produit inconnu',
@@ -172,7 +171,7 @@ export async function POST(request: NextRequest) {
           prestation_start: item.prestation_start || undefined,
           prestation_end: item.prestation_end || undefined,
           unit_price: unitPrice,
-          total_price: (unitPrice + optionsFees) * (item.nb_of_people || 1),
+          total_price: unitPrice,
           selectedOptions: selectedOptions.length > 0 ? selectedOptions : undefined,
           personalizations: item.personalizations || undefined,
         }

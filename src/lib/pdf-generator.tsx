@@ -1,5 +1,5 @@
 import React from 'react'
-import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 
 // Types
 interface SelectedOption {
@@ -69,59 +69,6 @@ interface ReservationData {
   amountPaid?: number
   promoCode?: string | null
   promoDiscount?: number | null
-}
-
-interface GenerateReservationPDFParams {
-  reservationId: number
-  reservationCode: string
-  customerInfo: {
-    firstName: string
-    lastName: string
-    email: string
-    phone: string
-  }
-  rentalItems?: Array<{
-    productName: string
-    quantity: number
-    pricePerUnit: number
-    rentalStart: string
-    rentalEnd: string
-    selectedOptions?: SelectedOption[]
-    personalizations?: { [key: string]: string }
-    installationFees?: number
-    needsInstallation?: boolean
-  }>
-  purchaseItems?: Array<{
-    productName: string
-    quantity: number
-    pricePerUnit: number
-    estimatedDeliveryDate?: string
-    selectedOptions?: SelectedOption[]
-    personalizations?: { [key: string]: string }
-  }>
-  prestationItems?: Array<{
-    productName: string
-    nbOfPeople: number // Number of people for the prestation
-    pricePerUnit: number
-    prestationStart?: string // ISO timestamp
-    prestationEnd?: string // ISO timestamp
-    selectedOptions?: SelectedOption[]
-    personalizations?: { [key: string]: string }
-  }>
-  totalPrice: number
-  deposit: number
-  caution: number
-  paymentType?: 'cash' | 'deposit' | 'full' // Type de paiement effectué
-  amountPaid?: number // Montant effectivement payé (pour paiement intégral)
-  rentalDeliveryOption?: 'pickup' | 'delivery'
-  rentalDeliveryAddress?: string
-  rentalDeliveryFees?: number
-  purchaseDeliveryOption?: 'pickup' | 'delivery'
-  purchaseDeliveryAddress?: string
-  purchaseDeliveryFees?: number
-  prestationDeliveryOption?: 'pickup' | 'delivery'
-  prestationDeliveryAddress?: string
-  prestationDeliveryFees?: number
 }
 
 // Styles pour le PDF
@@ -617,62 +564,3 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
   )
 }
 
-// Fonction pour générer le PDF et le retourner en Buffer
-export async function generateReservationPDF(params: GenerateReservationPDFParams): Promise<Buffer> {
-  const reservationData: ReservationData = {
-    id: params.reservationId,
-    reservation_code: params.reservationCode,
-    customer_name: `${params.customerInfo.firstName} ${params.customerInfo.lastName}`,
-    customer_email: params.customerInfo.email,
-    customer_phone: params.customerInfo.phone,
-    total_amount: params.totalPrice,
-    created_at: new Date().toISOString(),
-    deposit: params.deposit,
-    caution: params.caution,
-    paymentType: params.paymentType,
-    amountPaid: params.amountPaid,
-    rentalDeliveryAddress: params.rentalDeliveryOption === 'delivery' ? params.rentalDeliveryAddress : null,
-    rentalDeliveryFees: params.rentalDeliveryFees,
-    purchaseDeliveryAddress: params.purchaseDeliveryOption === 'delivery' ? params.purchaseDeliveryAddress : null,
-    purchaseDeliveryFees: params.purchaseDeliveryFees,
-    prestationDeliveryAddress: params.prestationDeliveryOption === 'delivery' ? params.prestationDeliveryAddress : null,
-    prestationDeliveryFees: params.prestationDeliveryFees,
-    rentalItems: params.rentalItems?.map((item) => ({
-      product_name: item.productName,
-      quantity: item.quantity,
-      rental_start: item.rentalStart,
-      rental_end: item.rentalEnd,
-      unit_price: item.pricePerUnit,
-      total_price: item.quantity * item.pricePerUnit,
-      selectedOptions: item.selectedOptions,
-      personalizations: item.personalizations,
-      installationFees: item.installationFees,
-      needsInstallation: item.needsInstallation,
-    })),
-    purchaseItems: params.purchaseItems?.map((item) => ({
-      product_name: item.productName,
-      quantity: item.quantity,
-      estimated_delivery_date: item.estimatedDeliveryDate,
-      unit_price: item.pricePerUnit,
-      total_price: item.quantity * item.pricePerUnit,
-      selectedOptions: item.selectedOptions,
-      personalizations: item.personalizations,
-    })),
-    prestationItems: params.prestationItems?.map((item) => ({
-      product_name: item.productName,
-      nb_of_people: item.nbOfPeople || 1,
-      prestation_start: item.prestationStart,
-      prestation_end: item.prestationEnd,
-      unit_price: item.pricePerUnit,
-      total_price: (item.nbOfPeople || 1) * item.pricePerUnit,
-      selectedOptions: item.selectedOptions,
-      personalizations: item.personalizations,
-    })),
-  }
-
-  const doc = <ReservationPDF reservation={reservationData} />
-  const asPdf = pdf(doc)
-  const blob = await asPdf.toBlob()
-  const arrayBuffer = await blob.arrayBuffer()
-  return Buffer.from(arrayBuffer)
-}
