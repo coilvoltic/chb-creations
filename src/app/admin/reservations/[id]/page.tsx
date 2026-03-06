@@ -100,6 +100,7 @@ export default function ReservationDetailPage() {
   const [emailStatus, setEmailStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [isCancelling, setIsCancelling] = useState(false)
+  const [showActionsMenu, setShowActionsMenu] = useState(false)
   const router = useRouter()
   const params = useParams()
   const id = params?.id
@@ -544,9 +545,70 @@ export default function ReservationDetailPage() {
             </div>
             <div className="flex items-center gap-3">
               {firstReservation && getStatusBadge(firstReservation.reservation_status)}
+
+              {/* Menu actions mobile */}
+              <div className="relative md:hidden">
+                <button
+                  onClick={() => setShowActionsMenu(v => !v)}
+                  className="p-2 bg-stone-800 hover:bg-stone-900 text-white rounded-lg transition-colors"
+                  title="Actions"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                  </svg>
+                </button>
+                {showActionsMenu && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowActionsMenu(false)} />
+                    <div className="absolute right-0 top-full mt-2 w-52 bg-white border border-stone-200 rounded-xl shadow-lg z-20 overflow-hidden">
+                      <button
+                        onClick={() => { openDatesModal(); setShowActionsMenu(false) }}
+                        className="w-full px-4 py-3 text-sm text-left text-stone-800 hover:bg-stone-50 flex items-center gap-3 transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Modifier les dates
+                      </button>
+                      <button
+                        onClick={() => { setModalAmount(order.already_paid > 0 ? order.already_paid.toString() : ''); setShowPaymentModal(true); setShowActionsMenu(false) }}
+                        className="w-full px-4 py-3 text-sm text-left text-stone-800 hover:bg-stone-50 flex items-center gap-3 transition-colors border-t border-stone-100"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        Enregistrer un paiement
+                      </button>
+                      <button
+                        onClick={() => { handleResendConfirmation(); setShowActionsMenu(false) }}
+                        disabled={isSendingEmail}
+                        className="w-full px-4 py-3 text-sm text-left text-stone-800 hover:bg-stone-50 flex items-center gap-3 transition-colors border-t border-stone-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        {isSendingEmail ? 'Envoi...' : emailStatus === 'success' ? 'Email envoyé' : emailStatus === 'error' ? 'Erreur' : "Renvoyer l'email"}
+                      </button>
+                      {firstReservation && firstReservation.reservation_status !== 'CANCELLED' && (
+                        <button
+                          onClick={() => { setShowCancelModal(true); setShowActionsMenu(false) }}
+                          className="w-full px-4 py-3 text-sm text-left text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors border-t border-stone-100"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          Annuler la commande
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Boutons desktop */}
               <button
                 onClick={openDatesModal}
-                className="p-2 md:px-4 md:py-2 bg-stone-800 hover:bg-stone-900 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                className="hidden md:flex p-2 md:px-4 md:py-2 bg-stone-800 hover:bg-stone-900 text-white text-sm font-medium rounded-lg transition-colors items-center gap-2"
                 title="Modifier les dates"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 xl:h-4 xl:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -559,7 +621,7 @@ export default function ReservationDetailPage() {
                   setModalAmount(order.already_paid > 0 ? order.already_paid.toString() : '')
                   setShowPaymentModal(true)
                 }}
-                className="p-2 md:px-4 md:py-2 bg-stone-800 hover:bg-stone-900 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                className="hidden md:flex p-2 md:px-4 md:py-2 bg-stone-800 hover:bg-stone-900 text-white text-sm font-medium rounded-lg transition-colors items-center gap-2"
                 title="Enregistrer un paiement"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 xl:h-4 xl:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -570,7 +632,7 @@ export default function ReservationDetailPage() {
               <button
                 onClick={handleResendConfirmation}
                 disabled={isSendingEmail}
-                className={`p-2 md:px-4 md:py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${
+                className={`hidden md:flex p-2 md:px-4 md:py-2 text-sm font-medium rounded-lg transition-colors items-center gap-2 ${
                   emailStatus === 'success'
                     ? 'bg-green-600 text-white'
                     : emailStatus === 'error'
@@ -604,7 +666,7 @@ export default function ReservationDetailPage() {
               {firstReservation && firstReservation.reservation_status !== 'CANCELLED' && (
                 <button
                   onClick={() => setShowCancelModal(true)}
-                  className="p-2 md:px-4 md:py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                  className="hidden md:flex p-2 md:px-4 md:py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors items-center gap-2"
                   title="Annuler la commande"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 xl:h-4 xl:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

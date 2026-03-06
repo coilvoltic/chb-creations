@@ -6,9 +6,7 @@ import { useRouter } from 'next/navigation'
 import type { CustomerOrder, RentalReservation, PurchaseReservation, PrestationReservation, RentalItem, PurchaseItem, PrestationItem } from '@/lib/supabase'
 import Loader from '@/components/Loader'
 import ReservationCalendar from '@/components/ReservationCalendar'
-import TagManagement from '@/components/TagManagement'
 import MaintenanceToggle from '@/components/MaintenanceToggle'
-import SettingsPanel from '@/components/SettingsPanel'
 
 // Extended interfaces to include nested items (matching API response structure)
 interface RentalReservationWithItems extends RentalReservation {
@@ -33,7 +31,7 @@ export default function AdminDashboardPage() {
   const [orders, setOrders] = useState<OrderWithReservations[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'tags' | 'settings'>('list')
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
   const [searchQuery, setSearchQuery] = useState('')
   const router = useRouter()
   const supabase = createClientComponentClient()
@@ -139,12 +137,8 @@ export default function AdminDashboardPage() {
                 </svg>
               </button>
               <button
-                onClick={() => setViewMode(viewMode === 'settings' ? 'list' : 'settings')}
-                className={`p-2 rounded-lg transition-colors ${
-                  viewMode === 'settings'
-                    ? 'bg-black text-white'
-                    : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                }`}
+                onClick={() => router.push('/admin/settings')}
+                className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
                 title="Paramètres"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -179,20 +173,12 @@ export default function AdminDashboardPage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold text-black">
-                {viewMode === 'tags'
-                  ? 'Gestion des tags'
-                  : viewMode === 'settings'
-                  ? 'Paramètres'
-                  : `Commandes (${filteredOrders.length}${searchQuery.trim() ? ` / ${orders.length}` : ''})`}
+                {`Commandes (${filteredOrders.length}${searchQuery.trim() ? ` / ${orders.length}` : ''})`}
               </h2>
               <p className="text-sm text-stone-600 mt-1">
                 {viewMode === 'list'
                   ? 'Triées par date de création (plus récentes en premier)'
-                  : viewMode === 'calendar'
-                  ? 'Vue calendrier des réservations'
-                  : viewMode === 'tags'
-                  ? 'Créez et gérez les tags pour vos réservations'
-                  : 'Configurez les paramètres de la boutique'}
+                  : 'Vue calendrier des réservations'}
               </p>
             </div>
             <div className="flex gap-2 items-center">
@@ -221,33 +207,6 @@ export default function AdminDashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <span className="hidden sm:inline">Calendrier</span>
-              </button>
-              <button
-                onClick={() => setViewMode('tags')}
-                className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                  viewMode === 'tags'
-                    ? 'bg-black text-white'
-                    : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                }`}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                </svg>
-                <span className="hidden sm:inline">Tags</span>
-              </button>
-              <button
-                onClick={() => setViewMode('settings')}
-                className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                  viewMode === 'settings'
-                    ? 'bg-black text-white'
-                    : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                }`}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span className="hidden sm:inline">Paramètres</span>
               </button>
             </div>
           </div>
@@ -283,11 +242,7 @@ export default function AdminDashboardPage() {
           )}
         </div>
 
-        {viewMode === 'settings' ? (
-          <SettingsPanel />
-        ) : viewMode === 'tags' ? (
-          <TagManagement />
-        ) : orders.length === 0 ? (
+        {orders.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-12 text-center">
             <p className="text-stone-500">Aucune commande pour le moment</p>
           </div>
