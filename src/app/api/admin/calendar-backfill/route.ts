@@ -55,8 +55,9 @@ export async function POST() {
 
     for (const r of rentalReservations || []) {
       try {
-        const order = r.customer_orders as { order_number: string; customer_infos: { firstName: string; lastName: string; phone: string } }
-        const items = r.rental_items as { rental_start: string; rental_end: string; products: { name: string } }[]
+        const orderRaw = Array.isArray(r.customer_orders) ? r.customer_orders[0] : r.customer_orders
+        const order = orderRaw as unknown as { order_number: string; customer_infos: { firstName: string; lastName: string; phone: string } }
+        const items = (r.rental_items as unknown) as { rental_start: string; rental_end: string; products: { name: string } }[]
 
         if (!items?.length) { results.skipped++; continue }
 
@@ -101,8 +102,9 @@ export async function POST() {
 
     for (const p of purchaseReservations || []) {
       try {
-        const order = p.customer_orders as { order_number: string; customer_infos: { firstName: string; lastName: string; phone: string } }
-        const items = p.purchase_items as { estimated_delivery_date?: string; products: { name: string } }[]
+        const orderRaw = Array.isArray(p.customer_orders) ? p.customer_orders[0] : p.customer_orders
+        const order = orderRaw as unknown as { order_number: string; customer_infos: { firstName: string; lastName: string; phone: string } }
+        const items = (p.purchase_items as unknown) as { estimated_delivery_date?: string; products: { name: string } }[]
 
         if (!items?.length) { results.skipped++; continue }
 
@@ -146,8 +148,9 @@ export async function POST() {
 
     for (const p of prestationReservations || []) {
       try {
-        const order = p.customer_orders as { order_number: string; customer_infos: { firstName: string; lastName: string; phone: string } }
-        const items = p.prestation_items as { prestation_start?: string; prestation_end?: string; nb_of_people: number; products: { name: string } }[]
+        const orderRaw = Array.isArray(p.customer_orders) ? p.customer_orders[0] : p.customer_orders
+        const order = orderRaw as unknown as { order_number: string; customer_infos: { firstName: string; lastName: string; phone: string } }
+        const items = (p.prestation_items as unknown) as { prestation_start?: string; prestation_end?: string; nb_of_people: number; products: { name: string } }[]
 
         const firstItem = items?.find(i => i.prestation_start && i.prestation_end)
         if (!firstItem) { results.skipped++; continue }
