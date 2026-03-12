@@ -183,7 +183,7 @@ export default function QuickTagModal({
                         borderWidth: '1px'
                       }}
                     >
-                      {tag.name}
+                      {tag.name.length > 20 ? tag.name.slice(0, 20) + '…' : tag.name}
                       {isSelected && (
                         <svg
                           xmlns="http://www.w3.org/2000/svg"

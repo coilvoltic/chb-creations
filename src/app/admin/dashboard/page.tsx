@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
-import type { CustomerOrder, RentalReservation, PurchaseReservation, PrestationReservation, RentalItem, PurchaseItem, PrestationItem } from '@/lib/supabase'
+import type { CustomerOrder, RentalReservation, PurchaseReservation, PrestationReservation, RentalItem, PurchaseItem, PrestationItem, Tag } from '@/lib/supabase'
 import Loader from '@/components/Loader'
 import ReservationCalendar from '@/components/ReservationCalendar'
 import MaintenanceToggle from '@/components/MaintenanceToggle'
@@ -33,21 +33,63 @@ export default function AdminDashboardPage() {
   const [error, setError] = useState('')
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
   const [searchQuery, setSearchQuery] = useState('')
+  const [allTags, setAllTags] = useState<Tag[]>([])
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
   const router = useRouter()
   const supabase = createClientComponentClient()
 
   const filteredOrders = orders.filter((order) => {
-    if (!searchQuery.trim()) return true
-    const query = searchQuery.trim().toLowerCase()
-    const fullName = `${order.customer_infos.firstName} ${order.customer_infos.lastName}`.toLowerCase()
-    const orderNumber = String(order.order_number).toLowerCase()
-    return fullName.includes(query) || orderNumber.includes(query)
+    // Filtre par recherche texte
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase()
+      const fullName = `${order.customer_infos.firstName} ${order.customer_infos.lastName}`.toLowerCase()
+      const orderNumber = String(order.order_number).toLowerCase()
+      if (!fullName.includes(query) && !orderNumber.includes(query)) return false
+    }
+
+    // Filtre par tags : afficher la commande si au moins une sous-réservation contient l'un des tags sélectionnés
+    if (selectedTagIds.length > 0) {
+      const allReservations = [
+        ...order.rental_reservations,
+        ...order.purchase_reservations,
+        ...order.prestation_reservations,
+      ]
+      const hasTag = allReservations.some((res) =>
+        (res.tags || []).some((tag) => selectedTagIds.includes(tag.id))
+      )
+      if (!hasTag) return false
+    }
+
+    return true
   })
 
   useEffect(() => {
     loadOrders()
+    fetchTags()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const fetchTags = async () => {
+    try {
+      const response = await fetch('/api/admin/tags')
+      if (response.ok) {
+        const data = await response.json()
+        setAllTags(data.tags || [])
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des tags:', error)
+    }
+  }
+
+  const toggleTagFilter = (tagId: number) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    )
+  }
+
+  const clearTagFilters = () => {
+    setSelectedTagIds([])
+  }
 
   const loadOrders = async () => {
     try {
@@ -211,32 +253,67 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           {viewMode === 'list' && (
-            <div className="relative mt-4">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Nom client ou n° commande..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-8 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-stone-400 w-full placeholder:text-stone-400"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+            <div className="flex flex-col gap-3 mt-4">
+              <div className="relative">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Nom client ou n° commande..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 pr-8 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-stone-400 w-full placeholder:text-stone-400"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              {allTags.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium text-stone-600">Filtrer par tags :</span>
+                  {allTags.map((tag) => (
+                    <button
+                      key={tag.id}
+                      onClick={() => toggleTagFilter(tag.id)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                        selectedTagIds.includes(tag.id)
+                          ? 'ring-1 ring-offset-1'
+                          : 'opacity-60 hover:opacity-100'
+                      }`}
+                      style={{
+                        backgroundColor: tag.color + '20',
+                        color: tag.color,
+                        borderColor: tag.color,
+                        borderWidth: '1px',
+                        ...(selectedTagIds.includes(tag.id) && { ringColor: tag.color }),
+                      }}
+                    >
+                      {tag.name.length > 20 ? tag.name.slice(0, 20) + '…' : tag.name}
+                    </button>
+                  ))}
+                  {selectedTagIds.length > 0 && (
+                    <button
+                      onClick={clearTagFilters}
+                      className="text-xs text-stone-500 hover:text-stone-700 underline ml-2"
+                    >
+                      Réinitialiser
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           )}
@@ -273,6 +350,9 @@ export default function AdminDashboardPage() {
                       Sous-réservations
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                      Tags
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                       Statut
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
@@ -283,7 +363,7 @@ export default function AdminDashboardPage() {
                 <tbody className="bg-white divide-y divide-stone-200">
                   {filteredOrders.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-12 text-center text-stone-500">
+                      <td colSpan={8} className="px-6 py-12 text-center text-stone-500">
                         Aucune commande ne correspond à votre recherche
                       </td>
                     </tr>
@@ -293,6 +373,21 @@ export default function AdminDashboardPage() {
                     const firstPurchase = order.purchase_reservations[0]
                     const firstPrestation = order.prestation_reservations[0]
                     const firstReservation = firstRental || firstPurchase || firstPrestation
+
+                    // Collect unique tags across all sub-reservations
+                    const allReservations = [
+                      ...order.rental_reservations,
+                      ...order.purchase_reservations,
+                      ...order.prestation_reservations,
+                    ]
+                    const uniqueTags = Object.values(
+                      allReservations
+                        .flatMap((res) => res.tags || [])
+                        .reduce<Record<number, Tag>>((acc, tag) => {
+                          acc[tag.id] = tag
+                          return acc
+                        }, {})
+                    )
 
                     return (
                       <tr
@@ -335,6 +430,28 @@ export default function AdminDashboardPage() {
                               )}
                             </div>
                           </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {uniqueTags.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {uniqueTags.map((tag) => (
+                                <span
+                                  key={tag.id}
+                                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap"
+                                  style={{
+                                    backgroundColor: tag.color + '20',
+                                    color: tag.color,
+                                    borderColor: tag.color,
+                                    borderWidth: '1px',
+                                  }}
+                                >
+                                  {tag.name.length > 20 ? tag.name.slice(0, 20) + '…' : tag.name}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-stone-300">—</span>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {firstReservation ? getStatusBadge(firstReservation.reservation_status) : '-'}

@@ -269,7 +269,7 @@ export default function ReservationCalendar({ orders, onOrderClick }: Reservatio
                   })
                 }}
               >
-                {tag.name}
+                {tag.name.length > 20 ? tag.name.slice(0, 20) + '…' : tag.name}
               </button>
             ))}
             {selectedTagIds.length > 0 && (
@@ -440,7 +440,7 @@ function EventCard({ event, onClick, onTagClick }: EventCardProps) {
                       borderWidth: '1px'
                     }}
                   >
-                    {tag.name}
+                    {tag.name.length > 20 ? tag.name.slice(0, 20) + '…' : tag.name}
                   </span>
                 ))}
               </div>
