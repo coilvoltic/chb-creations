@@ -35,6 +35,8 @@ export default function AdminDashboardPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [allTags, setAllTags] = useState<Tag[]>([])
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
+  const [backfillLoading, setBackfillLoading] = useState(false)
+  const [backfillMessage, setBackfillMessage] = useState('')
   const router = useRouter()
   const supabase = createClientComponentClient()
 
@@ -89,6 +91,21 @@ export default function AdminDashboardPage() {
 
   const clearTagFilters = () => {
     setSelectedTagIds([])
+  }
+
+  const runCalendarBackfill = async () => {
+    if (!confirm('Reporter toutes les réservations existantes dans Google Agenda ? (uniquement celles sans événement déjà créé)')) return
+    setBackfillLoading(true)
+    setBackfillMessage('')
+    try {
+      const response = await fetch('/api/admin/calendar-backfill', { method: 'POST' })
+      const data = await response.json()
+      setBackfillMessage(data.message || (data.error ? `Erreur : ${data.error}` : 'Terminé'))
+    } catch {
+      setBackfillMessage('Erreur lors du backfill')
+    } finally {
+      setBackfillLoading(false)
+    }
   }
 
   const loadOrders = async () => {
@@ -170,6 +187,23 @@ export default function AdminDashboardPage() {
             <div className="flex gap-2 md:gap-3">
               <MaintenanceToggle />
               <button
+                onClick={runCalendarBackfill}
+                disabled={backfillLoading}
+                className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors disabled:opacity-50"
+                title="Reporter les réservations dans Google Agenda"
+              >
+                {backfillLoading ? (
+                  <svg className="h-5 w-5 md:h-6 md:w-6 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                )}
+              </button>
+              <button
                 onClick={() => router.push('/admin/products')}
                 className="p-2 bg-stone-700 hover:bg-stone-600 text-white rounded-lg transition-colors"
                 title="Gérer les produits"
@@ -207,6 +241,16 @@ export default function AdminDashboardPage() {
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-red-600">{error}</p>
+          </div>
+        )}
+        {backfillMessage && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start justify-between gap-3">
+            <p className="text-blue-700 text-sm">{backfillMessage}</p>
+            <button onClick={() => setBackfillMessage('')} className="text-blue-400 hover:text-blue-600 flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         )}
 

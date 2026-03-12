@@ -4,6 +4,7 @@ import type { CustomerInfo, ReservationStatus } from '@/lib/supabase'
 import { sendReservationConfirmation } from '@/lib/email'
 import { generateReservationCode } from '@/lib/reservation-code'
 import { buildItemOptionsData } from '@/lib/reservation-utils'
+import { createRentalEvents, createPurchaseEvent, createPrestationEvent } from '@/lib/google-calendar'
 
 interface SelectedOption {
   option_type_name: string
@@ -218,6 +219,29 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         )
       }
+
+      // Sync Google Calendar - locations
+      try {
+        const startDates = rentalItems.map(i => new Date(i.rentalStart).getTime())
+        const endDates = rentalItems.map(i => new Date(i.rentalEnd).getTime())
+        const { pickupEventId, returnEventId } = await createRentalEvents({
+          orderNumber: reservationCode,
+          customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
+          customerPhone: customerInfo.phone,
+          productNames: rentalItems.map(i => i.productName),
+          rentalStart: new Date(Math.min(...startDates)).toISOString(),
+          rentalEnd: new Date(Math.max(...endDates)).toISOString(),
+          deliveryAddress: rentalDelivery?.option === 'delivery' ? (rentalDelivery.address || null) : null,
+        })
+        if (pickupEventId || returnEventId) {
+          await supabase
+            .from('rental_reservations')
+            .update({ google_event_id: pickupEventId, google_event_id_return: returnEventId })
+            .eq('id', rentalReservation.id)
+        }
+      } catch (calendarError) {
+        console.error('[Google Calendar] Erreur locations (réservation créée):', calendarError)
+      }
     }
 
     // 3b. Créer purchase_reservation si nécessaire
@@ -279,6 +303,27 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         )
       }
+
+      // Sync Google Calendar - achats
+      try {
+        const estimatedDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        const eventId = await createPurchaseEvent({
+          orderNumber: reservationCode,
+          customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
+          customerPhone: customerInfo.phone,
+          productNames: purchaseItems.map(i => i.productName),
+          estimatedDeliveryDate: estimatedDate,
+          deliveryAddress: purchaseDelivery?.option === 'delivery' ? (purchaseDelivery.address || null) : null,
+        })
+        if (eventId) {
+          await supabase
+            .from('purchase_reservations')
+            .update({ google_event_id: eventId })
+            .eq('id', purchaseReservation.id)
+        }
+      } catch (calendarError) {
+        console.error('[Google Calendar] Erreur achats (réservation créée):', calendarError)
+      }
     }
 
     // 3c. Créer prestation_reservation(s) si nécessaire
@@ -337,6 +382,31 @@ export async function POST(request: NextRequest) {
           )
         }
 
+        // Sync Google Calendar - prestation boutique
+        try {
+          const firstBoutiqueItem = boutiqueItems[0]
+          if (firstBoutiqueItem?.prestationStart && firstBoutiqueItem?.prestationEnd) {
+            const eventId = await createPrestationEvent({
+              orderNumber: reservationCode,
+              customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
+              customerPhone: customerInfo.phone,
+              serviceName: boutiqueItems.map(i => i.productName).join(', '),
+              nbOfPeople: boutiqueItems.reduce((sum, i) => sum + (i.numberOfPeople || 1), 0),
+              prestationStart: firstBoutiqueItem.prestationStart,
+              prestationEnd: firstBoutiqueItem.prestationEnd,
+              deliveryAddress: null,
+            })
+            if (eventId) {
+              await supabase
+                .from('prestation_reservations')
+                .update({ google_event_id: eventId })
+                .eq('id', prestaBoutiqueRes.id)
+            }
+          }
+        } catch (calendarError) {
+          console.error('[Google Calendar] Erreur prestation boutique (réservation créée):', calendarError)
+        }
+
         // 3c-2. Réservation domicile (delivery, avec adresse et frais)
         const { data: prestaDomicileRes, error: prestaDomicileErr } = await supabase
           .from('prestation_reservations')
@@ -378,6 +448,31 @@ export async function POST(request: NextRequest) {
             { error: 'Erreur lors de la création des articles prestation domicile' },
             { status: 500 }
           )
+        }
+
+        // Sync Google Calendar - prestation domicile
+        try {
+          const firstDomicileItem = domicileItems[0]
+          if (firstDomicileItem?.prestationStart && firstDomicileItem?.prestationEnd) {
+            const eventId = await createPrestationEvent({
+              orderNumber: reservationCode,
+              customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
+              customerPhone: customerInfo.phone,
+              serviceName: domicileItems.map(i => i.productName).join(', '),
+              nbOfPeople: domicileItems.reduce((sum, i) => sum + (i.numberOfPeople || 1), 0),
+              prestationStart: firstDomicileItem.prestationStart,
+              prestationEnd: firstDomicileItem.prestationEnd,
+              deliveryAddress: prestationDomicileDelivery?.address || null,
+            })
+            if (eventId) {
+              await supabase
+                .from('prestation_reservations')
+                .update({ google_event_id: eventId })
+                .eq('id', prestaDomicileRes.id)
+            }
+          }
+        } catch (calendarError) {
+          console.error('[Google Calendar] Erreur prestation domicile (réservation créée):', calendarError)
         }
       } else {
         // Cas homogène : 1 seule prestation_reservation (comportement actuel)
@@ -424,6 +519,31 @@ export async function POST(request: NextRequest) {
             { error: 'Erreur lors de la création des articles de prestation' },
             { status: 500 }
           )
+        }
+
+        // Sync Google Calendar - prestation homogène
+        try {
+          const firstItem = prestationItems[0]
+          if (firstItem?.prestationStart && firstItem?.prestationEnd) {
+            const eventId = await createPrestationEvent({
+              orderNumber: reservationCode,
+              customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
+              customerPhone: customerInfo.phone,
+              serviceName: prestationItems.map(i => i.productName).join(', '),
+              nbOfPeople: prestationItems.reduce((sum, i) => sum + (i.numberOfPeople || 1), 0),
+              prestationStart: firstItem.prestationStart,
+              prestationEnd: firstItem.prestationEnd,
+              deliveryAddress: prestationDelivery?.option === 'delivery' ? (prestationDelivery.address || null) : null,
+            })
+            if (eventId) {
+              await supabase
+                .from('prestation_reservations')
+                .update({ google_event_id: eventId })
+                .eq('id', prestationReservation.id)
+            }
+          }
+        } catch (calendarError) {
+          console.error('[Google Calendar] Erreur prestation (réservation créée):', calendarError)
         }
       }
     }

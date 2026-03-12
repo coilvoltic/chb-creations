@@ -119,6 +119,8 @@ export interface RentalReservation {
   delivery_address?: string
   delivery_fees?: number
   tags?: Tag[] // Tags associés à cette réservation (relation via reservation_tags)
+  google_event_id?: string | null // Google Calendar event ID (pickup event)
+  google_event_id_return?: string | null // Google Calendar event ID (return event)
 }
 
 // Product option stored in rental/purchase/prestation items
@@ -153,6 +155,7 @@ export interface PurchaseReservation {
   delivery_address?: string
   delivery_fees?: number
   tags?: Tag[] // Tags associés à cette réservation (relation via reservation_tags)
+  google_event_id?: string | null // Google Calendar event ID
 }
 
 // Purchase Item (items in a purchase reservation)
@@ -176,6 +179,7 @@ export interface PrestationReservation {
   delivery_address?: string
   delivery_fees?: number
   tags?: Tag[] // Tags associés à cette réservation (relation via reservation_tags)
+  google_event_id?: string | null // Google Calendar event ID
 }
 
 // Prestation Item (items in a prestation reservation)

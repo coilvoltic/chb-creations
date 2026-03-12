@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { deleteCalendarEvent, updateCalendarEvent } from '@/lib/google-calendar'
 
 export async function GET(
   request: Request,
@@ -415,10 +416,39 @@ export async function PATCH(
       updates.push('prestation_reservations')
     }
 
-    // Suppress unused variable warnings
-    void rentalData
-    void purchaseData
-    void prestationData
+    // Sync Google Calendar selon le nouveau statut
+    try {
+      if (statusToApply === 'CANCELLED') {
+        const tasks: Promise<void>[] = []
+        ;(rentalData || []).forEach(r => {
+          if (r.google_event_id) tasks.push(deleteCalendarEvent('rentals', r.google_event_id))
+          if (r.google_event_id_return) tasks.push(deleteCalendarEvent('rentals', r.google_event_id_return))
+        })
+        ;(purchaseData || []).forEach(p => {
+          if (p.google_event_id) tasks.push(deleteCalendarEvent('purchases', p.google_event_id))
+        })
+        ;(prestationData || []).forEach(p => {
+          if (p.google_event_id) tasks.push(deleteCalendarEvent('prestations', p.google_event_id))
+        })
+        await Promise.all(tasks)
+      } else if (statusToApply === 'CONFIRMED') {
+        // updateCalendarEvent lit le titre existant et ajoute le préfixe ✅
+        const tasks: Promise<void>[] = []
+        ;(rentalData || []).forEach(r => {
+          if (r.google_event_id) tasks.push(updateCalendarEvent('rentals', r.google_event_id, null))
+          if (r.google_event_id_return) tasks.push(updateCalendarEvent('rentals', r.google_event_id_return, null))
+        })
+        ;(purchaseData || []).forEach(p => {
+          if (p.google_event_id) tasks.push(updateCalendarEvent('purchases', p.google_event_id, null))
+        })
+        ;(prestationData || []).forEach(p => {
+          if (p.google_event_id) tasks.push(updateCalendarEvent('prestations', p.google_event_id, null))
+        })
+        await Promise.all(tasks)
+      }
+    } catch (calendarError) {
+      console.error('[Google Calendar] Erreur sync statut:', calendarError)
+    }
 
     // Si toutes les mises à jour ont échoué
     if (errors.length === 3) {
