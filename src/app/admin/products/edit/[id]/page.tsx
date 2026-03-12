@@ -635,6 +635,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                   </label>
                   <input
                     type="number"
+                    min="0"
                     value={stock}
                     onChange={(e) => setStock(e.target.value)}
                     className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
@@ -652,6 +653,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                   <input
                     type="number"
                     step="0.01"
+                    min="0"
                     value={installationFees}
                     onChange={(e) => setInstallationFees(e.target.value)}
                     className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
@@ -865,6 +867,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                         <input
                           type="number"
                           step="1"
+                          min="0"
                           value={option.additional_fee || ''}
                           onChange={(e) => updateOption(groupIndex, optionIndex, 'additional_fee', parseInt(e.target.value) || 0)}
                           placeholder="Frais (€)"
@@ -875,6 +878,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                           <input
                             type="number"
                             step="1"
+                            min="0"
                             value={option.duration || ''}
                             onChange={(e) => updateOption(groupIndex, optionIndex, 'duration', parseInt(e.target.value) || 0)}
                             placeholder="Durée (min)"
