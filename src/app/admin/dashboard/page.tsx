@@ -94,7 +94,7 @@ export default function AdminDashboardPage() {
   }
 
   const runCalendarBackfill = async () => {
-    if (!confirm('Reporter toutes les réservations existantes dans Google Agenda ? (uniquement celles sans événement déjà créé)')) return
+    if (!confirm('Resynchroniser Google Agenda ?\n\n⚠️ Cela va SUPPRIMER tous les événements existants et recréer uniquement les réservations CONFIRMÉES.')) return
     setBackfillLoading(true)
     setBackfillMessage('')
     try {
@@ -188,10 +188,9 @@ export default function AdminDashboardPage() {
               <MaintenanceToggle />
               <button
                 onClick={runCalendarBackfill}
-                /*disabled={backfillLoading}*/
-                disabled
+                disabled={backfillLoading}
                 className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors disabled:opacity-50"
-                title="Reporter les réservations dans Google Agenda"
+                title="Resynchroniser Google Agenda (supprime tout, recrée les CONFIRMED)"
               >
                 {backfillLoading ? (
                   <svg className="h-5 w-5 md:h-6 md:w-6 animate-spin" fill="none" viewBox="0 0 24 24">

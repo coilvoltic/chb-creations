@@ -105,6 +105,88 @@ export async function deleteCalendarEvent(
   }
 }
 
+// ==================== DATE UPDATES ====================
+
+export async function updateRentalEventDates(
+  pickupEventId: string | null,
+  returnEventId: string | null,
+  rentalStart: string,
+  rentalEnd: string
+): Promise<void> {
+  try {
+    const calendar = getCalendarClient()
+    const calendarId = CALENDAR_IDS['rentals']
+    const startObj = { dateTime: rentalStart, timeZone: TIMEZONE }
+    const endObj = { dateTime: rentalEnd, timeZone: TIMEZONE }
+
+    await Promise.all([
+      pickupEventId
+        ? calendar.events.patch({
+            calendarId,
+            eventId: pickupEventId,
+            requestBody: { start: startObj, end: startObj },
+          })
+        : Promise.resolve(),
+      returnEventId
+        ? calendar.events.patch({
+            calendarId,
+            eventId: returnEventId,
+            requestBody: { start: endObj, end: endObj },
+          })
+        : Promise.resolve(),
+    ])
+  } catch (error) {
+    console.error('[Google Calendar] Erreur mise à jour dates location:', error)
+  }
+}
+
+export async function updatePurchaseEventDate(
+  eventId: string,
+  estimatedDeliveryDate: string
+): Promise<void> {
+  try {
+    const calendar = getCalendarClient()
+    const calendarId = CALENDAR_IDS['purchases']
+    const dateStr = estimatedDeliveryDate.split('T')[0]
+    const endDate = new Date(dateStr)
+    endDate.setDate(endDate.getDate() + 1)
+    const endDateStr = endDate.toISOString().split('T')[0]
+
+    await calendar.events.patch({
+      calendarId,
+      eventId,
+      requestBody: {
+        start: { date: dateStr, timeZone: TIMEZONE },
+        end: { date: endDateStr, timeZone: TIMEZONE },
+      },
+    })
+  } catch (error) {
+    console.error('[Google Calendar] Erreur mise à jour date achat:', error)
+  }
+}
+
+export async function updatePrestationEventDates(
+  eventId: string,
+  prestationStart: string,
+  prestationEnd: string
+): Promise<void> {
+  try {
+    const calendar = getCalendarClient()
+    const calendarId = CALENDAR_IDS['prestations']
+
+    await calendar.events.patch({
+      calendarId,
+      eventId,
+      requestBody: {
+        start: { dateTime: prestationStart, timeZone: TIMEZONE },
+        end: { dateTime: prestationEnd, timeZone: TIMEZONE },
+      },
+    })
+  } catch (error) {
+    console.error('[Google Calendar] Erreur mise à jour dates prestation:', error)
+  }
+}
+
 // ==================== BUILDERS ====================
 
 interface RentalEventData {

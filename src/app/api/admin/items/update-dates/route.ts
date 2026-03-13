@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { sendDatesUpdateNotification } from '@/lib/email'
 import { getSelectedOptionsFromDB, getInstallationFeesFromDB } from '@/lib/reservation-utils'
+import { updateRentalEventDates, updatePurchaseEventDate, updatePrestationEventDates } from '@/lib/google-calendar'
 
 interface DateUpdate {
   table: 'rental_items' | 'purchase_items' | 'prestation_items'
@@ -111,6 +112,94 @@ export async function PATCH(request: Request) {
         error: 'Certaines mises à jour ont échoué',
         details: errors
       }, { status: 500 })
+    }
+
+    // Synchronisation Google Calendar (sans bloquer la réponse en cas d'erreur)
+    try {
+      const rentalUpdates = updates.filter(u => u.table === 'rental_items' && (u.rental_start || u.rental_end))
+      const purchaseUpdates = updates.filter(u => u.table === 'purchase_items' && u.estimated_delivery_date)
+      const prestationUpdates = updates.filter(u => u.table === 'prestation_items' && (u.prestation_start || u.prestation_end))
+
+      if (rentalUpdates.length > 0) {
+        // Récupérer les google_event_id des rental_reservations concernées
+        const { data: rentalItems } = await supabase
+          .from('rental_items')
+          .select('rental_reservation_id, rental_start, rental_end')
+          .in('id', rentalUpdates.map(u => u.id))
+
+        if (rentalItems?.length) {
+          const reservationIds = [...new Set(rentalItems.map(i => i.rental_reservation_id))]
+          const { data: reservations } = await supabase
+            .from('rental_reservations')
+            .select('id, google_event_id, google_event_id_return')
+            .in('id', reservationIds)
+
+          for (const res of reservations || []) {
+            if (!res.google_event_id && !res.google_event_id_return) continue
+            // Trouver les dates min/max des items de cette réservation (après mise à jour)
+            const { data: allItems } = await supabase
+              .from('rental_items')
+              .select('rental_start, rental_end')
+              .eq('rental_reservation_id', res.id)
+
+            if (allItems?.length) {
+              const starts = allItems.map(i => new Date(i.rental_start).getTime())
+              const ends = allItems.map(i => new Date(i.rental_end).getTime())
+              const rentalStart = new Date(Math.min(...starts)).toISOString()
+              const rentalEnd = new Date(Math.max(...ends)).toISOString()
+              await updateRentalEventDates(res.google_event_id, res.google_event_id_return, rentalStart, rentalEnd)
+            }
+          }
+        }
+      }
+
+      if (purchaseUpdates.length > 0) {
+        const { data: purchaseItems } = await supabase
+          .from('purchase_items')
+          .select('purchase_reservation_id, estimated_delivery_date')
+          .in('id', purchaseUpdates.map(u => u.id))
+
+        if (purchaseItems?.length) {
+          const reservationIds = [...new Set(purchaseItems.map(i => i.purchase_reservation_id))]
+          const { data: reservations } = await supabase
+            .from('purchase_reservations')
+            .select('id, google_event_id')
+            .in('id', reservationIds)
+
+          for (const res of reservations || []) {
+            if (!res.google_event_id) continue
+            const item = purchaseItems.find(i => i.purchase_reservation_id === res.id)
+            if (item?.estimated_delivery_date) {
+              await updatePurchaseEventDate(res.google_event_id, item.estimated_delivery_date)
+            }
+          }
+        }
+      }
+
+      if (prestationUpdates.length > 0) {
+        const { data: prestationItems } = await supabase
+          .from('prestation_items')
+          .select('prestation_reservation_id, prestation_start, prestation_end')
+          .in('id', prestationUpdates.map(u => u.id))
+
+        if (prestationItems?.length) {
+          const reservationIds = [...new Set(prestationItems.map(i => i.prestation_reservation_id))]
+          const { data: reservations } = await supabase
+            .from('prestation_reservations')
+            .select('id, google_event_id')
+            .in('id', reservationIds)
+
+          for (const res of reservations || []) {
+            if (!res.google_event_id) continue
+            const item = prestationItems.find(i => i.prestation_reservation_id === res.id && i.prestation_start && i.prestation_end)
+            if (item?.prestation_start && item?.prestation_end) {
+              await updatePrestationEventDates(res.google_event_id, item.prestation_start, item.prestation_end)
+            }
+          }
+        }
+      }
+    } catch (calendarError) {
+      console.error('Erreur synchronisation Google Calendar (non bloquant):', calendarError)
     }
 
     // Notification client par email avec PDF mis à jour

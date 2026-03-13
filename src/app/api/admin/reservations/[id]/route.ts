@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import { deleteCalendarEvent, updateCalendarEvent } from '@/lib/google-calendar'
+import { deleteCalendarEvent, createRentalEvents, createPurchaseEvent, createPrestationEvent } from '@/lib/google-calendar'
 
 export async function GET(
   request: Request,
@@ -432,19 +432,100 @@ export async function PATCH(
         })
         await Promise.all(tasks)
       } else if (statusToApply === 'CONFIRMED') {
-        // updateCalendarEvent lit le titre existant et ajoute le préfixe ✅
-        const tasks: Promise<void>[] = []
-        ;(rentalData || []).forEach(r => {
-          if (r.google_event_id) tasks.push(updateCalendarEvent('rentals', r.google_event_id, null))
-          if (r.google_event_id_return) tasks.push(updateCalendarEvent('rentals', r.google_event_id_return, null))
-        })
-        ;(purchaseData || []).forEach(p => {
-          if (p.google_event_id) tasks.push(updateCalendarEvent('purchases', p.google_event_id, null))
-        })
-        ;(prestationData || []).forEach(p => {
-          if (p.google_event_id) tasks.push(updateCalendarEvent('prestations', p.google_event_id, null))
-        })
-        await Promise.all(tasks)
+        // Charger les infos client et les items pour créer les événements Calendar
+        const { data: order } = await supabase
+          .from('customer_orders')
+          .select('order_number, customer_infos')
+          .eq('id', id)
+          .single()
+
+        if (order) {
+          const customerName = `${order.customer_infos.firstName} ${order.customer_infos.lastName}`
+          const customerPhone = order.customer_infos.phone
+          const orderNumber = String(order.order_number)
+
+          // Locations
+          for (const r of rentalData || []) {
+            if (r.google_event_id) continue // déjà créé (ne devrait pas arriver mais sécurité)
+            const { data: items } = await supabase
+              .from('rental_items')
+              .select('rental_start, rental_end, products(name)')
+              .eq('rental_reservation_id', r.id)
+            if (items?.length) {
+              const starts = items.map((i: { rental_start: string }) => new Date(i.rental_start).getTime())
+              const ends = items.map((i: { rental_end: string }) => new Date(i.rental_end).getTime())
+              const { pickupEventId, returnEventId } = await createRentalEvents({
+                orderNumber,
+                customerName,
+                customerPhone,
+                productNames: items.map((i: { products: { name: string } | null }) => (i.products as { name: string } | null)?.name || ''),
+                rentalStart: new Date(Math.min(...starts)).toISOString(),
+                rentalEnd: new Date(Math.max(...ends)).toISOString(),
+                deliveryAddress: r.delivery_address || null,
+              })
+              if (pickupEventId || returnEventId) {
+                await supabase.from('rental_reservations')
+                  .update({ google_event_id: pickupEventId, google_event_id_return: returnEventId })
+                  .eq('id', r.id)
+              }
+            }
+          }
+
+          // Achats
+          for (const p of purchaseData || []) {
+            if (p.google_event_id) continue
+            const { data: items } = await supabase
+              .from('purchase_items')
+              .select('estimated_delivery_date, products(name)')
+              .eq('purchase_reservation_id', p.id)
+            if (items?.length) {
+              const estimatedDate = items[0]?.estimated_delivery_date
+                || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+              const eventId = await createPurchaseEvent({
+                orderNumber,
+                customerName,
+                customerPhone,
+                productNames: items.map((i: { products: { name: string } | null }) => (i.products as { name: string } | null)?.name || ''),
+                estimatedDeliveryDate: estimatedDate,
+                deliveryAddress: p.delivery_address || null,
+              })
+              if (eventId) {
+                await supabase.from('purchase_reservations')
+                  .update({ google_event_id: eventId })
+                  .eq('id', p.id)
+              }
+            }
+          }
+
+          // Prestations
+          for (const p of prestationData || []) {
+            if (p.google_event_id) continue
+            const { data: items } = await supabase
+              .from('prestation_items')
+              .select('prestation_start, prestation_end, nb_of_people, products(name)')
+              .eq('prestation_reservation_id', p.id)
+            if (items?.length) {
+              const firstItem = items.find((i: { prestation_start?: string; prestation_end?: string }) => i.prestation_start && i.prestation_end)
+              if (firstItem) {
+                const eventId = await createPrestationEvent({
+                  orderNumber,
+                  customerName,
+                  customerPhone,
+                  serviceName: items.map((i: { products: { name: string } | null }) => (i.products as { name: string } | null)?.name || '').join(', '),
+                  nbOfPeople: items.reduce((sum: number, i: { nb_of_people?: number }) => sum + (i.nb_of_people || 1), 0),
+                  prestationStart: firstItem.prestation_start!,
+                  prestationEnd: firstItem.prestation_end!,
+                  deliveryAddress: p.delivery_address || null,
+                })
+                if (eventId) {
+                  await supabase.from('prestation_reservations')
+                    .update({ google_event_id: eventId })
+                    .eq('id', p.id)
+                }
+              }
+            }
+          }
+        }
       }
     } catch (calendarError) {
       console.error('[Google Calendar] Erreur sync statut:', calendarError)
