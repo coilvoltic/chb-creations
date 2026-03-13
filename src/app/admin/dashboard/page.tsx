@@ -188,7 +188,8 @@ export default function AdminDashboardPage() {
               <MaintenanceToggle />
               <button
                 onClick={runCalendarBackfill}
-                disabled={backfillLoading}
+                /*disabled={backfillLoading}*/
+                disabled
                 className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors disabled:opacity-50"
                 title="Reporter les réservations dans Google Agenda"
               >
