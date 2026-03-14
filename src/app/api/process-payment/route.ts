@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
-import { createRentalEvents, createPurchaseEvent, createPrestationEvent } from '@/lib/google-calendar'
+import { createCalendarEvent, createPurchaseEvent, createPrestationEvent } from '@/lib/google-calendar'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   // @ts-expect-error - Match webhook API version
@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
           deposit,
           caution,
           rental_items (
+            id,
             product_id,
             quantity,
             rental_start,
@@ -84,6 +85,7 @@ export async function POST(request: NextRequest) {
           delivery_address,
           delivery_fees,
           prestation_items (
+            id,
             product_id,
             nb_of_people,
             prestation_start,
@@ -149,22 +151,28 @@ export async function POST(request: NextRequest) {
 
       for (const r of customerOrder.rental_reservations || []) {
         const items = r.rental_items || []
-        if (!items.length) continue
-        const starts = items.map((i: { rental_start: string }) => new Date(i.rental_start).getTime())
-        const ends = items.map((i: { rental_end: string }) => new Date(i.rental_end).getTime())
-        const { pickupEventId, returnEventId } = await createRentalEvents({
-          orderNumber,
-          customerName,
-          customerPhone,
-          productNames: items.map((i: { products: { name: string } }) => i.products.name),
-          rentalStart: new Date(Math.min(...starts)).toISOString(),
-          rentalEnd: new Date(Math.max(...ends)).toISOString(),
-          deliveryAddress: r.delivery_address || null,
-        })
-        if (pickupEventId || returnEventId) {
-          await supabase.from('rental_reservations')
-            .update({ google_event_id: pickupEventId, google_event_id_return: returnEventId })
-            .eq('id', r.id)
+        for (const item of items) {
+          const productName = (item.products as { name: string })?.name || ''
+          const description = `Commande #${orderNumber}\nClient : ${customerName}\nTél : ${customerPhone}\nProduit : ${productName}\nQté : ${item.quantity}${r.delivery_address ? `\nLivraison : ${r.delivery_address}` : '\nRetrait en boutique'}`
+          const [pickupEventId, returnEventId] = await Promise.all([
+            createCalendarEvent('rentals', {
+              summary: `📦 Livraison/Retrait - ${customerName}`,
+              description,
+              start: item.rental_start,
+              end: item.rental_start,
+            }),
+            createCalendarEvent('rentals', {
+              summary: `↩️ Retour - ${customerName}`,
+              description,
+              start: item.rental_end,
+              end: item.rental_end,
+            }),
+          ])
+          if (pickupEventId || returnEventId) {
+            await supabase.from('rental_items')
+              .update({ google_event_id: pickupEventId, google_event_id_return: returnEventId })
+              .eq('id', item.id)
+          }
         }
       }
 
@@ -188,20 +196,22 @@ export async function POST(request: NextRequest) {
 
       for (const pr of customerOrder.prestation_reservations || []) {
         const items = pr.prestation_items || []
-        const firstItem = items.find((i: { prestation_start?: string; prestation_end?: string }) => i.prestation_start && i.prestation_end)
-        if (!firstItem) continue
-        const eventId = await createPrestationEvent({
-          orderNumber,
-          customerName,
-          customerPhone,
-          serviceName: items.map((i: { products: { name: string } }) => i.products.name).join(', '),
-          nbOfPeople: items.reduce((sum: number, i: { nb_of_people?: number }) => sum + (i.nb_of_people || 1), 0),
-          prestationStart: firstItem.prestation_start!,
-          prestationEnd: firstItem.prestation_end!,
-          deliveryAddress: pr.delivery_address || null,
-        })
-        if (eventId) {
-          await supabase.from('prestation_reservations').update({ google_event_id: eventId }).eq('id', pr.id)
+        for (const item of items) {
+          if (!item.prestation_start || !item.prestation_end) continue
+          const productName = (item.products as { name: string })?.name || ''
+          const eventId = await createPrestationEvent({
+            orderNumber,
+            customerName,
+            customerPhone,
+            serviceName: productName,
+            nbOfPeople: item.nb_of_people || 1,
+            prestationStart: item.prestation_start,
+            prestationEnd: item.prestation_end,
+            deliveryAddress: pr.delivery_address || null,
+          })
+          if (eventId) {
+            await supabase.from('prestation_items').update({ google_event_id: eventId }).eq('id', item.id)
+          }
         }
       }
     } catch (calendarError) {

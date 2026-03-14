@@ -121,35 +121,15 @@ export async function PATCH(request: Request) {
       const prestationUpdates = updates.filter(u => u.table === 'prestation_items' && (u.prestation_start || u.prestation_end))
 
       if (rentalUpdates.length > 0) {
-        // Récupérer les google_event_id des rental_reservations concernées
+        // Récupérer les google_event_id directement depuis les rental_items (après mise à jour)
         const { data: rentalItems } = await supabase
           .from('rental_items')
-          .select('rental_reservation_id, rental_start, rental_end')
+          .select('id, rental_start, rental_end, google_event_id, google_event_id_return')
           .in('id', rentalUpdates.map(u => u.id))
 
-        if (rentalItems?.length) {
-          const reservationIds = [...new Set(rentalItems.map(i => i.rental_reservation_id))]
-          const { data: reservations } = await supabase
-            .from('rental_reservations')
-            .select('id, google_event_id, google_event_id_return')
-            .in('id', reservationIds)
-
-          for (const res of reservations || []) {
-            if (!res.google_event_id && !res.google_event_id_return) continue
-            // Trouver les dates min/max des items de cette réservation (après mise à jour)
-            const { data: allItems } = await supabase
-              .from('rental_items')
-              .select('rental_start, rental_end')
-              .eq('rental_reservation_id', res.id)
-
-            if (allItems?.length) {
-              const starts = allItems.map(i => new Date(i.rental_start).getTime())
-              const ends = allItems.map(i => new Date(i.rental_end).getTime())
-              const rentalStart = new Date(Math.min(...starts)).toISOString()
-              const rentalEnd = new Date(Math.max(...ends)).toISOString()
-              await updateRentalEventDates(res.google_event_id, res.google_event_id_return, rentalStart, rentalEnd)
-            }
-          }
+        for (const item of rentalItems || []) {
+          if (!item.google_event_id && !item.google_event_id_return) continue
+          await updateRentalEventDates(item.google_event_id, item.google_event_id_return, item.rental_start, item.rental_end)
         }
       }
 
@@ -177,25 +157,16 @@ export async function PATCH(request: Request) {
       }
 
       if (prestationUpdates.length > 0) {
+        // Récupérer les google_event_id directement depuis les prestation_items (après mise à jour)
         const { data: prestationItems } = await supabase
           .from('prestation_items')
-          .select('prestation_reservation_id, prestation_start, prestation_end')
+          .select('id, prestation_start, prestation_end, google_event_id')
           .in('id', prestationUpdates.map(u => u.id))
 
-        if (prestationItems?.length) {
-          const reservationIds = [...new Set(prestationItems.map(i => i.prestation_reservation_id))]
-          const { data: reservations } = await supabase
-            .from('prestation_reservations')
-            .select('id, google_event_id')
-            .in('id', reservationIds)
-
-          for (const res of reservations || []) {
-            if (!res.google_event_id) continue
-            const item = prestationItems.find(i => i.prestation_reservation_id === res.id && i.prestation_start && i.prestation_end)
-            if (item?.prestation_start && item?.prestation_end) {
-              await updatePrestationEventDates(res.google_event_id, item.prestation_start, item.prestation_end)
-            }
-          }
+        for (const item of prestationItems || []) {
+          if (!item.google_event_id) continue
+          if (!item.prestation_start || !item.prestation_end) continue
+          await updatePrestationEventDates(item.google_event_id, item.prestation_start, item.prestation_end)
         }
       }
     } catch (calendarError) {

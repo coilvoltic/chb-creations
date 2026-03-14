@@ -119,8 +119,6 @@ export interface RentalReservation {
   delivery_address?: string
   delivery_fees?: number
   tags?: Tag[] // Tags associés à cette réservation (relation via reservation_tags)
-  google_event_id?: string | null // Google Calendar event ID (pickup event)
-  google_event_id_return?: string | null // Google Calendar event ID (return event)
 }
 
 // Product option stored in rental/purchase/prestation items
@@ -143,6 +141,8 @@ export interface RentalItem {
   options?: ItemOption[] // JSONB with selected options
   personalizations?: Record<string, string>
   needs_installation?: boolean
+  google_event_id?: string | null // Google Calendar event ID (pickup event)
+  google_event_id_return?: string | null // Google Calendar event ID (return event)
 }
 
 // Purchase Reservation (child of CustomerOrder for purchase orders)
@@ -179,7 +179,6 @@ export interface PrestationReservation {
   delivery_address?: string
   delivery_fees?: number
   tags?: Tag[] // Tags associés à cette réservation (relation via reservation_tags)
-  google_event_id?: string | null // Google Calendar event ID
 }
 
 // Prestation Item (items in a prestation reservation)
@@ -192,6 +191,7 @@ export interface PrestationItem {
   nb_of_people: number // Number of people for the prestation (default: 1)
   options?: ItemOption[] // Same structure as rental items
   personalizations?: Record<string, string>
+  google_event_id?: string | null // Google Calendar event ID
 }
 
 // ==================== PROMOTIONAL CODES ====================

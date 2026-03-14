@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import { deleteCalendarEvent, createRentalEvents, createPurchaseEvent, createPrestationEvent } from '@/lib/google-calendar'
+import { deleteCalendarEvent, createCalendarEvent, createPurchaseEvent, createPrestationEvent } from '@/lib/google-calendar'
 
 export async function GET(
   request: Request,
@@ -420,16 +420,36 @@ export async function PATCH(
     try {
       if (statusToApply === 'CANCELLED') {
         const tasks: Promise<void>[] = []
-        ;(rentalData || []).forEach(r => {
-          if (r.google_event_id) tasks.push(deleteCalendarEvent('rentals', r.google_event_id))
-          if (r.google_event_id_return) tasks.push(deleteCalendarEvent('rentals', r.google_event_id_return))
-        })
+
+        // Lire les google_event_id depuis les items (plus depuis les reservations)
+        const rentalIds = (rentalData || []).map(r => r.id)
+        const prestationIds = (prestationData || []).map(p => p.id)
+
+        if (rentalIds.length > 0) {
+          const { data: rentalItems } = await supabase
+            .from('rental_items')
+            .select('google_event_id, google_event_id_return')
+            .in('rental_reservation_id', rentalIds)
+          ;(rentalItems || []).forEach(item => {
+            if (item.google_event_id) tasks.push(deleteCalendarEvent('rentals', item.google_event_id))
+            if (item.google_event_id_return) tasks.push(deleteCalendarEvent('rentals', item.google_event_id_return))
+          })
+        }
+
         ;(purchaseData || []).forEach(p => {
           if (p.google_event_id) tasks.push(deleteCalendarEvent('purchases', p.google_event_id))
         })
-        ;(prestationData || []).forEach(p => {
-          if (p.google_event_id) tasks.push(deleteCalendarEvent('prestations', p.google_event_id))
-        })
+
+        if (prestationIds.length > 0) {
+          const { data: prestationItems } = await supabase
+            .from('prestation_items')
+            .select('google_event_id')
+            .in('prestation_reservation_id', prestationIds)
+          ;(prestationItems || []).forEach(item => {
+            if (item.google_event_id) tasks.push(deleteCalendarEvent('prestations', item.google_event_id))
+          })
+        }
+
         await Promise.all(tasks)
       } else if (statusToApply === 'CONFIRMED') {
         // Charger les infos client et les items pour créer les événements Calendar
@@ -444,29 +464,38 @@ export async function PATCH(
           const customerPhone = order.customer_infos.phone
           const orderNumber = String(order.order_number)
 
-          // Locations
+          // Locations : 1 event pickup + 1 event retour par rental_item
           for (const r of rentalData || []) {
-            if (r.google_event_id) continue // déjà créé (ne devrait pas arriver mais sécurité)
             const { data: items } = await supabase
               .from('rental_items')
-              .select('rental_start, rental_end, products(name)')
+              .select('id, rental_start, rental_end, quantity, google_event_id, google_event_id_return, products(name)')
               .eq('rental_reservation_id', r.id)
-            if (items?.length) {
-              const starts = items.map((i: { rental_start: string }) => new Date(i.rental_start).getTime())
-              const ends = items.map((i: { rental_end: string }) => new Date(i.rental_end).getTime())
-              const { pickupEventId, returnEventId } = await createRentalEvents({
-                orderNumber,
-                customerName,
-                customerPhone,
-                productNames: (items as unknown as { products: { name: string } | null }[]).map(i => i.products?.name || ''),
-                rentalStart: new Date(Math.min(...starts)).toISOString(),
-                rentalEnd: new Date(Math.max(...ends)).toISOString(),
-                deliveryAddress: r.delivery_address || null,
-              })
+            for (const item of items || []) {
+              if (item.google_event_id && item.google_event_id_return) continue // déjà créé
+              const productName = (item.products as { name: string } | null)?.name || ''
+              const description = `Commande #${orderNumber}\nClient : ${customerName}\nTél : ${customerPhone}\nProduit : ${productName}\nQté : ${item.quantity}${r.delivery_address ? `\nLivraison : ${r.delivery_address}` : '\nRetrait en boutique'}`
+              const [pickupEventId, returnEventId] = await Promise.all([
+                item.google_event_id
+                  ? Promise.resolve(item.google_event_id)
+                  : createCalendarEvent('rentals', {
+                      summary: `📦 Livraison/Retrait - ${customerName}`,
+                      description,
+                      start: item.rental_start,
+                      end: item.rental_start,
+                    }),
+                item.google_event_id_return
+                  ? Promise.resolve(item.google_event_id_return)
+                  : createCalendarEvent('rentals', {
+                      summary: `↩️ Retour - ${customerName}`,
+                      description,
+                      start: item.rental_end,
+                      end: item.rental_end,
+                    }),
+              ])
               if (pickupEventId || returnEventId) {
-                await supabase.from('rental_reservations')
+                await supabase.from('rental_items')
                   .update({ google_event_id: pickupEventId, google_event_id_return: returnEventId })
-                  .eq('id', r.id)
+                  .eq('id', item.id)
               }
             }
           }
@@ -497,31 +526,30 @@ export async function PATCH(
             }
           }
 
-          // Prestations
+          // Prestations : 1 event par prestation_item
           for (const p of prestationData || []) {
-            if (p.google_event_id) continue
             const { data: items } = await supabase
               .from('prestation_items')
-              .select('prestation_start, prestation_end, nb_of_people, products(name)')
+              .select('id, prestation_start, prestation_end, nb_of_people, google_event_id, products(name)')
               .eq('prestation_reservation_id', p.id)
-            if (items?.length) {
-              const firstItem = items.find((i: { prestation_start?: string; prestation_end?: string }) => i.prestation_start && i.prestation_end)
-              if (firstItem) {
-                const eventId = await createPrestationEvent({
-                  orderNumber,
-                  customerName,
-                  customerPhone,
-                  serviceName: (items as unknown as { products: { name: string } | null }[]).map(i => i.products?.name || '').join(', '),
-                  nbOfPeople: items.reduce((sum: number, i: { nb_of_people?: number }) => sum + (i.nb_of_people || 1), 0),
-                  prestationStart: firstItem.prestation_start!,
-                  prestationEnd: firstItem.prestation_end!,
-                  deliveryAddress: p.delivery_address || null,
-                })
-                if (eventId) {
-                  await supabase.from('prestation_reservations')
-                    .update({ google_event_id: eventId })
-                    .eq('id', p.id)
-                }
+            for (const item of items || []) {
+              if (item.google_event_id) continue // déjà créé
+              if (!item.prestation_start || !item.prestation_end) continue
+              const productName = (item.products as { name: string } | null)?.name || ''
+              const eventId = await createPrestationEvent({
+                orderNumber,
+                customerName,
+                customerPhone,
+                serviceName: productName,
+                nbOfPeople: item.nb_of_people || 1,
+                prestationStart: item.prestation_start,
+                prestationEnd: item.prestation_end,
+                deliveryAddress: p.delivery_address || null,
+              })
+              if (eventId) {
+                await supabase.from('prestation_items')
+                  .update({ google_event_id: eventId })
+                  .eq('id', item.id)
               }
             }
           }

@@ -27,6 +27,37 @@ function getCalendarClient() {
 
 // ==================== CRUD ====================
 
+export async function calendarEventExists(
+  calendarType: 'rentals' | 'purchases' | 'prestations',
+  eventId: string
+): Promise<boolean> {
+  try {
+    const calendar = getCalendarClient()
+    const res = await calendar.events.get({ calendarId: CALENDAR_IDS[calendarType], eventId })
+    return res.data.status !== 'cancelled'
+  } catch {
+    return false
+  }
+}
+
+export async function getCalendarEventDetails(
+  calendarType: 'rentals' | 'purchases' | 'prestations',
+  eventId: string
+): Promise<{ exists: boolean; summary?: string; start?: string; status?: string }> {
+  try {
+    const calendar = getCalendarClient()
+    const res = await calendar.events.get({ calendarId: CALENDAR_IDS[calendarType], eventId })
+    return {
+      exists: res.data.status !== 'cancelled',
+      summary: res.data.summary || undefined,
+      start: res.data.start?.dateTime || res.data.start?.date || undefined,
+      status: res.data.status || undefined,
+    }
+  } catch {
+    return { exists: false }
+  }
+}
+
 export async function createCalendarEvent(
   calendarType: 'rentals' | 'purchases' | 'prestations',
   event: {

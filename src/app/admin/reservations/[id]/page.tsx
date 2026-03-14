@@ -180,6 +180,58 @@ export default function ReservationDetailPage() {
       return
     }
 
+    // Vérifier la disponibilité avant de confirmer
+    if (modalConfirmOrder && data) {
+      const availabilityUpdates: {
+        table: 'rental_items' | 'prestation_items'
+        id: number
+        rental_start?: string
+        rental_end?: string
+        prestation_start?: string
+        prestation_end?: string
+      }[] = []
+
+      for (const r of data.rental_reservations) {
+        for (const item of r.items) {
+          if (item.rental_start && item.rental_end) {
+            availabilityUpdates.push({
+              table: 'rental_items',
+              id: item.id,
+              rental_start: item.rental_start,
+              rental_end: item.rental_end,
+            })
+          }
+        }
+      }
+
+      for (const p of data.prestation_reservations) {
+        for (const item of p.items) {
+          if (item.prestation_start && item.prestation_end) {
+            availabilityUpdates.push({
+              table: 'prestation_items',
+              id: item.id,
+              prestation_start: item.prestation_start,
+              prestation_end: item.prestation_end,
+            })
+          }
+        }
+      }
+
+      if (availabilityUpdates.length > 0) {
+        const checkResp = await fetch('/api/admin/items/check-availability', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ updates: availabilityUpdates }),
+        })
+        const checkResult = await checkResp.json()
+        if (!checkResult.available) {
+          const messages = (checkResult.errors as { message: string }[]).map(e => `• ${e.message}`).join('\n')
+          alert(`Impossible de confirmer : des conflits ont été détectés.\n\n${messages}`)
+          return
+        }
+      }
+    }
+
     setIsSubmittingModal(true)
     try {
       const response = await fetch(`/api/admin/reservations/${id}`, {
