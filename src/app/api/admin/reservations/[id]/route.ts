@@ -472,7 +472,7 @@ export async function PATCH(
               .eq('rental_reservation_id', r.id)
             for (const item of items || []) {
               if (item.google_event_id && item.google_event_id_return) continue // déjà créé
-              const productName = (item.products as { name: string } | null)?.name || ''
+              const productName = (item.products as unknown as { name: string } | null)?.name || ''
               const description = `Commande #${orderNumber}\nClient : ${customerName}\nTél : ${customerPhone}\nProduit : ${productName}\nQté : ${item.quantity}${r.delivery_address ? `\nLivraison : ${r.delivery_address}` : '\nRetrait en boutique'}`
               const [pickupEventId, returnEventId] = await Promise.all([
                 item.google_event_id
@@ -535,7 +535,7 @@ export async function PATCH(
             for (const item of items || []) {
               if (item.google_event_id) continue // déjà créé
               if (!item.prestation_start || !item.prestation_end) continue
-              const productName = (item.products as { name: string } | null)?.name || ''
+              const productName = (item.products as unknown as { name: string } | null)?.name || ''
               const eventId = await createPrestationEvent({
                 orderNumber,
                 customerName,

@@ -35,8 +35,6 @@ export default function AdminDashboardPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [allTags, setAllTags] = useState<Tag[]>([])
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
-  const [backfillLoading, setBackfillLoading] = useState(false)
-  const [backfillMessage, setBackfillMessage] = useState('')
   const router = useRouter()
   const supabase = createClientComponentClient()
 
@@ -91,29 +89,6 @@ export default function AdminDashboardPage() {
 
   const clearTagFilters = () => {
     setSelectedTagIds([])
-  }
-
-  const runCalendarAction = async (action: 'delete' | 'insert') => {
-    const confirmMessages = {
-      delete: 'Supprimer tous les événements Google Agenda ?\n\n⚠️ Cela va supprimer TOUS les événements existants (toutes réservations confondues).',
-      insert: 'Ajouter les CONFIRMÉES dans Google Agenda ?\n\nSeules les réservations CONFIRMÉES sans événement existant seront ajoutées.',
-    }
-    if (!confirm(confirmMessages[action])) return
-    setBackfillLoading(true)
-    setBackfillMessage('')
-    try {
-      const response = await fetch('/api/admin/calendar-backfill', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
-      })
-      const data = await response.json()
-      setBackfillMessage(data.message || (data.error ? `Erreur : ${data.error}` : 'Terminé'))
-    } catch {
-      setBackfillMessage('Erreur lors de l\'opération')
-    } finally {
-      setBackfillLoading(false)
-    }
   }
 
   const loadOrders = async () => {
@@ -194,42 +169,6 @@ export default function AdminDashboardPage() {
             </div>
             <div className="flex gap-2 md:gap-3">
               <MaintenanceToggle />
-              {/* Supprimer tous les events Google Agenda */}
-              <button
-                onClick={() => runCalendarAction('delete')}
-                disabled={backfillLoading}
-                className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors disabled:opacity-50"
-                title="Supprimer tous les événements Google Agenda"
-              >
-                {backfillLoading ? (
-                  <svg className="h-5 w-5 md:h-6 md:w-6 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                )}
-              </button>
-              {/* Ajouter les CONFIRMED dans Google Agenda */}
-              <button
-                onClick={() => runCalendarAction('insert')}
-                disabled={backfillLoading}
-                className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors disabled:opacity-50"
-                title="Ajouter les réservations CONFIRMÉES dans Google Agenda"
-              >
-                {backfillLoading ? (
-                  <svg className="h-5 w-5 md:h-6 md:w-6 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                )}
-              </button>
               <button
                 onClick={() => router.push('/admin/products')}
                 className="p-2 bg-stone-700 hover:bg-stone-600 text-white rounded-lg transition-colors"
@@ -270,17 +209,6 @@ export default function AdminDashboardPage() {
             <p className="text-red-600">{error}</p>
           </div>
         )}
-        {backfillMessage && (
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start justify-between gap-3">
-            <p className="text-blue-700 text-sm">{backfillMessage}</p>
-            <button onClick={() => setBackfillMessage('')} className="text-blue-400 hover:text-blue-600 flex-shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        )}
-
         {/* Header avec bouton de bascule */}
         <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
