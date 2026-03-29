@@ -88,6 +88,7 @@ export interface Product {
   unavailabilities?: UnavailabilityEntry[] // For rental products (locations)
   prestationUnavailableSlots?: PrestationUnavailableSlot[] // For prestation products (henne)
   created_at?: string
+  display_order?: number | null
 }
 
 // ==================== ORDERS & RESERVATIONS ====================

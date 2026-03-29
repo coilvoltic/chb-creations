@@ -137,6 +137,13 @@ export default function ManageProductsPage() {
             </div>
             <div className="flex gap-2 md:gap-3">
               <button
+                onClick={() => router.push('/admin/products/reorder')}
+                className="px-3 py-2 md:px-4 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors text-sm md:text-base"
+              >
+                <span className="hidden sm:inline">Réorganiser</span>
+                <span className="sm:hidden">Ordre</span>
+              </button>
+              <button
                 onClick={() => router.push('/admin/products/new')}
                 className="px-3 py-2 md:px-4 bg-black hover:bg-stone-800 text-white rounded-lg transition-colors text-sm md:text-base"
               >

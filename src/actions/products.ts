@@ -43,6 +43,7 @@ export async function getProductsBySubcategory(
       .from('products')
       .select('*')
       .eq('subcategory', subcategory)
+      .order('display_order', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: true })
 
     // Optional category filter
