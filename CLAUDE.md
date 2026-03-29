@@ -40,6 +40,15 @@ The development server runs on http://localhost:3000
 - `@/*` maps to `./src/*` (configured in tsconfig.json)
 - Use this consistently for all imports: `@/components/...`, `@/app/...`, `@/lib/...`
 
+### Type System
+All application types are centralized in `src/types/`:
+- `src/types/database.ts`: Database entity types (Product, CustomerOrder, reservations, etc.)
+- `src/types/cart.ts`: Cart, CartItem, DeliveryInfo, RelayPointInfo, PromoCode
+- `src/types/api.ts`: Request/response payloads for API routes
+- `src/types/index.ts`: Re-exports all of the above — always import from `@/types`
+
+`src/lib/supabase.ts` and `src/lib/cart-types.ts` are deprecated backward-compat wrappers.
+
 ### Fonts
 The app uses four Google Fonts configured in [src/app/layout.tsx](src/app/layout.tsx):
 - **Inter**: Primary font (variable: `--font-inter`)
@@ -196,7 +205,11 @@ Required in `.env.local`:
 **Admin section**:
 - `/admin/login`: Admin authentication page
 - `/admin/dashboard`: Admin dashboard for managing reservations and viewing analytics
-- `/admin/reservations/[id]`: Individual reservation detail page with PDF generation
+- `/admin/reservations/[id]`: Individual reservation detail page with PDF generation and tag management
+- `/admin/products`: Product list with edit/delete actions
+- `/admin/products/new`: Create new product
+- `/admin/products/edit/[id]`: Edit existing product
+- `/admin/settings`: App settings (boutique hours, maintenance mode)
 - Protected routes requiring authentication
 
 ### State Management
@@ -212,7 +225,8 @@ Required in `.env.local`:
 - Cart item categorization: getRentalItems(), getPurchaseItems(), getPrestationItems()
 - Automatically calculates totals including option fees, installation fees, delivery fees, and caution
 - Cart items include: product info, quantity, rental period/dates, times, selected options, deposit percentage, caution per unit, personalizations
-- Supports delivery modes: 'pickup' (retrait en boutique), 'delivery' (livraison), 'relay_point' (point relais)
+- Supports delivery modes: 'pickup' (retrait en boutique), 'delivery' (livraison à domicile), 'relay_point' (point relais Mondial Relay / La Poste)
+- Supports promotional codes: `promoCode` field with discount amount and type (percentage or fixed)
 
 ### Product Options, Fees & Financial Terms
 
@@ -317,11 +331,38 @@ Products can have optional configurations and financial requirements:
    - Supports status updates and modifications
    - Requires authentication
 
-10. **`/api/admin/products/create`** (POST):
-   - Admin API to create new products
-   - Validates all required fields
-   - Inserts product into database with all columns
-   - Requires authentication
+10. **`/api/admin/products/create`** (POST), **`/api/admin/products/update`** (PATCH), **`/api/admin/products/delete`** (DELETE):
+    - Admin CRUD for products; requires authentication
+
+11. **`/api/admin/tags`** and **`/api/admin/reservation-tags`**:
+    - Manage color-coded tags on reservations; requires authentication
+
+12. **`/api/admin/promo-codes`** and **`/api/admin/promo-messages`**:
+    - CRUD for promotional codes and homepage carousel messages; requires authentication
+
+13. **`/api/admin/settings`** (GET, POST):
+    - Manage app_settings table (boutique hours, maintenance mode); requires authentication
+
+14. **`/api/admin/items/check-availability`** (POST), **`/api/admin/items/update-dates`** (PATCH):
+    - Admin tools to check item availability and modify reservation item dates
+
+15. **`/api/validate-promo-code`** (POST):
+    - Validates a promotional code and returns discount info
+
+16. **`/api/find-relay-points`** (POST):
+    - Finds relay point pickup locations (Mondial Relay / La Poste)
+
+17. **`/api/search-products`** (GET):
+    - Full-text product search
+
+18. **`/api/orders/track`** and **`/api/track-order`** (GET):
+    - Public order tracking by order number
+
+19. **`/api/webhooks/stripe`** (POST):
+    - Stripe webhook handler; updates reservation status after payment confirmation
+
+20. **`/api/admin/reservations/[id]/resend-confirmation`** (POST):
+    - Resends confirmation email for a reservation; requires authentication
 
 ### Admin Product Management
 
@@ -422,7 +463,7 @@ All product pages are client components (`'use client'`) to enable interactivity
 6. **Links**: Use Next.js `<Link>` component with proper href paths
 7. **Metadata**: Set page title and description in layout.tsx or page metadata exports
 8. **Error handling**: Log errors but don't fail reservations if email sending fails
-9. **TypeScript**: Use interfaces from `@/lib/supabase` and `@/lib/cart-types` for type safety
+9. **TypeScript**: Import types from `@/types` (centralized). `@/lib/supabase` and `@/lib/cart-types` are deprecated backward-compat wrappers — do not add new imports from them
 
 ## Code Factorization
 

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
-import { createCalendarEvent, createPurchaseEvent, createPrestationEvent } from '@/lib/google-calendar'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   // @ts-expect-error - Match webhook API version
@@ -143,82 +142,7 @@ export async function POST(request: NextRequest) {
       console.log(`${updates.length} réservations confirmées via process-payment`)
     }
 
-    // Sync Google Calendar - créer les événements à la confirmation Stripe
-    try {
-      const customerName = `${customerOrder.customer_infos.firstName} ${customerOrder.customer_infos.lastName}`
-      const customerPhone = customerOrder.customer_infos.phone
-      const orderNumber = String(customerOrder.order_number)
-
-      for (const r of customerOrder.rental_reservations || []) {
-        const items = r.rental_items || []
-        for (const item of items) {
-          const productName = (item.products as { name: string })?.name || ''
-          const description = `Commande #${orderNumber}\nClient : ${customerName}\nTél : ${customerPhone}\nProduit : ${productName}\nQté : ${item.quantity}${r.delivery_address ? `\nLivraison : ${r.delivery_address}` : '\nRetrait en boutique'}`
-          const [pickupEventId, returnEventId] = await Promise.all([
-            createCalendarEvent('rentals', {
-              summary: `📦 Livraison/Retrait - ${customerName}`,
-              description,
-              start: item.rental_start,
-              end: item.rental_start,
-            }),
-            createCalendarEvent('rentals', {
-              summary: `↩️ Retour - ${customerName}`,
-              description,
-              start: item.rental_end,
-              end: item.rental_end,
-            }),
-          ])
-          if (pickupEventId || returnEventId) {
-            await supabase.from('rental_items')
-              .update({ google_event_id: pickupEventId, google_event_id_return: returnEventId })
-              .eq('id', item.id)
-          }
-        }
-      }
-
-      for (const p of customerOrder.purchase_reservations || []) {
-        const items = p.purchase_items || []
-        if (!items.length) continue
-        const estimatedDate = items[0]?.estimated_delivery_date
-          || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-        const eventId = await createPurchaseEvent({
-          orderNumber,
-          customerName,
-          customerPhone,
-          productNames: items.map((i: { products: { name: string } }) => i.products.name),
-          estimatedDeliveryDate: estimatedDate,
-          deliveryAddress: p.delivery_address || null,
-        })
-        if (eventId) {
-          await supabase.from('purchase_reservations').update({ google_event_id: eventId }).eq('id', p.id)
-        }
-      }
-
-      for (const pr of customerOrder.prestation_reservations || []) {
-        const items = pr.prestation_items || []
-        for (const item of items) {
-          if (!item.prestation_start || !item.prestation_end) continue
-          const productName = (item.products as { name: string })?.name || ''
-          const eventId = await createPrestationEvent({
-            orderNumber,
-            customerName,
-            customerPhone,
-            serviceName: productName,
-            nbOfPeople: item.nb_of_people || 1,
-            prestationStart: item.prestation_start,
-            prestationEnd: item.prestation_end,
-            deliveryAddress: pr.delivery_address || null,
-          })
-          if (eventId) {
-            await supabase.from('prestation_items').update({ google_event_id: eventId }).eq('id', item.id)
-          }
-        }
-      }
-    } catch (calendarError) {
-      console.error('[Google Calendar] Erreur création événements Stripe (non bloquant):', calendarError)
-    }
-
-    // L'email de confirmation est envoyé par le webhook Stripe (/api/webhooks/stripe)
+    // L'email de confirmation et la sync Google Calendar sont gérés par le webhook Stripe (/api/webhooks/stripe)
     // pour éviter les doublons. Ne pas envoyer d'email ici.
 
     return NextResponse.json({

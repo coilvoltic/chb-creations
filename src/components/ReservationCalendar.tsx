@@ -627,14 +627,12 @@ function getEventsForDate(date: Date, orders: OrderWithReservations[]): Calendar
       })
     })
 
-    // Traiter les achats (purchase_reservations) - t+5j depuis la création de la commande
+    // Traiter les achats (purchase_reservations) - date estimée depuis purchase_items
     order.purchase_reservations.forEach(purchase => {
       if (purchase.purchase_items && purchase.purchase_items.length > 0) {
-        // Calculer t+5j depuis la date de création de la commande
-        const orderCreatedDate = new Date(order.created_at)
-        const deliveryDate = new Date(orderCreatedDate)
-        deliveryDate.setDate(deliveryDate.getDate() + 5)
-        const deliveryDateStr = formatDateLocal(deliveryDate)
+        const rawDate = purchase.purchase_items[0].estimated_delivery_date
+        if (!rawDate) return
+        const deliveryDateStr = formatDateLocal(new Date(rawDate))
 
         if (dateStr === deliveryDateStr) {
           events.push({

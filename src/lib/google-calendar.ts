@@ -1,4 +1,5 @@
 import { google } from 'googleapis'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 const TIMEZONE = 'Europe/Paris'
 
@@ -302,4 +303,166 @@ export async function createPrestationEvent(data: PrestationEventData): Promise<
     start: data.prestationStart,
     end: data.prestationEnd,
   })
+}
+
+// ==================== SYNC COMMANDE ====================
+
+interface OrderForCalendarSync {
+  order_number: number | string
+  customer_infos: { firstName: string; lastName: string; phone: string }
+  rental_reservations?: Array<{
+    id: number
+    delivery_address?: string | null
+    rental_items?: Array<{
+      id: number
+      rental_start: string
+      rental_end: string
+      quantity: number
+      google_event_id?: string | null
+      google_event_id_return?: string | null
+      products?: { name: string } | null
+    }>
+  }>
+  purchase_reservations?: Array<{
+    id: number
+    delivery_address?: string | null
+    google_event_id?: string | null
+    purchase_items?: Array<{
+      estimated_delivery_date?: string | null
+      products?: { name: string } | null
+    }>
+  }>
+  prestation_reservations?: Array<{
+    id: number
+    delivery_address?: string | null
+    prestation_items?: Array<{
+      id: number
+      prestation_start?: string | null
+      prestation_end?: string | null
+      nb_of_people?: number
+      google_event_id?: string | null
+      products?: { name: string } | null
+    }>
+  }>
+}
+
+/**
+ * Crée les événements Google Calendar manquants pour une commande confirmée.
+ * Vérifie l'existence réelle dans Google Calendar (pas seulement la BDD) pour
+ * recréer les événements supprimés ou perdus.
+ * Retourne le nombre d'événements effectivement créés.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function syncCalendarForOrder(order: OrderForCalendarSync, supabase: SupabaseClient<any>): Promise<number> {
+  let created = 0
+  const customerName = `${order.customer_infos.firstName} ${order.customer_infos.lastName}`
+  const customerPhone = order.customer_infos.phone
+  const orderNumber = String(order.order_number)
+
+  console.log(`[sync] Commande #${orderNumber} — rentals:${(order.rental_reservations||[]).length} purchases:${(order.purchase_reservations||[]).length} prestations:${(order.prestation_reservations||[]).length}`)
+
+  // Locations : 1 event pickup + 1 event retour par rental_item
+  for (const r of order.rental_reservations || []) {
+    for (const item of r.rental_items || []) {
+      const pickupExists = item.google_event_id ? await calendarEventExists('rentals', item.google_event_id) : false
+      const returnExists = item.google_event_id_return ? await calendarEventExists('rentals', item.google_event_id_return) : false
+
+      if (pickupExists && returnExists) {
+        // Les deux events existent : mettre à jour leurs dates
+        await updateRentalEventDates(item.google_event_id!, item.google_event_id_return!, item.rental_start, item.rental_end)
+        continue
+      }
+
+      const productName = item.products?.name || ''
+      const description = `Commande #${orderNumber}\nClient : ${customerName}\nTél : ${customerPhone}\nProduit : ${productName}\nQté : ${item.quantity}${r.delivery_address ? `\nLivraison : ${r.delivery_address}` : '\nRetrait en boutique'}`
+      const [pickupEventId, returnEventId] = await Promise.all([
+        pickupExists
+          ? Promise.resolve(item.google_event_id!)
+          : createCalendarEvent('rentals', {
+              summary: `📦 Livraison/Retrait - ${customerName}`,
+              description,
+              start: item.rental_start,
+              end: item.rental_start,
+            }),
+        returnExists
+          ? Promise.resolve(item.google_event_id_return!)
+          : createCalendarEvent('rentals', {
+              summary: `↩️ Retour - ${customerName}`,
+              description,
+              start: item.rental_end,
+              end: item.rental_end,
+            }),
+      ])
+      if (pickupEventId || returnEventId) {
+        await supabase.from('rental_items')
+          .update({ google_event_id: pickupEventId, google_event_id_return: returnEventId })
+          .eq('id', item.id)
+        if (!pickupExists) created++
+        if (!returnExists) created++
+      }
+    }
+  }
+
+  // Achats : 1 event par purchase_reservation
+  for (const p of order.purchase_reservations || []) {
+    const exists = p.google_event_id ? await calendarEventExists('purchases', p.google_event_id) : false
+    const items = p.purchase_items || []
+    if (!items.length) continue
+    const estimatedDate = items[0]?.estimated_delivery_date
+      || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+
+    if (exists) {
+      // Mettre à jour la date
+      await updatePurchaseEventDate(p.google_event_id!, estimatedDate)
+      continue
+    }
+
+    const eventId = await createPurchaseEvent({
+      orderNumber,
+      customerName,
+      customerPhone,
+      productNames: items.map(i => i.products?.name || ''),
+      estimatedDeliveryDate: estimatedDate,
+      deliveryAddress: p.delivery_address || null,
+    })
+    if (eventId) {
+      await supabase.from('purchase_reservations')
+        .update({ google_event_id: eventId })
+        .eq('id', p.id)
+      created++
+    }
+  }
+
+  // Prestations : 1 event par prestation_item
+  for (const pr of order.prestation_reservations || []) {
+    for (const item of pr.prestation_items || []) {
+      if (!item.prestation_start || !item.prestation_end) continue
+      const exists = item.google_event_id ? await calendarEventExists('prestations', item.google_event_id) : false
+
+      if (exists) {
+        // Mettre à jour les dates
+        await updatePrestationEventDates(item.google_event_id!, item.prestation_start, item.prestation_end)
+        continue
+      }
+
+      const eventId = await createPrestationEvent({
+        orderNumber,
+        customerName,
+        customerPhone,
+        serviceName: item.products?.name || '',
+        nbOfPeople: item.nb_of_people || 1,
+        prestationStart: item.prestation_start,
+        prestationEnd: item.prestation_end,
+        deliveryAddress: pr.delivery_address || null,
+      })
+      if (eventId) {
+        await supabase.from('prestation_items')
+          .update({ google_event_id: eventId })
+          .eq('id', item.id)
+        created++
+      }
+    }
+  }
+
+  return created
 }

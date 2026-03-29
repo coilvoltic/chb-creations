@@ -3,6 +3,7 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { sendReservationConfirmation } from '@/lib/email'
 import { getSelectedOptionsFromDB, getInstallationFeesFromDB } from '@/lib/reservation-utils'
+import { syncCalendarForOrder } from '@/lib/google-calendar'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   // @ts-expect-error - Match webhook API version configured in Stripe Dashboard
@@ -69,9 +70,9 @@ export async function POST(request: NextRequest) {
         .from('customer_orders')
         .select(`
           *,
-          rental_reservations (*, rental_items (*, products (name, price, new_price))),
-          purchase_reservations (*, purchase_items (*, products (name, price, new_price))),
-          prestation_reservations (*, prestation_items (*, products (name, price, new_price)))
+          rental_reservations (*, rental_items (*, google_event_id, google_event_id_return, products (name, price, new_price))),
+          purchase_reservations (*, google_event_id, purchase_items (*, products (name, price, new_price))),
+          prestation_reservations (*, prestation_items (*, google_event_id, products (name, price, new_price)))
         `)
         .eq('id', parseInt(customerOrderId))
         .single()
@@ -102,6 +103,14 @@ export async function POST(request: NextRequest) {
       }
       await Promise.all(updates)
       console.log(`Updated ${updates.length} reservations to CONFIRMED`)
+
+      // Sync Google Calendar
+      try {
+        await syncCalendarForOrder(customerOrder, supabase)
+        console.log('✅ Google Calendar synchronisé via webhook')
+      } catch (calendarError) {
+        console.error('[Google Calendar] Erreur sync webhook (non bloquant):', calendarError)
+      }
 
       // Incrémenter le montant déjà payé sur la commande
       const amountPaidOnline = session.amount_total ? session.amount_total / 100 : 0
