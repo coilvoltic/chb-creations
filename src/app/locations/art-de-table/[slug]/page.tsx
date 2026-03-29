@@ -2,6 +2,8 @@ import ProductDetailPage from '@/components/ProductDetailPage'
 import { generateProductMetadata } from '@/lib/seo'
 import type { Metadata } from 'next'
 
+export const revalidate = 3600
+
 type Props = { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
