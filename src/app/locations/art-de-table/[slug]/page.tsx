@@ -1,5 +1,7 @@
 import ProductDetailPage from '@/components/ProductDetailPage'
 import { generateProductMetadata } from '@/lib/seo'
+import { getProductBySlug } from '@/actions/products'
+import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 
 export const revalidate = 3600
@@ -11,10 +13,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return generateProductMetadata(slug, 'art-de-table', '/locations/art-de-table', '/imgs/locations/artDeTableMain.png')
 }
 
-export default function ArtDeTableProductPage({ params }: Props) {
+export default async function ArtDeTableProductPage({ params }: Props) {
+  const { slug } = await params
+  const product = await getProductBySlug(slug, 'art-de-table')
+
+  if (!product || product.is_out_of_stock === true) notFound()
+  if (product.images) product.images = [...new Set(product.images)]
+
   return (
     <ProductDetailPage
       params={params}
+      initialProduct={product}
       breadcrumbItems={[
         { label: 'Locations', href: '/locations' },
         { label: 'Art de table', href: '/locations/art-de-table' },

@@ -25,9 +25,10 @@ interface BreadcrumbItem {
 interface ProductDetailPageProps {
   params: Promise<{ slug: string }>
   breadcrumbItems: BreadcrumbItem[]
+  initialProduct?: Product
 }
 
-export default function ProductDetailPage({ params, breadcrumbItems }: ProductDetailPageProps) {
+export default function ProductDetailPage({ params, breadcrumbItems, initialProduct }: ProductDetailPageProps) {
   const { slug } = use(params)
 
   // Extract subcategory automatically from the last breadcrumb href
@@ -35,9 +36,9 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
   const subcategory = breadcrumbItems[breadcrumbItems.length - 1]?.href.split('/').pop() || undefined
   const router = useRouter()
   const { addToCart, cart } = useCart()
-  const [product, setProduct] = useState<Product | null>(null)
+  const [product, setProduct] = useState<Product | null>(initialProduct ?? null)
   const [quantity, setQuantity] = useState(1)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(initialProduct === undefined)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [rentalPeriod, setRentalPeriod] = useState<DateRange | undefined>()
   const [startTime, setStartTime] = useState('09:00')
@@ -96,6 +97,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
 
 
   useEffect(() => {
+    if (initialProduct !== undefined) return
     async function loadProduct() {
       const data = await getProductBySlug(slug, subcategory)
       if (!data) {
@@ -113,7 +115,7 @@ export default function ProductDetailPage({ params, breadcrumbItems }: ProductDe
       setLoading(false)
     }
     loadProduct()
-  }, [slug, subcategory])
+  }, [slug, subcategory, initialProduct])
 
   // Get total duration by summing ALL selected options durations
   const getTotalPrestationDuration = (): number => {

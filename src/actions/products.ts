@@ -2,6 +2,7 @@
 
 import type { Product } from '@/types'
 import { createClient } from '@supabase/supabase-js'
+import { cache } from 'react'
 
 function getSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -109,7 +110,7 @@ export async function getOeufsProducts(): Promise<Product[]> {
   return getProductsBySubcategory('oeufs', 'accessoires-personnalises')
 }
 
-export async function getProductBySlug(slug: string, subcategory?: string): Promise<Product | null> {
+export const getProductBySlug = cache(async function getProductBySlug(slug: string, subcategory?: string): Promise<Product | null> {
   try {
     const supabase = getSupabaseClient()
 
@@ -166,7 +167,7 @@ export async function getProductBySlug(slug: string, subcategory?: string): Prom
     console.error('Exception fetching product by slug:', err)
     return null
   }
-}
+})
 
 // Prestations henné
 export async function getHenneBoutiqueProducts(): Promise<Product[]> {

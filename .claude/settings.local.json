@@ -30,7 +30,12 @@
       "Bash(git commit -m \"$(cat <<''EOF''\nAdd maintenance mode feature\n\n- Create SQL setup for site_settings table\n- Add MaintenanceToggle component in admin dashboard\n- Update middleware to show maintenance page for non-admins\n- Admins can toggle maintenance mode and customize message\n- Maintenance page shown inline (no separate route)\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git commit:*)",
       "Bash(node:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(for f:*)",
+      "Bash(do)",
+      "Bash(echo \"=== $f ===\")",
+      "Read(//Users/mariamelechguy/Desktop/Karim/web/chb-creations/**)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []
