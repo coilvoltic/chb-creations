@@ -281,8 +281,8 @@ export default function ReservationDetailPage() {
     const edits: Record<string, string> = {}
 
     data.rental_reservations.flatMap(r => r.items).forEach(item => {
-      edits[`rental_${item.id}_start`] = toDateInputValue(item.rental_start)
-      edits[`rental_${item.id}_end`] = toDateInputValue(item.rental_end)
+      edits[`rental_${item.id}_start`] = toDatetimeLocalValue(item.rental_start)
+      edits[`rental_${item.id}_end`] = toDatetimeLocalValue(item.rental_end)
     })
 
     data.purchase_reservations.flatMap(p => p.items).forEach(item => {
@@ -319,15 +319,15 @@ export default function ReservationDetailPage() {
     data.rental_reservations.flatMap(r => r.items).forEach(item => {
       const start = dateEdits[`rental_${item.id}_start`]
       const end = dateEdits[`rental_${item.id}_end`]
-      const origStart = toDateInputValue(item.rental_start)
-      const origEnd = toDateInputValue(item.rental_end)
+      const origStart = toDatetimeLocalValue(item.rental_start)
+      const origEnd = toDatetimeLocalValue(item.rental_end)
 
       if (start !== origStart || end !== origEnd) {
         updates.push({
           table: 'rental_items',
           id: item.id,
-          rental_start: start,
-          rental_end: end,
+          rental_start: start ? new Date(start).toISOString() : undefined,
+          rental_end: end ? new Date(end).toISOString() : undefined,
         })
       }
     })
@@ -1066,9 +1066,9 @@ export default function ReservationDetailPage() {
                             <div className="space-y-1 text-sm text-stone-700">
                               <p>
                                 <span className="font-medium">Période :</span>{' '}
-                                <span className="inline-block">{formatDateOnly(item.rental_start)}</span>
+                                <span className="inline-block">{formatDate(item.rental_start)}</span>
                                 {' → '}
-                                <span className="inline-block">{formatDateOnly(item.rental_end)}</span>
+                                <span className="inline-block">{formatDate(item.rental_end)}</span>
                               </p>
                               <p>
                                 <span className="font-medium">Prix unitaire :</span> {(item.products.new_price ?? item.products.price).toFixed(2)} €
@@ -1483,11 +1483,11 @@ export default function ReservationDetailPage() {
                   {rentalItems.map((item) => (
                     <div key={item.id} className="space-y-2">
                       <p className="text-sm font-medium text-black">{item.products.name}</p>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3">
                         <div>
-                          <label className="block text-xs text-stone-500 mb-1">Début</label>
+                          <label className="block text-xs text-stone-500 mb-1">Début (date et heure)</label>
                           <input
-                            type="date"
+                            type="datetime-local"
                             value={dateEdits[`rental_${item.id}_start`] || ''}
                             onChange={(e) => {
                               const newStart = e.target.value
@@ -1499,7 +1499,7 @@ export default function ReservationDetailPage() {
                                   const diffMs = new Date(oldEnd).getTime() - new Date(oldStart).getTime()
                                   const newEnd = new Date(new Date(newStart).getTime() + diffMs)
                                   const pad = (n: number) => n.toString().padStart(2, '0')
-                                  next[`rental_${item.id}_end`] = `${newEnd.getFullYear()}-${pad(newEnd.getMonth() + 1)}-${pad(newEnd.getDate())}`
+                                  next[`rental_${item.id}_end`] = `${newEnd.getFullYear()}-${pad(newEnd.getMonth() + 1)}-${pad(newEnd.getDate())}T${pad(newEnd.getHours())}:${pad(newEnd.getMinutes())}`
                                 }
                                 return next
                               })
@@ -1509,9 +1509,9 @@ export default function ReservationDetailPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-stone-500 mb-1">Fin</label>
+                          <label className="block text-xs text-stone-500 mb-1">Fin (date et heure)</label>
                           <input
-                            type="date"
+                            type="datetime-local"
                             value={dateEdits[`rental_${item.id}_end`] || ''}
                             onChange={(e) => {
                               setDateEdits(prev => ({ ...prev, [`rental_${item.id}_end`]: e.target.value }))
