@@ -31,10 +31,27 @@ export default function AdminDashboardPage() {
   const [orders, setOrders] = useState<OrderWithReservations[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
-  const [searchQuery, setSearchQuery] = useState('')
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>(() => {
+    if (typeof window !== 'undefined') {
+      return (sessionStorage.getItem('dashboard_viewMode') as 'list' | 'calendar') || 'list'
+    }
+    return 'list'
+  })
+  const [searchQuery, setSearchQuery] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('dashboard_searchQuery') || ''
+    }
+    return ''
+  })
   const [allTags, setAllTags] = useState<Tag[]>([])
-  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return JSON.parse(sessionStorage.getItem('dashboard_selectedTagIds') || '[]')
+      } catch { return [] }
+    }
+    return []
+  })
   const [syncingCalendar, setSyncingCalendar] = useState(false)
   const [syncResult, setSyncResult] = useState<{ message: string; isError: boolean } | null>(null)
   const router = useRouter()
@@ -70,6 +87,34 @@ export default function AdminDashboardPage() {
     fetchTags()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Restaurer la position de scroll après le chargement
+  useEffect(() => {
+    if (!loading) {
+      const savedScroll = sessionStorage.getItem('dashboard_scrollY')
+      if (savedScroll) {
+        const y = parseInt(savedScroll, 10)
+        // Laisser le DOM se rendre avant de scroller
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: y, behavior: 'instant' })
+          sessionStorage.removeItem('dashboard_scrollY')
+        })
+      }
+    }
+  }, [loading])
+
+  // Persister viewMode, searchQuery, selectedTagIds dans sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem('dashboard_viewMode', viewMode)
+  }, [viewMode])
+
+  useEffect(() => {
+    sessionStorage.setItem('dashboard_searchQuery', searchQuery)
+  }, [searchQuery])
+
+  useEffect(() => {
+    sessionStorage.setItem('dashboard_selectedTagIds', JSON.stringify(selectedTagIds))
+  }, [selectedTagIds])
 
   const fetchTags = async () => {
     try {
@@ -367,7 +412,7 @@ export default function AdminDashboardPage() {
         ) : viewMode === 'calendar' ? (
           <ReservationCalendar
             orders={orders}
-            onOrderClick={(orderId) => router.push(`/admin/reservations/${orderId}`)}
+            onOrderClick={(orderId) => { sessionStorage.setItem('dashboard_scrollY', String(window.scrollY)); router.push(`/admin/reservations/${orderId}`) }}
           />
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
@@ -434,7 +479,7 @@ export default function AdminDashboardPage() {
                       <tr
                         key={order.id}
                         className="hover:bg-stone-50 cursor-pointer transition-colors"
-                        onClick={() => router.push(`/admin/reservations/${order.id}`)}
+                        onClick={() => { sessionStorage.setItem('dashboard_scrollY', String(window.scrollY)); router.push(`/admin/reservations/${order.id}`) }}
                       >
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-black tracking-wide">
                           {order.order_number}
@@ -501,6 +546,7 @@ export default function AdminDashboardPage() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
+                              sessionStorage.setItem('dashboard_scrollY', String(window.scrollY))
                               router.push(`/admin/reservations/${order.id}`)
                             }}
                             className="text-black hover:text-stone-600 font-medium"

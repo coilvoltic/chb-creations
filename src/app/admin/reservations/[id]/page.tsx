@@ -582,7 +582,7 @@ export default function ReservationDetailPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => router.push('/admin/dashboard')}
+                onClick={() => router.back()}
                 className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors"
                 title="Retour"
               >
