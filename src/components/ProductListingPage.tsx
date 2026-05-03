@@ -2,7 +2,7 @@ import Navbar from '@/components/Navbar'
 import Breadcrumb from '@/components/Breadcrumb'
 import Link from 'next/link'
 import Image from 'next/image'
-import type { Product } from '@/lib/supabase'
+import type { ProductListing } from '@/types'
 
 interface BreadcrumbItem {
   label: string
@@ -10,7 +10,7 @@ interface BreadcrumbItem {
 }
 
 interface ProductListingPageProps {
-  products: Product[]
+  products: ProductListing[]
   title: string
   description: string
   heroImage: string

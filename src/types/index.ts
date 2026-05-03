@@ -15,6 +15,7 @@ export type {
 
   // Products
   Product,
+  ProductListing,
   ProductOption,
   ProductOptionGroup,
   FAQItem,

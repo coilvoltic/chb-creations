@@ -1,6 +1,6 @@
 'use server'
 
-import type { Product } from '@/types'
+import type { Product, ProductListing } from '@/types'
 import { createClient } from '@supabase/supabase-js'
 import { cache } from 'react'
 
@@ -66,48 +66,84 @@ export async function getProductsBySubcategory(
   }
 }
 
-export async function getArtDeTableProducts(): Promise<Product[]> {
-  return getProductsBySubcategory('art-de-table', 'locations')
+/**
+ * Lightweight fetch for listing pages — only fields needed for product grids
+ * Avoids fetching heavy JSONB fields (description, options, faq, personalizations)
+ */
+export async function getProductsForListing(
+  subcategory: string,
+  category?: string
+): Promise<ProductListing[]> {
+  try {
+    const supabase = getSupabaseClient()
+
+    let query = supabase
+      .from('products')
+      .select('id, name, slug, price, new_price, images, is_out_of_stock, category, subcategory')
+      .eq('subcategory', subcategory)
+      .order('display_order', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true })
+
+    if (category) {
+      query = query.eq('category', category)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error(`Error fetching listing products for subcategory "${subcategory}":`, error.message)
+      return []
+    }
+
+    return (data as ProductListing[]) || []
+  } catch (err) {
+    console.error(`Exception fetching listing products for subcategory "${subcategory}":`, err)
+    return []
+  }
 }
 
-export async function getTronesProducts(): Promise<Product[]> {
-  return getProductsBySubcategory('trones', 'locations')
+export async function getArtDeTableProducts(): Promise<ProductListing[]> {
+  return getProductsForListing('art-de-table', 'locations')
 }
 
-export async function getDecoEtAccessoiresProducts(): Promise<Product[]> {
-  return getProductsBySubcategory('deco-et-accessoires', 'locations')
+export async function getTronesProducts(): Promise<ProductListing[]> {
+  return getProductsForListing('trones', 'locations')
 }
 
-export async function getBougiesProducts(): Promise<Product[]> {
-  return getProductsBySubcategory('bougies', 'accessoires-personnalises')
+export async function getDecoEtAccessoiresProducts(): Promise<ProductListing[]> {
+  return getProductsForListing('deco-et-accessoires', 'locations')
 }
 
-export async function getCertificatsMariageProducts(): Promise<Product[]> {
-  return getProductsBySubcategory('certificats-mariage', 'accessoires-personnalises')
+export async function getBougiesProducts(): Promise<ProductListing[]> {
+  return getProductsForListing('bougies', 'accessoires-personnalises')
 }
 
-export async function getCoussinsProducts(): Promise<Product[]> {
-  return getProductsBySubcategory('coussins', 'accessoires-personnalises')
+export async function getCertificatsMariageProducts(): Promise<ProductListing[]> {
+  return getProductsForListing('certificats-mariage', 'accessoires-personnalises')
 }
 
-export async function getTableauxProducts(): Promise<Product[]> {
-  return getProductsBySubcategory('tableaux', 'accessoires-personnalises')
+export async function getCoussinsProducts(): Promise<ProductListing[]> {
+  return getProductsForListing('coussins', 'accessoires-personnalises')
 }
 
-export async function getTextileProducts(): Promise<Product[]> {
-  return getProductsBySubcategory('textile', 'accessoires-personnalises')
+export async function getTableauxProducts(): Promise<ProductListing[]> {
+  return getProductsForListing('tableaux', 'accessoires-personnalises')
 }
 
-export async function getBendirProducts(): Promise<Product[]> {
-  return getProductsBySubcategory('bendir', 'accessoires-personnalises')
+export async function getTextileProducts(): Promise<ProductListing[]> {
+  return getProductsForListing('textile', 'accessoires-personnalises')
 }
 
-export async function getFairePartsProducts(): Promise<Product[]> {
-  return getProductsBySubcategory('faire-parts', 'accessoires-personnalises')
+export async function getBendirProducts(): Promise<ProductListing[]> {
+  return getProductsForListing('bendir', 'accessoires-personnalises')
 }
 
-export async function getOeufsProducts(): Promise<Product[]> {
-  return getProductsBySubcategory('oeufs', 'accessoires-personnalises')
+export async function getFairePartsProducts(): Promise<ProductListing[]> {
+  return getProductsForListing('faire-parts', 'accessoires-personnalises')
+}
+
+export async function getOeufsProducts(): Promise<ProductListing[]> {
+  return getProductsForListing('oeufs', 'accessoires-personnalises')
 }
 
 export const getProductBySlug = cache(async function getProductBySlug(slug: string, subcategory?: string): Promise<Product | null> {
@@ -170,10 +206,10 @@ export const getProductBySlug = cache(async function getProductBySlug(slug: stri
 })
 
 // Prestations henné
-export async function getHenneBoutiqueProducts(): Promise<Product[]> {
-  return getProductsBySubcategory('henne-boutique', 'prestations')
+export async function getHenneBoutiqueProducts(): Promise<ProductListing[]> {
+  return getProductsForListing('henne-boutique', 'prestations')
 }
 
-export async function getHenneDomicileProducts(): Promise<Product[]> {
-  return getProductsBySubcategory('henne-domicile', 'prestations')
+export async function getHenneDomicileProducts(): Promise<ProductListing[]> {
+  return getProductsForListing('henne-domicile', 'prestations')
 }

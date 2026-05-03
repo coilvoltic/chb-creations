@@ -91,6 +91,19 @@ export interface Product {
   display_order?: number | null
 }
 
+// Lightweight product type for listing pages (grids) — excludes heavy JSONB fields
+export interface ProductListing {
+  id: number
+  name: string
+  slug: string
+  price: number
+  new_price?: number
+  images: string[]
+  is_out_of_stock?: boolean
+  category: string
+  subcategory: string
+}
+
 // ==================== ORDERS & RESERVATIONS ====================
 
 // Customer Order (parent table)
