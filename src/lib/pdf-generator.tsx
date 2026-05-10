@@ -285,7 +285,7 @@ export const ReservationPDF: React.FC<{ reservation: ReservationData }> = ({ res
                     </Text>
                     <Text style={styles.col2}>{item.quantity}</Text>
                     <Text style={styles.col3}>
-                      {formatDate(item.rental_start)} - {formatDate(item.rental_end)}
+                      {`Retrait: ${formatDateTime(item.rental_start)}\nRetour: ${formatDateTime(item.rental_end)}`}
                     </Text>
                     <Text style={styles.col4}>{item.total_price.toFixed(2)} €</Text>
                   </View>
