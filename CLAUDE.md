@@ -157,6 +157,9 @@ This structure allows a single customer order to contain multiple types of reser
 - **SQL Functions**:
   - `get_product_unavailabilities(product_id)`: Computes product availability from `rental_items`
   - `update_past_reservations_to_done()`: Auto-updates rental status when rental period ends
+  - `get_all_prestation_unavailabilities()` ([supabase/migrations/get_all_prestation_unavailabilities.sql](supabase/migrations/get_all_prestation_unavailabilities.sql)): Returns every occupied time window (`prestation_start`/`prestation_end`, no `product_id` — every row blocks the whole henné schedule, never filtered per product) blocking henné prestation slots — confirmed/done `prestation_items` slots, **plus** a fixed 30-minute block for every confirmed/done rental's pickup (`rental_start`) and a fixed 30-minute block for its return (`rental_end`). This blocking applies regardless of the rental's delivery mode (pickup/delivery/relay_point) and regardless of item quantity — only the two 30-minute windows around `rental_start`/`rental_end` matter. Consumed client-side by `getAllPrestationUnavailabilities()` in [src/lib/supabase.ts](src/lib/supabase.ts) and used by `TimeSlotPickerFixed.tsx`, `TimePickerBoutique.tsx`, and the admin `/api/admin/items/check-availability` route.
+  - `is_prestation_slot_available(start, end)`: Boolean overlap check built on top of `get_all_prestation_unavailabilities()`, so it includes rental pickup/restitution blocking too.
+  - `get_all_location_unavailabilities()` ([supabase/migrations/get_all_location_unavailabilities.sql](supabase/migrations/get_all_location_unavailabilities.sql)): The reverse direction — returns `{window_start, window_end}` for every window that should block a **new rental's** pickup/return time: confirmed/done henné prestations, plus the pickup/return 30-minute blocks of every other confirmed/done rental. It's a thin passthrough wrapper around `get_all_prestation_unavailabilities()` (same underlying query, renamed columns) so both directions stay in sync automatically. Consumed client-side via `getAllLocationUnavailabilities()` in [src/lib/supabase.ts](src/lib/supabase.ts) by `DateRangePicker.tsx` (greys out conflicting retrait/dépôt time options), and server-side by `/api/reservations/create` and `/api/create-checkout-session` (reject with 409 before inserting `rental_items` if the requested pickup or return falls inside a blocked window). The overlap math (`findRentalTimeConflict`/`isRentalMomentBlocked`, 30-minute window per pickup/return) lives in [src/lib/reservation-utils.ts](src/lib/reservation-utils.ts) and is shared between client and server.
 - **RLS Policies**: See [src/lib/rls-policies.sql](src/lib/rls-policies.sql)
   - **Security model**: All order creation goes through API routes using service_role key (bypasses RLS safely)
   - `customer_orders`: Only accessible via service_role and authenticated users (admins)
@@ -270,9 +273,10 @@ Products can have optional configurations and financial requirements:
 - **Navbar.tsx**: Sticky navigation with mega menu dropdown for services
 - **Footer.tsx**: Site footer
 - **Breadcrumb.tsx**: Navigation breadcrumbs using lucide-react's ChevronRight icon
-- **DateRangePicker.tsx**: Rental period selector with unavailability checking and time selection
-- **PrestationDatePicker.tsx**: Single date picker for prestation services (henné)
-- **TimeSlotPicker.tsx**: Fixed time slot selector for prestations (3 slots: lunch, afternoon, evening)
+- **DateRangePicker.tsx**: Rental period selector — day-level unavailability from `get_product_unavailabilities` (stock), plus retrait/dépôt time selects that grey out times conflicting with `get_all_location_unavailabilities()` (confirmed prestations + other confirmed rentals' pickup/return blocks)
+- **PrestationDatePicker.tsx**: Single date picker for prestation services (henné) — only disables past dates, no slot-level availability logic
+- **TimeSlotPickerFixed.tsx**: Fixed time slot selector for "Henné à domicile" (3 slots: lunch, afternoon, evening); fetches `getAllPrestationUnavailabilities()` (prestations + rental pickup/restitution blocks) and disables conflicting slots
+- **TimePickerBoutique.tsx**: Free 5-minute-increment time picker for "Henné en boutique" within configured boutique hours; same availability source as `TimeSlotPickerFixed.tsx`
 - **SuccessModal.tsx**: Custom modal for reservation confirmation (replaces browser alerts)
 - **GoogleReviews.tsx**: Displays Google Business reviews
 - **AddressAutocomplete.tsx**: Google Places autocomplete for delivery addresses
@@ -292,17 +296,18 @@ Products can have optional configurations and financial requirements:
    - Sends confirmation email with PDF attachment
    - Uses service_role key to bypass RLS
    - Includes rollback on item creation failure
-   - Handles both cash and online payment methods
+   - Called by the cart page for the **cash payment path** (online payment goes through `/api/create-checkout-session` instead, see below — it does NOT call this route)
    - Sets reservation_status based on payment method and deposit amount
+   - For rental items: rejects (409) if a pickup/return time conflicts with `get_all_location_unavailabilities()` (see SQL Functions) before creating anything
 
 2. **`/api/process-payment`** (POST):
    - Processes Stripe payments for deposits
-   - Creates reservation after successful payment
-   - Updates reservation_status to 'CONFIRMED'
+   - Updates reservation_status to 'CONFIRMED' on the reservation already created by `/api/create-checkout-session`
    - Sends confirmation email with PDF
 
 3. **`/api/create-checkout-session`** (POST):
-   - Creates Stripe Checkout session for deposit payment
+   - Called by the cart page for the **online payment path**. Despite the name, it independently creates `customer_order` → `rental_reservation`/`purchase_reservation`/`prestation_reservation` → items (status `PENDING`) itself — a separate insertion path from `/api/reservations/create`, not a wrapper around it — before creating the Stripe Checkout session
+   - Same rental pickup/return conflict validation (409) as `/api/reservations/create`, since this is where rental_items actually get inserted for online payments
    - Returns session URL for redirect
 
 4. **`/api/calculate-delivery`** (POST):

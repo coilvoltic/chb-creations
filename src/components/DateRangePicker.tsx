@@ -2,7 +2,8 @@
 
 import { DayPicker, DateRange } from 'react-day-picker'
 import { fr } from 'date-fns/locale'
-import { UnavailabilityEntry } from '@/lib/supabase'
+import { UnavailabilityEntry, getAllLocationUnavailabilities } from '@/lib/supabase'
+import { isRentalMomentBlocked, TimeWindow } from '@/lib/reservation-utils'
 import { differenceInDays, eachDayOfInterval, format } from 'date-fns'
 import 'react-day-picker/style.css'
 import { useState, useEffect, useMemo } from 'react'
@@ -46,7 +47,81 @@ export default function DateRangePicker({
   const [infoMessage, setInfoMessage] = useState<string | null>(null)
   const [localStartTime, setLocalStartTime] = useState(startTime)
   const [localEndTime, setLocalEndTime] = useState(endTime)
+  const [blockedWindows, setBlockedWindows] = useState<TimeWindow[]>([])
   const timeOptions = useMemo(() => generateTimeOptions(), [])
+
+  // Charger les créneaux occupés (prestations confirmées + retrait/restitution d'autres locations confirmées)
+  useEffect(() => {
+    async function fetchBlockedWindows() {
+      const windows = await getAllLocationUnavailabilities()
+      setBlockedWindows(windows.map((w) => ({ start: w.window_start, end: w.window_end })))
+    }
+    fetchBlockedWindows()
+  }, [])
+
+  // Combine une date et une heure "HH:MM" en Date locale
+  const combineDateAndTime = (date: Date, time: string): Date => {
+    const [hours, minutes] = time.split(':').map(Number)
+    const combined = new Date(date)
+    combined.setHours(hours, minutes, 0, 0)
+    return combined
+  }
+
+  // Heures de retrait indisponibles pour le jour de début sélectionné
+  const blockedStartTimes = useMemo(() => {
+    if (!selectedRange?.from || blockedWindows.length === 0) return new Set<string>()
+    const blocked = new Set<string>()
+    for (const time of timeOptions) {
+      if (isRentalMomentBlocked(combineDateAndTime(selectedRange.from, time), blockedWindows)) {
+        blocked.add(time)
+      }
+    }
+    return blocked
+  }, [selectedRange?.from, blockedWindows, timeOptions])
+
+  // Heures de restitution indisponibles pour le jour de fin sélectionné
+  const blockedEndTimes = useMemo(() => {
+    if (!selectedRange?.to || blockedWindows.length === 0) return new Set<string>()
+    const blocked = new Set<string>()
+    for (const time of timeOptions) {
+      if (isRentalMomentBlocked(combineDateAndTime(selectedRange.to, time), blockedWindows)) {
+        blocked.add(time)
+      }
+    }
+    return blocked
+  }, [selectedRange?.to, blockedWindows, timeOptions])
+
+  // Repositionner automatiquement sur la première heure disponible si l'heure actuelle devient bloquée
+  useEffect(() => {
+    if (!selectedRange?.from || !selectedRange?.to) return
+
+    let nextStart = localStartTime
+    let nextEnd = localEndTime
+    let changed = false
+
+    if (blockedStartTimes.has(localStartTime)) {
+      const firstAvailable = timeOptions.find((t) => !blockedStartTimes.has(t))
+      if (firstAvailable) {
+        nextStart = firstAvailable
+        changed = true
+      }
+    }
+
+    if (blockedEndTimes.has(localEndTime)) {
+      const firstAvailable = timeOptions.find((t) => !blockedEndTimes.has(t))
+      if (firstAvailable) {
+        nextEnd = firstAvailable
+        changed = true
+      }
+    }
+
+    if (changed) {
+      setLocalStartTime(nextStart)
+      setLocalEndTime(nextEnd)
+      if (onTimeChange) onTimeChange(nextStart, nextEnd)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRange?.from, selectedRange?.to, blockedStartTimes, blockedEndTimes])
 
   // Calculate which dates are unavailable based on stock and requested quantity
   const disabledDatesSet = useMemo(() => new Set(
@@ -194,7 +269,9 @@ export default function DateRangePicker({
                 className="w-full max-w-full px-2 md:px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed"
               >
                 {timeOptions.map((time) => (
-                  <option key={time} value={time}>{time}</option>
+                  <option key={time} value={time} disabled={blockedStartTimes.has(time)}>
+                    {time}{blockedStartTimes.has(time) ? ' — indisponible' : ''}
+                  </option>
                 ))}
               </select>
             </div>
@@ -210,7 +287,9 @@ export default function DateRangePicker({
                 className="w-full max-w-full px-2 md:px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed"
               >
                 {timeOptions.map((time) => (
-                  <option key={time} value={time}>{time}</option>
+                  <option key={time} value={time} disabled={blockedEndTimes.has(time)}>
+                    {time}{blockedEndTimes.has(time) ? ' — indisponible' : ''}
+                  </option>
                 ))}
               </select>
             </div>

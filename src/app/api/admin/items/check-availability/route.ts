@@ -161,7 +161,7 @@ export async function POST(request: Request) {
         const newEnd = new Date(update.prestation_end!)
 
         // Vérifier le chevauchement avec les créneaux existants (sauf le créneau actuel)
-        const hasConflict = (allSlots as { product_id: number; prestation_start: string; prestation_end: string }[] || []).some(slot => {
+        const hasConflict = (allSlots as { prestation_start: string; prestation_end: string }[] || []).some(slot => {
           // Exclure le créneau actuel de cet item (mêmes dates = c'est nous)
           const slotStart = new Date(slot.prestation_start)
           const slotEnd = new Date(slot.prestation_end)

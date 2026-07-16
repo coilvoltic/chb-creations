@@ -47,9 +47,13 @@ export interface UnavailabilityEntry {
 }
 
 export interface PrestationUnavailableSlot {
-  product_id: number
   prestation_start: string // ISO timestamp
   prestation_end: string // ISO timestamp
+}
+
+export interface LocationUnavailableWindow {
+  window_start: string // ISO timestamp
+  window_end: string // ISO timestamp
 }
 
 export interface FAQItem {

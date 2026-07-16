@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import type {
   UnavailabilityEntry,
   PrestationUnavailableSlot,
+  LocationUnavailableWindow,
   PromotionalMessage,
   BoutiqueHoursDefault,
   BoutiqueHoursException,
@@ -20,6 +21,7 @@ export type {
   FAQItem,
   UnavailabilityEntry,
   PrestationUnavailableSlot,
+  LocationUnavailableWindow,
   ReservationStatus,
   CustomerInfo,
   CustomerOrder,
@@ -118,6 +120,21 @@ export async function getAllPrestationUnavailabilities(): Promise<PrestationUnav
   }
 
   return (data || []) as PrestationUnavailableSlot[]
+}
+
+// Helper function to get all time windows blocking rental pickup/return slots
+// (confirmed prestations + pickup/return blocks of other confirmed rentals)
+export async function getAllLocationUnavailabilities(): Promise<LocationUnavailableWindow[]> {
+  const supabase = getSupabaseClient()
+
+  const { data, error } = await supabase.rpc('get_all_location_unavailabilities')
+
+  if (error) {
+    console.error('Error fetching location unavailabilities:', error)
+    return []
+  }
+
+  return (data || []) as LocationUnavailableWindow[]
 }
 
 // Helper function to get boutique settings (hours default + exceptions)

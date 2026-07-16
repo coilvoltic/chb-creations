@@ -21,6 +21,7 @@ export type {
   FAQItem,
   UnavailabilityEntry,
   PrestationUnavailableSlot,
+  LocationUnavailableWindow,
 
   // Orders & Reservations
   CustomerOrder,

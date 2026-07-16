@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { generateReservationCode } from '@/lib/reservation-code'
-import { buildItemOptionsData } from '@/lib/reservation-utils'
+import { buildItemOptionsData, findRentalTimeConflict } from '@/lib/reservation-utils'
 import type { CartItemPayload } from '@/types'
 
 const supabase = createClient(
@@ -34,6 +34,42 @@ export async function POST(request: NextRequest) {
         { error: 'Le paiement en ligne n\'est pas configuré. Veuillez choisir le paiement en espèces.' },
         { status: 500 }
       )
+    }
+
+    // Vérifier que les retraits/restitutions de location demandés ne chevauchent pas un créneau
+    // déjà occupé (prestation henné confirmée, ou retrait/restitution d'une autre location confirmée)
+    const rentalItemsToValidate = (reservationData.items as CartItemPayload[]).filter(
+      (item: CartItemPayload) => item.category === 'locations'
+    )
+    if (rentalItemsToValidate.length > 0) {
+      const { data: blockedWindowsData, error: blockedWindowsError } = await supabase.rpc(
+        'get_all_location_unavailabilities'
+      )
+
+      if (blockedWindowsError) {
+        console.error('Erreur récupération créneaux occupés locations:', blockedWindowsError)
+        return NextResponse.json(
+          { error: 'Erreur lors de la vérification des disponibilités' },
+          { status: 500 }
+        )
+      }
+
+      const blockedWindows = (blockedWindowsData || []) as { window_start: string; window_end: string }[]
+      const windows = blockedWindows.map((w) => ({ start: w.window_start, end: w.window_end }))
+
+      for (const item of rentalItemsToValidate) {
+        const conflict = findRentalTimeConflict(item.rentalStart, item.rentalEnd, windows)
+        if (conflict) {
+          return NextResponse.json(
+            {
+              error: conflict === 'pickup'
+                ? `Le créneau de retrait pour "${item.productName}" n'est plus disponible. Veuillez choisir un autre horaire.`
+                : `Le créneau de restitution pour "${item.productName}" n'est plus disponible. Veuillez choisir un autre horaire.`,
+            },
+            { status: 409 }
+          )
+        }
+      }
     }
 
     // 1. Créer la réservation avec statut PENDING
