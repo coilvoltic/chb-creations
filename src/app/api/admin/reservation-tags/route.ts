@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { getAdminClient, unauthorizedResponse } from '@/lib/admin-auth'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -11,6 +12,8 @@ if (!supabaseUrl || !supabaseServiceRoleKey) {
 // POST /api/admin/reservation-tags - Associer un tag à une réservation
 export async function POST(request: NextRequest) {
   try {
+    if (!(await getAdminClient())) return unauthorizedResponse()
+
     const body = await request.json()
     const {
       tag_id,

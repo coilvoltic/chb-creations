@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { getAdminClient, unauthorizedResponse } from '@/lib/admin-auth'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -11,6 +12,8 @@ if (!supabaseUrl || !supabaseServiceRoleKey) {
 // DELETE /api/admin/reservation-tags/by-params - Supprimer l'association par paramètres
 export async function DELETE(request: NextRequest) {
   try {
+    if (!(await getAdminClient())) return unauthorizedResponse()
+
     const { searchParams } = new URL(request.url)
     const tagId = searchParams.get('tag_id')
     const reservationType = searchParams.get('reservation_type')

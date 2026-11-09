@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { getAdminClient, unauthorizedResponse } from '@/lib/admin-auth'
 
 interface ReorderItem {
   id: number
@@ -8,6 +9,8 @@ interface ReorderItem {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!(await getAdminClient())) return unauthorizedResponse()
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -15,14 +18,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Configuration Supabase manquante' },
         { status: 500 }
-      )
-    }
-
-    const authHeader = request.headers.get('cookie')
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Non autorisé' },
-        { status: 401 }
       )
     }
 

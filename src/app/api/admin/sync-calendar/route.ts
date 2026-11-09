@@ -28,6 +28,10 @@ export async function POST() {
   if (userError || !user) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
+  const { data: isAdmin } = await supabaseAdmin.rpc('is_admin', { user_email: user.email })
+  if (!isAdmin) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
 
   // Requêter directement les réservations CONFIRMED depuis chaque table,
   // puis regrouper par customer_order pour appeler syncCalendarForOrder.
