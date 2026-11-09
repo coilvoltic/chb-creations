@@ -364,14 +364,34 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Calculate subtotal (before promo code discount)
   const getSubtotal = (): number => {
+    // Les frais de livraison restent persistés dans localStorage même après suppression
+    // des articles d'une catégorie : on ne compte que les frais des catégories présentes
+    // dans le panier, avec une option de livraison active (même logique que l'affichage).
+    const rentalItems = getRentalItems()
+    const purchaseItems = getPurchaseItems()
+    const prestationItems = getPrestationItems()
+
+    const rentalFees = rentalItems.length > 0 && cart.rentalDelivery.option !== 'pickup'
+      ? (cart.rentalDelivery.fees || 0)
+      : 0
+    const purchaseFees = purchaseItems.length > 0 && cart.purchaseDelivery.option !== 'pickup'
+      ? (cart.purchaseDelivery.fees || 0)
+      : 0
+
     // En cas de mix boutique+domicile, on utilise les frais du domicile uniquement (la boutique n'a pas de frais)
-    const prestationFees = (cart.prestationDomicileDelivery?.fees || 0) > 0
-      ? (cart.prestationDomicileDelivery?.fees || 0)
-      : (cart.prestationDelivery.fees || 0)
-    return cart.totalPrice +
-           (cart.rentalDelivery.fees || 0) +
-           (cart.purchaseDelivery.fees || 0) +
-           prestationFees
+    const hasMixedPrestations =
+      prestationItems.some(item => item.subcategory === 'henne-boutique') &&
+      prestationItems.some(item => item.subcategory === 'henne-domicile')
+    let prestationFees = 0
+    if (prestationItems.length > 0) {
+      if (hasMixedPrestations) {
+        prestationFees = cart.prestationDomicileDelivery?.fees || 0
+      } else if (cart.prestationDelivery.option === 'delivery') {
+        prestationFees = cart.prestationDelivery.fees || 0
+      }
+    }
+
+    return cart.totalPrice + rentalFees + purchaseFees + prestationFees
   }
 
   // Calculate discount amount
